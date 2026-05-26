@@ -1,0 +1,29 @@
+# ===== Segredos — NUNCA commitar =====
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# ===== Config local de ferramentas =====
+.claude/
+.agent/
+
+# ===== Material de produção/rascunho (não vai para o site) =====
+producao/
+
+# ===== Dependências =====
+node_modules/
+
+# ===== Logs e temporários =====
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# ===== Sistema operacional / OneDrive / editores =====
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+.vscode/
+.idea/

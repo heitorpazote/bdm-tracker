@@ -1,0 +1,4005 @@
+<!DOCTYPE html>
+<html class="dark" lang="pt-BR">
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>BDM Tracker — Gestão de Investimentos</title>
+  <script src="https://cdn.tailwindcss.com?plugins=container-queries"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/schedule.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+    rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'surface': '#16130b', 'surface-dim': '#16130b', 'surface-bright': '#3d392f',
+            'surface-container-lowest': '#110e07', 'surface-container-low': '#1f1b13',
+            'surface-container': '#231f17', 'surface-container-high': '#2d2a21',
+            'surface-container-highest': '#38342b', 'on-surface': '#eae1d4',
+            'on-surface-variant': '#d0c5af', 'outline': '#99907c', 'outline-variant': '#4d4635',
+            'primary': '#f2ca50', 'on-primary': '#3c2f00', 'primary-container': '#d4af37',
+            'on-primary-container': '#554300', 'secondary': '#c7c6c4', 'on-secondary': '#303130',
+            'secondary-container': '#464746', 'error': '#ffb4ab', 'error-container': '#93000a',
+            'background': '#16130b', 'on-background': '#eae1d4',
+          },
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+        }
+      }
+    }
+  </script>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box
+    }
+
+    body {
+      background-color: #09090b;
+      color: #eae1d4;
+      font-family: 'Inter', sans-serif
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #09090b
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #3f3f46;
+      border-radius: 2px
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #52525b
+    }
+
+    .glass-panel {
+      background: rgba(24, 24, 27, .6);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(229, 228, 226, .1)
+    }
+
+    .glass-modal {
+      background: rgba(18, 18, 20, .9);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(229, 228, 226, .2);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, .8)
+    }
+
+    .premium-card {
+      background-color: #18181b;
+      border: 1px solid rgba(229, 228, 226, .1)
+    }
+
+    .gold-glow {
+      box-shadow: 0 0 20px rgba(212, 175, 55, .15)
+    }
+
+    .gold-glow:hover {
+      box-shadow: 0 0 30px rgba(212, 175, 55, .3)
+    }
+
+    .glow-card {
+      box-shadow: 0 0 40px rgba(212, 175, 55, .08)
+    }
+
+    /* Calendar */
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 1px;
+      background: rgba(229, 228, 226, .06)
+    }
+
+    .cal-cell {
+      background: #18181b;
+      min-height: 88px;
+      padding: .5rem;
+      position: relative;
+      transition: background .15s;
+      cursor: pointer;
+      overflow: hidden
+    }
+
+    .cal-cell:hover {
+      background: rgba(212, 175, 55, .06)
+    }
+
+    .cal-cell.is-today {
+      background: rgba(242, 202, 80, .08)
+    }
+
+    .cal-cell.is-active {
+      background: rgba(212, 175, 55, .12);
+      outline: 1px solid rgba(212, 175, 55, .4)
+    }
+
+    .cal-cell.other-month {
+      opacity: .35
+    }
+
+    @media(max-width:768px) {
+      .cal-cell {
+        min-height: 52px;
+        padding: .3rem
+      }
+    }
+
+    .profit-dot {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #D4AF37
+    }
+
+    .profit-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      opacity: .85
+    }
+
+    .cal-label {
+      position: absolute;
+      bottom: 5px;
+      left: 4px;
+      right: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      color: #f2ca50;
+      text-align: right;
+      line-height: 1
+    }
+
+    @media(max-width:640px) {
+      .cal-label {
+        display: none
+      }
+    }
+
+    /* Range sliders */
+    input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+      background: transparent
+    }
+
+    input[type=range]::-webkit-slider-runnable-track {
+      height: 4px;
+      border-radius: 2px;
+      background: linear-gradient(to right, #d4af37 var(--pct, 0%), #4d4635 var(--pct, 0%))
+    }
+
+    input[type=range]::-moz-range-track {
+      height: 4px;
+      border-radius: 2px;
+      background: #4d4635
+    }
+
+    input[type=range]::-moz-range-progress {
+      height: 4px;
+      background: #d4af37;
+      border-radius: 2px
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 20px;
+      width: 20px;
+      border-radius: 50%;
+      background: #e3e2e0;
+      cursor: pointer;
+      border: 2.5px solid #09090b;
+      box-shadow: 0 0 8px rgba(212, 175, 55, .35);
+      margin-top: -8px
+    }
+
+    input[type=range]::-moz-range-thumb {
+      height: 20px;
+      width: 20px;
+      border-radius: 50%;
+      background: #e3e2e0;
+      border: 2.5px solid #09090b;
+      box-shadow: 0 0 8px rgba(212, 175, 55, .35)
+    }
+
+    /* Form controls */
+    .fi {
+      background: #1a1710 !important;
+      border: 1px solid rgba(229, 228, 226, .14) !important;
+      color: #eae1d4 !important;
+      border-radius: .625rem !important;
+      padding: .6rem .875rem;
+      width: 100%;
+      font-size: 14px;
+      outline: none !important;
+      box-shadow: none;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+      -webkit-text-fill-color: #eae1d4 !important;
+      appearance: none;
+      -webkit-appearance: none
+    }
+
+    .fi:hover {
+      border-color: rgba(229, 228, 226, .26) !important;
+      background: #1f1c13 !important
+    }
+
+    .fi:focus {
+      border-color: #f2ca50 !important;
+      box-shadow: 0 0 0 2px rgba(242, 202, 80, .18) !important;
+      background: rgba(242, 202, 80, .04) !important;
+      -webkit-text-fill-color: #eae1d4 !important
+    }
+
+    .fi::placeholder {
+      color: rgba(234, 225, 212, .28) !important;
+      -webkit-text-fill-color: rgba(234, 225, 212, .28) !important
+    }
+
+    .fi option {
+      background: #231f17 !important;
+      color: #eae1d4 !important
+    }
+
+    select.fi {
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24'%3E%3Cpath stroke='%23d0c5af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right .6rem center;
+      background-size: 1.1em;
+      padding-right: 2.2rem
+    }
+
+    .fi:-webkit-autofill,
+    .fi:-webkit-autofill:hover,
+    .fi:-webkit-autofill:focus {
+      -webkit-text-fill-color: #eae1d4 !important;
+      -webkit-box-shadow: 0 0 0 1000px #1a1710 inset !important;
+      border-color: rgba(229, 228, 226, .14) !important
+    }
+
+    input[type=date].fi,
+    input[type=number].fi {
+      color-scheme: dark
+    }
+
+    /* Remove browser number input arrows for cleaner look */
+    input[type=number].fi::-webkit-inner-spin-button,
+    input[type=number].fi::-webkit-outer-spin-button {
+      opacity: 0.3
+    }
+
+    /* Toggle */
+    .tog input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute
+    }
+
+    .tog {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      cursor: pointer
+    }
+
+    .tog-track {
+      width: 44px;
+      height: 24px;
+      background: #3f3f46;
+      border-radius: 9999px;
+      transition: background .2s;
+      position: relative;
+      flex-shrink: 0
+    }
+
+    .tog input:checked+.tog-track {
+      background: #d4af37
+    }
+
+    .tog-thumb {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      transition: transform .2s;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .4)
+    }
+
+    .tog input:checked~.tog-thumb {
+      transform: translateX(20px)
+    }
+
+    /* Nav */
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #c7c6c4;
+      transition: all .2s;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      width: 100%;
+      text-align: left
+    }
+
+    .nav-btn:hover {
+      color: #eae1d4;
+      background: rgba(255, 255, 255, .05)
+    }
+
+    .nav-btn.active {
+      color: #f2ca50;
+      background: rgba(242, 202, 80, .1)
+    }
+
+    .nav-btn .icon {
+      font-size: 20px;
+      flex-shrink: 0
+    }
+
+    /* Screen transitions */
+    .screen {
+      display: none
+    }
+
+    .screen.active {
+      display: block
+    }
+
+    /* Toast */
+    #toast {
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all .3s ease;
+      pointer-events: none
+    }
+
+    #toast.show {
+      transform: translateY(0);
+      opacity: 1
+    }
+
+    /* Insight cards */
+    .insight-badge {
+      border-radius: .5rem;
+      padding: .75rem 1rem;
+      display: flex;
+      align-items: flex-start;
+      gap: .75rem;
+      font-size: 13px;
+      line-height: 1.5
+    }
+
+    .insight-badge.warn {
+      background: rgba(255, 180, 0, .08);
+      border: 1px solid rgba(255, 180, 0, .2);
+      color: #ffd87d
+    }
+
+    .insight-badge.info {
+      background: rgba(99, 179, 237, .08);
+      border: 1px solid rgba(99, 179, 237, .2);
+      color: #90cdf4
+    }
+
+    .insight-badge.success {
+      background: rgba(72, 187, 120, .08);
+      border: 1px solid rgba(72, 187, 120, .2);
+      color: #9ae6b4
+    }
+
+    /* Year view */
+    .mini-cal {}
+
+    .mini-cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 1px
+    }
+
+    .mini-cell {
+      aspect-ratio: 1;
+      background: #18181b;
+      border-radius: 2px;
+      position: relative;
+      cursor: pointer;
+      transition: background .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 22px
+    }
+
+    .mini-cell.has-event::after {
+      content: '';
+      position: absolute;
+      bottom: 1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: #D4AF37
+    }
+
+    .mini-cell:hover {
+      background: rgba(212, 175, 55, .1)
+    }
+
+    .mini-cell.is-today {
+      background: rgba(242, 202, 80, .15)
+    }
+
+    .hero-value {
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      line-height: 1;
+      letter-spacing: -0.03em;
+      font-weight: 700
+    }
+
+    .ranking-bar {
+      height: 4px;
+      border-radius: 2px;
+      background: linear-gradient(to right, #d4af37, #f2ca50);
+      transition: width .5s ease
+    }
+
+    /* Maturity marker */
+    .cal-cell.has-maturity {
+      outline: 1px solid rgba(255, 100, 80, .35)
+    }
+
+    .maturity-flag {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 14px;
+      height: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center
+    }
+
+    /* Investment expand */
+    .txn-row {
+      cursor: pointer;
+      transition: background .15s
+    }
+
+    .txn-row:hover {
+      background: rgba(255, 255, 255, .04)
+    }
+
+    .txn-details {
+      overflow: hidden;
+      transition: max-height .25s ease
+    }
+
+    /* Milestone progress */
+    .milestone-track {
+      height: 6px;
+      background: #231f17;
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative
+    }
+
+    .milestone-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(to right, #d4af37, #f2ca50);
+      transition: width .8s ease;
+      position: relative
+    }
+
+    .milestone-fill::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 8px;
+      background: rgba(255, 255, 255, .3);
+      filter: blur(2px);
+      border-radius: 3px
+    }
+
+    /* ===== AUTH SCREEN ===== */
+    #screen-auth {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(ellipse at 60% 20%, rgba(212,175,55,.08) 0%, transparent 60%),
+                  radial-gradient(ellipse at 20% 80%, rgba(242,202,80,.05) 0%, transparent 50%),
+                  #09090b;
+      padding: 1rem;
+    }
+
+    #screen-auth.hidden { display: none; }
+
+    .auth-card {
+      width: 100%;
+      max-width: 420px;
+      background: rgba(18, 18, 20, .92);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(229, 228, 226, .12);
+      border-radius: 1.5rem;
+      box-shadow: 0 32px 80px -12px rgba(0,0,0,.9), 0 0 0 1px rgba(212,175,55,.06);
+      padding: 2.5rem 2rem;
+    }
+
+    .auth-tab {
+      flex: 1;
+      padding: .6rem 1rem;
+      border-radius: .75rem;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+      color: #99907c;
+      border: none;
+      background: transparent;
+    }
+
+    .auth-tab.active {
+      background: rgba(242,202,80,.12);
+      color: #f2ca50;
+      box-shadow: 0 0 0 1px rgba(242,202,80,.2);
+    }
+
+    .auth-error {
+      background: rgba(147,0,10,.2);
+      border: 1px solid rgba(255,180,171,.2);
+      color: #ffb4ab;
+      border-radius: .75rem;
+      padding: .75rem 1rem;
+      font-size: 13px;
+      display: none;
+    }
+
+    .auth-error.visible { display: block; }
+
+    .auth-submit-btn {
+      width: 100%;
+      padding: .875rem;
+      border-radius: .875rem;
+      background: linear-gradient(135deg, #d4af37, #f2ca50);
+      color: #1a1000;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: .01em;
+      border: none;
+      cursor: pointer;
+      transition: all .2s;
+      box-shadow: 0 4px 20px rgba(212,175,55,.3);
+    }
+
+    .auth-submit-btn:hover {
+      box-shadow: 0 6px 28px rgba(212,175,55,.45);
+      transform: translateY(-1px);
+    }
+
+    .auth-submit-btn:active { transform: translateY(0); }
+
+    .auth-submit-btn:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* AI Chat Screen */
+    #screen-ai.active {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 8rem);
+    }
+    @media(min-width:768px) {
+      #screen-ai.active { height: 100vh; }
+    }
+
+    .ai-chat-messages { overscroll-behavior: contain }
+
+    .ai-msg {
+      display: flex;
+      align-items: flex-start;
+      gap: .75rem;
+      max-width: 86%;
+    }
+    .ai-msg.from-user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+      max-width: 80%;
+    }
+
+    .ai-msg-avatar {
+      width: 2rem;
+      height: 2rem;
+      border-radius: .625rem;
+      background: rgba(242,202,80,.07);
+      border: 1px solid rgba(242,202,80,.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .ai-msg-bubble {
+      padding: .625rem .875rem;
+      border-radius: .25rem .875rem .875rem .875rem;
+      background: #1e1b13;
+      border: 1px solid rgba(229,228,226,.08);
+      word-break: break-word;
+      min-width: 0;
+    }
+    .ai-msg.from-user .ai-msg-bubble {
+      background: rgba(242,202,80,.09);
+      border-color: rgba(242,202,80,.2);
+      border-radius: .875rem .25rem .875rem .875rem;
+    }
+
+    .ai-action-card {
+      background: #1a1710;
+      border: 1px solid rgba(242,202,80,.22);
+      border-radius: .875rem;
+      padding: 1rem;
+      min-width: 240px;
+    }
+
+    .typing-indicator { display:flex; align-items:center; gap:4px; padding:.2rem 0 }
+    .typing-dot {
+      width:6px; height:6px; border-radius:50%;
+      background:rgba(242,202,80,.5);
+      animation: dotBounce 1.2s infinite ease-in-out;
+    }
+    .typing-dot:nth-child(2) { animation-delay:.2s }
+    .typing-dot:nth-child(3) { animation-delay:.4s }
+    @keyframes dotBounce {
+      0%,80%,100% { transform:translateY(0); opacity:.4 }
+      40%          { transform:translateY(-5px); opacity:1 }
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col md:flex-row antialiased overflow-x-hidden">
+
+  <!-- ===================================================================
+       AUTH SCREEN — Login / Signup
+       =================================================================== -->
+  <div id="screen-auth">
+    <div class="auth-card">
+      <!-- Logo -->
+      <div class="text-center mb-7">
+        <div class="text-2xl font-bold text-primary tracking-tight mb-0.5">BDM Tracker</div>
+        <div class="text-[10px] font-semibold text-secondary/50 tracking-[.14em] uppercase">Institutional Grade</div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="flex gap-1 p-1 rounded-xl bg-surface-container/60 mb-6">
+        <button id="auth-tab-login" class="auth-tab active" onclick="switchAuthTab('login')">Entrar</button>
+        <button id="auth-tab-signup" class="auth-tab" onclick="switchAuthTab('signup')">Criar Conta</button>
+      </div>
+
+      <!-- Form -->
+      <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="flex flex-col gap-4">
+        <div>
+          <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">E-mail</label>
+          <input type="email" id="auth-email" class="fi" placeholder="seu@email.com" required autocomplete="email" />
+        </div>
+
+        <div>
+          <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Senha</label>
+          <div class="relative">
+            <input type="password" id="auth-password" class="fi pr-10" placeholder="Mínimo 8 caracteres" required autocomplete="current-password" minlength="8" />
+            <button type="button" onclick="toggleAuthPasswordVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-secondary/40 hover:text-secondary transition-colors">
+              <span id="auth-pw-icon" class="material-symbols-outlined text-[18px]" style="font-variation-settings:'wght' 300">visibility</span>
+            </button>
+          </div>
+          <p id="auth-pw-hint" class="text-[10px] text-secondary/40 mt-1 hidden">A senha deve ter no mínimo 8 caracteres.</p>
+        </div>
+
+        <!-- Remember me -->
+        <div class="flex items-center gap-3">
+          <label class="tog">
+            <input type="checkbox" id="auth-remember" />
+            <div class="tog-track"></div>
+            <div class="tog-thumb"></div>
+          </label>
+          <span class="text-xs text-secondary/70">Lembrar senha neste dispositivo</span>
+        </div>
+
+        <!-- Error -->
+        <div id="auth-error" class="auth-error"></div>
+
+        <button type="submit" id="auth-submit-btn" class="auth-submit-btn mt-1">
+          <span id="auth-submit-label">Entrar</span>
+        </button>
+      </form>
+
+      <p class="text-center text-[11px] text-secondary/30 mt-5">
+        Seus dados ficam protegidos na nuvem e sincronizados entre dispositivos.
+      </p>
+    </div>
+  </div>
+
+  <!-- ===== MOBILE TOP BAR ===== -->
+  <nav
+    class="md:hidden fixed top-0 w-full z-50 h-16 flex items-center justify-between px-4 bg-[#09090b]/90 backdrop-blur-xl border-b border-white/8">
+    <div
+      class="text-lg font-bold bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent tracking-tight">
+      BDM Tracker</div>
+    <div class="flex items-center gap-3">
+      <button onclick="openBDMModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-panel">
+        <span class="text-xs font-semibold text-secondary">BDM</span>
+        <span id="bdm-rate-mobile" class="text-sm font-bold text-primary tabular-nums">—</span>
+      </button>
+      <button onclick="signOut()" title="Sair" class="w-8 h-8 rounded-full glass-panel flex items-center justify-center text-secondary/50 hover:text-error transition-colors">
+        <span class="material-symbols-outlined text-[17px]" style="font-variation-settings:'wght' 300">logout</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ===== MOBILE BOTTOM BAR ===== -->
+  <nav class="md:hidden fixed bottom-0 w-full z-50 h-16 flex items-center px-0 bg-[#09090b]/90 backdrop-blur-xl border-t border-white/8">
+    <button onclick="navigate('calendar')" data-screen="calendar"
+      class="mobile-nav flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-all">
+      <span class="material-symbols-outlined text-[20px]" style="font-variation-settings:'wght' 300">calendar_month</span>
+      <span class="text-[9px] font-semibold tracking-wide">CAL</span>
+    </button>
+    <button onclick="navigate('insights')" data-screen="insights"
+      class="mobile-nav flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-all">
+      <span class="material-symbols-outlined text-[20px]" style="font-variation-settings:'wght' 300">insights</span>
+      <span class="text-[9px] font-semibold tracking-wide">INSIGHTS</span>
+    </button>
+    <button onclick="navigate('calculator')" data-screen="calculator"
+      class="mobile-nav flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-all">
+      <span class="material-symbols-outlined text-[20px]" style="font-variation-settings:'wght' 300">calculate</span>
+      <span class="text-[9px] font-semibold tracking-wide">CALC</span>
+    </button>
+    <!-- Centro: botão + flutuante, sem label para não empurrar o layout -->
+    <button onclick="openAddModal()"
+      class="flex-1 flex flex-col items-center justify-center py-2 transition-all" style="color:#c7c6c4">
+      <span class="w-10 h-10 rounded-full bg-primary flex items-center justify-center gold-glow shadow-lg" style="margin-top:-14px">
+        <span class="material-symbols-outlined text-on-primary text-[20px]" style="font-variation-settings:'wght' 400">add</span>
+      </span>
+    </button>
+    <button onclick="navigate('ai')" data-screen="ai"
+      class="mobile-nav flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-all">
+      <span class="material-symbols-outlined text-[20px]" style="font-variation-settings:'wght' 300">smart_toy</span>
+      <span class="text-[9px] font-semibold tracking-wide">IA</span>
+    </button>
+    <button onclick="openCategoryModal()"
+      class="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-all" style="color:#c7c6c4">
+      <span class="material-symbols-outlined text-[20px]" style="font-variation-settings:'wght' 300">label</span>
+      <span class="text-[9px] font-semibold tracking-wide">CATEG.</span>
+    </button>
+  </nav>
+
+  <!-- ===== DESKTOP SIDEBAR ===== -->
+  <aside
+    class="hidden md:flex flex-col fixed left-0 top-0 h-screen w-60 border-r border-white/6 py-7 px-3 z-40 bg-[#0d0d10]">
+    <div class="mb-8 px-3">
+      <div class="text-xl font-bold text-primary tracking-tight">BDM Tracker</div>
+      <div class="text-[10px] font-semibold text-secondary/60 tracking-[.12em] uppercase mt-0.5">Institutional Grade
+      </div>
+    </div>
+
+    <nav class="flex-1 flex flex-col gap-1">
+      <button onclick="navigate('calendar')" class="nav-btn active" id="nav-calendar">
+        <span class="material-symbols-outlined icon" style="font-variation-settings:'wght' 300">calendar_month</span>
+        <span>Calendário</span>
+      </button>
+      <button onclick="navigate('insights')" class="nav-btn" id="nav-insights">
+        <span class="material-symbols-outlined icon" style="font-variation-settings:'wght' 300">insights</span>
+        <span>Insights</span>
+      </button>
+      <button onclick="navigate('calculator')" class="nav-btn" id="nav-calculator">
+        <span class="material-symbols-outlined icon" style="font-variation-settings:'wght' 300">calculate</span>
+        <span>Calculadora</span>
+      </button>
+      <button onclick="navigate('ai')" class="nav-btn" id="nav-ai">
+        <span class="material-symbols-outlined icon" style="font-variation-settings:'FILL' 0;'wght' 300">smart_toy</span>
+        <span>Agente IA</span>
+      </button>
+      <div class="border-t border-white/6 my-3"></div>
+      <button onclick="openCategoryModal()" class="nav-btn">
+        <span class="material-symbols-outlined icon" style="font-variation-settings:'wght' 300">label</span>
+        <span>Categorias</span>
+      </button>
+    </nav>
+
+    <!-- BDM Rate widget -->
+    <button onclick="openBDMModal()"
+      class="mx-1 mb-4 p-4 rounded-xl glass-panel text-left hover:border-primary/30 transition-colors group">
+      <div class="text-[10px] font-semibold tracking-[.1em] uppercase text-secondary/70 mb-1">Cotação BDM</div>
+      <div id="bdm-rate-sidebar" class="text-xl font-bold text-primary tabular-nums">—</div>
+      <div class="text-[11px] text-secondary/50 mt-0.5">Clique para atualizar</div>
+    </button>
+
+    <!-- Add Investment button -->
+    <button onclick="openAddModal()"
+      class="mx-1 mb-2 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-primary/10 border border-primary/20 text-primary font-semibold text-sm hover:bg-primary/15 transition-all gold-glow">
+      <span class="material-symbols-outlined text-[18px]" style="font-variation-settings:'wght' 400">add_circle</span>
+      Novo Investimento
+    </button>
+
+    <!-- User + Logout -->
+    <div class="mx-1 flex items-center gap-2 px-3 py-2.5 rounded-xl border border-white/6">
+      <span class="material-symbols-outlined text-[16px] text-secondary/40" style="font-variation-settings:'wght' 300">person</span>
+      <span id="sidebar-user-email" class="text-[11px] text-secondary/50 flex-1 truncate">—</span>
+      <button onclick="signOut()" title="Sair" class="text-secondary/30 hover:text-error transition-colors flex-shrink-0">
+        <span class="material-symbols-outlined text-[16px]" style="font-variation-settings:'wght' 300">logout</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="flex-1 md:ml-60 mt-16 md:mt-0 mb-16 md:mb-0 min-h-screen">
+
+    <!-- ============================================================
+       SCREEN: CALENDÁRIO
+       ============================================================ -->
+    <div id="screen-calendar" class="screen active">
+      <div class="flex h-full">
+        <!-- Calendar Column -->
+        <div class="flex-1 p-4 md:p-8 min-w-0">
+          <!-- Header -->
+          <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
+            <div class="flex items-center gap-3 flex-1">
+              <button onclick="prevPeriod()"
+                class="w-9 h-9 rounded-lg premium-card flex items-center justify-center text-secondary hover:text-primary transition-colors">
+                <span class="material-symbols-outlined text-[20px]"
+                  style="font-variation-settings:'wght' 300">chevron_left</span>
+              </button>
+              <div>
+                <h1 id="cal-title" class="text-xl md:text-2xl font-semibold text-on-surface leading-tight">Maio 2026
+                </h1>
+                <p class="text-xs text-secondary mt-0.5">Visão geral de rendimentos</p>
+              </div>
+              <button onclick="nextPeriod()"
+                class="w-9 h-9 rounded-lg premium-card flex items-center justify-center text-secondary hover:text-primary transition-colors">
+                <span class="material-symbols-outlined text-[20px]"
+                  style="font-variation-settings:'wght' 300">chevron_right</span>
+              </button>
+            </div>
+            <!-- View toggle -->
+            <div
+              class="flex bg-surface-container rounded-lg p-1 border border-outline-variant/30 self-start sm:self-auto">
+              <button onclick="setView('year')" id="btn-year"
+                class="cal-view-btn px-3 py-1.5 rounded-md text-[11px] font-semibold tracking-wide text-secondary transition-all">ANO</button>
+              <button onclick="setView('month')" id="btn-month"
+                class="cal-view-btn px-3 py-1.5 rounded-md text-[11px] font-semibold tracking-wide bg-surface text-on-surface shadow-sm border border-outline-variant/40 transition-all">MÊS</button>
+              <button onclick="setView('day')" id="btn-day"
+                class="cal-view-btn px-3 py-1.5 rounded-md text-[11px] font-semibold tracking-wide text-secondary transition-all">AGENDA</button>
+            </div>
+            <label class="flex items-center gap-2 self-start sm:self-auto premium-card rounded-lg px-3 py-1.5">
+              <span class="text-[11px] font-semibold tracking-wide uppercase text-secondary/70">Reinvestimento</span>
+              <span class="tog">
+                <input type="checkbox" id="reinvest-calendar-toggle" checked onchange="toggleReinvestCalendar(this.checked)" />
+                <span class="tog-track"></span>
+                <span class="tog-thumb"></span>
+              </span>
+            </label>
+          </div>
+
+          <!-- Period Total Banner (Mês/Ano views) -->
+          <div id="period-total-banner" class="hidden premium-card rounded-xl p-4 flex items-center justify-between border border-primary/20 bg-primary/5 gold-glow mb-5">
+            <div class="flex items-center gap-2.5">
+              <span class="material-symbols-outlined text-primary text-[20px]" style="font-variation-settings:'wght' 300">payments</span>
+              <div>
+                <p id="period-total-label" class="text-[10px] font-semibold tracking-[.1em] uppercase text-on-surface-variant">Total a Receber</p>
+                <p id="period-total-sublabel" class="text-[11px] text-secondary/60 mt-0.5"></p>
+              </div>
+            </div>
+            <div class="text-right">
+              <p id="period-total-value" class="text-xl font-bold text-primary tabular-nums">R$ 0,00</p>
+              <p id="period-total-bdm" class="text-[11px] text-secondary/60 mt-0.5"></p>
+            </div>
+          </div>
+
+          <!-- ---- MONTH VIEW ---- -->
+          <div id="view-month" class="cal-view">
+            <div class="glass-panel rounded-xl overflow-hidden">
+              <div class="grid grid-cols-7 border-b border-outline-variant/20">
+                <div class="py-2.5 text-center text-[10px] font-semibold tracking-widest text-secondary bg-[#18181b]">
+                  DOM</div>
+                <div class="py-2.5 text-center text-[10px] font-semibold tracking-widest text-secondary bg-[#18181b]">
+                  SEG</div>
+                <div class="py-2.5 text-center text-[10px] font-semibold tracking-widest text-secondary bg-[#18181b]">
+                  TER</div>
+                <div class="py-2.5 text-center text-[10px] font-semibold tracking-widest text-secondary bg-[#18181b]">
+                  QUA</div>
+                <div class="py-2.5 text-center text-[10px] font-semibold tracking-widest text-secondary bg-[#18181b]">
+                  QUI</div>
+                <div class="py-2.5 text-center text-[10px] font-semibold tracking-widest text-secondary bg-[#18181b]">
+                  SEX</div>
+                <div class="py-2.5 text-center text-[10px] font-semibold tracking-widest text-secondary bg-[#18181b]">
+                  SÁB</div>
+              </div>
+              <div id="month-grid" class="cal-grid"></div>
+            </div>
+            <!-- Legend -->
+            <div class="flex gap-5 mt-3 px-1 flex-wrap">
+              <div class="flex items-center gap-1.5">
+                <div class="w-3 h-3 rounded-full bg-primary/80"></div><span
+                  class="text-[11px] text-secondary">Rendimento</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <div class="w-4 h-1.5 rounded-sm bg-primary/70"></div><span class="text-[11px] text-secondary">Alto
+                  volume (&gt;1 BDM)</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <div class="w-3 h-3 rounded border border-red-400/50"></div><span
+                  class="text-[11px] text-secondary">Vencimento</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ---- YEAR VIEW ---- -->
+          <div id="view-year" class="cal-view hidden">
+            <div id="year-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+          </div>
+
+          <!-- ---- AGENDA VIEW ---- -->
+          <div id="view-day" class="cal-view hidden">
+            <div id="agenda-list" class="flex flex-col gap-3"></div>
+          </div>
+        </div>
+
+        <!-- Detail Panel (Desktop) -->
+        <aside id="detail-panel"
+          class="hidden lg:flex w-72 xl:w-80 flex-col p-5 xl:p-6 border-l border-white/6 sticky top-0 h-screen overflow-y-auto bg-[#0d0d10]">
+          <div class="text-[10px] font-semibold tracking-[.12em] uppercase text-secondary/60 mb-4">Detalhes do Dia</div>
+          <div id="detail-content">
+            <div class="text-center py-16 text-secondary/40">
+              <span class="material-symbols-outlined text-[48px] block mb-3"
+                style="font-variation-settings:'wght' 200">calendar_today</span>
+              <p class="text-sm">Selecione um dia no calendário para ver os detalhes.</p>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- ============================================================
+       SCREEN: INSIGHTS
+       ============================================================ -->
+    <div id="screen-insights" class="screen">
+      <div class="p-4 md:p-8 max-w-[1200px]">
+        <div class="mb-7 flex flex-col sm:flex-row sm:items-start gap-4">
+          <div class="flex-1">
+            <h1 class="text-2xl md:text-3xl font-semibold text-on-surface tracking-tight">Portfolio Insights</h1>
+            <div class="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/10 text-primary border border-primary/20">
+              <span class="material-symbols-outlined text-[14px]">info</span>
+              <span id="reinvest-notice-text" class="text-[10px] font-semibold uppercase tracking-wider">Cálculos consideram reinvestimento no vencimento</span>
+            </div>
+            <p class="text-sm text-secondary mt-1">Analytics avançado e projeções patrimoniais</p>
+          </div>
+          <div class="premium-card rounded-xl p-4 flex flex-col gap-3 min-w-[240px]">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/60">Inflação IPCA</span>
+              <label class="tog">
+                <input type="checkbox" id="ipca-toggle" checked onchange="toggleIPCA(this.checked)" />
+                <div class="tog-track"></div>
+                <div class="tog-thumb"></div>
+              </label>
+            </div>
+            <div id="ipca-input-row" class="flex items-center gap-2">
+              <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 whitespace-nowrap">Taxa
+                a.a. (%)</label>
+              <input type="number" id="ipca-input" value="5.0" min="0" max="100" step="0.1"
+                class="fi flex-1 text-center" oninput="updateIPCA(this.value)" />
+            </div>
+            <p id="ipca-status-label" class="text-[10px] text-secondary/50">Considerando inflação na projeção
+              patrimonial</p>
+            <div class="flex items-center justify-between border-t border-white/5 pt-3 mt-1">
+              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/60">Considerar Reinvestimento</span>
+              <label class="tog">
+                <input type="checkbox" id="reinvest-insights-toggle" checked onchange="toggleReinvestInsights(this.checked)" />
+                <div class="tog-track"></div>
+                <div class="tog-thumb"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div class="premium-card rounded-xl p-5 relative overflow-hidden group">
+            <div
+              class="absolute -right-8 -top-8 w-32 h-32 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors duration-500">
+            </div>
+            <div class="flex justify-between items-start mb-3 z-10 relative">
+              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/70">Patrimônio
+                Investido</span>
+              <span class="material-symbols-outlined text-primary text-[20px]"
+                style="font-variation-settings:'wght' 300">account_balance</span>
+            </div>
+            <div class="z-10 relative">
+              <div id="kpi-patrimony" class="text-2xl font-bold text-on-surface tabular-nums">R$ 0,00</div>
+              <div id="kpi-patrimony-bdm" class="text-xs text-primary mt-1 tabular-nums font-medium">— BDM</div>
+            </div>
+          </div>
+          <div class="premium-card rounded-xl p-5">
+            <div class="flex justify-between items-start mb-3">
+              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/70">Lucro Mensal
+                Est.</span>
+              <span class="material-symbols-outlined text-secondary/60 text-[20px]"
+                style="font-variation-settings:'wght' 300">monetization_on</span>
+            </div>
+            <div id="kpi-monthly" class="text-2xl font-bold text-on-surface tabular-nums">R$ 0,00</div>
+            <div id="kpi-monthly-pct" class="text-xs text-secondary/60 mt-1 tabular-nums">Yield médio: 0,00% a.m.</div>
+          </div>
+          <div class="premium-card rounded-xl p-5">
+            <div class="flex justify-between items-start mb-3">
+              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/70">Rentabilidade</span>
+              <span class="material-symbols-outlined text-secondary/60 text-[20px]"
+                style="font-variation-settings:'wght' 300">percent</span>
+            </div>
+            <div id="kpi-real-yield" class="text-2xl font-bold text-on-surface tabular-nums">0,00%</div>
+            <div id="kpi-real-yield-label" class="text-xs text-secondary/60 mt-1 tabular-nums">Nominal a.a.</div>
+            <div class="w-full bg-surface-container-highest rounded-full h-1.5 mt-2">
+              <div id="kpi-ipca-bar" class="h-1.5 rounded-full transition-all duration-700"
+                style="width:0%;background:#D4AF37"></div>
+            </div>
+            <div id="kpi-real-gain-row" class="hidden mt-2">
+              <div class="flex justify-between text-[10px] text-secondary/50">
+                <span>Ganho real (descontado IPCA)</span>
+                <span id="kpi-real-gain" class="font-semibold">0,00%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
+          <!-- Donut chart -->
+          <div class="premium-card rounded-xl p-5 lg:col-span-2">
+            <h3 class="text-sm font-semibold text-on-surface mb-4">Distribuição da Carteira</h3>
+            <div id="donut-empty" class="flex-col items-center justify-center py-10 text-secondary/40"
+              style="display:none">
+              <span class="material-symbols-outlined text-[40px] mb-2"
+                style="font-variation-settings:'wght' 200">pie_chart</span>
+              <p class="text-xs text-center">Adicione investimentos para ver a distribuição</p>
+            </div>
+            <div id="donut-wrap" class="relative flex items-center justify-center" style="height:200px">
+              <canvas id="donut-chart"></canvas>
+              <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span class="text-[10px] text-secondary/60 font-medium uppercase tracking-wider">Total</span>
+                <span id="donut-center" class="text-sm font-bold text-on-surface mt-0.5">100%</span>
+              </div>
+            </div>
+            <div id="donut-legend" class="flex flex-col gap-2 mt-4"></div>
+          </div>
+
+          <!-- Line chart -->
+          <div class="premium-card rounded-xl p-5 lg:col-span-3">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-sm font-semibold text-on-surface">Projeção Patrimonial</h3>
+                <span class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[9px] font-semibold tracking-wide bg-primary/10 text-primary border border-primary/20">
+                  <span class="material-symbols-outlined text-[11px]" style="font-variation-settings:'FILL' 1,'wght' 400">autorenew</span>
+                  Reinvestimento automático ao vencimento
+                </span>
+              </div>
+              <div class="flex gap-1 text-[11px]">
+                <button onclick="setProjectionYears(2)"
+                  class="proj-btn px-2 py-0.5 rounded text-secondary/60 hover:text-secondary" data-years="2">2a</button>
+                <button onclick="setProjectionYears(5)" class="proj-btn px-2 py-0.5 rounded bg-primary/10 text-primary"
+                  data-years="5">5a</button>
+                <button onclick="setProjectionYears(10)"
+                  class="proj-btn px-2 py-0.5 rounded text-secondary/60 hover:text-secondary"
+                  data-years="10">10a</button>
+                <button onclick="setProjectionYears(20)"
+                  class="proj-btn px-2 py-0.5 rounded text-secondary/60 hover:text-secondary"
+                  data-years="20">20a</button>
+                <button onclick="setProjectionYears(30)"
+                  class="proj-btn px-2 py-0.5 rounded text-secondary/60 hover:text-secondary"
+                  data-years="30">30a</button>
+              </div>
+            </div>
+            <div id="line-empty" class="flex-col items-center justify-center py-10 text-secondary/40"
+              style="display:none">
+              <span class="material-symbols-outlined text-[40px] mb-2"
+                style="font-variation-settings:'wght' 200">show_chart</span>
+              <p class="text-xs">Adicione investimentos para ver as projeções</p>
+            </div>
+            <div id="line-wrap" style="height:200px">
+              <canvas id="line-chart"></canvas>
+            </div>
+            <p class="text-[10px] text-secondary/50 mt-2">Os valores em reais já descontam o deságio de 10% que a plataforma cobra no saque do lucro. Valores exibidos em BDM mostram o lucro cheio.</p>
+          </div>
+        </div>
+
+        <!-- Rankings + Milestones + Insights -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <!-- Ranking -->
+          <div class="premium-card rounded-xl p-5">
+            <h3 class="text-sm font-semibold text-on-surface mb-4">Ranking de Rentabilidade</h3>
+            <div id="ranking-list">
+              <div class="text-center py-8 text-secondary/40">
+                <span class="material-symbols-outlined text-[36px] mb-2 block"
+                  style="font-variation-settings:'wght' 200">leaderboard</span>
+                <p class="text-xs">Nenhum investimento cadastrado</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Milestones + Insights -->
+          <div class="flex flex-col gap-4">
+            <!-- Milestones -->
+            <div class="premium-card rounded-xl p-5">
+              <div class="mb-4">
+                <h3 class="text-sm font-semibold text-on-surface">Projeção de Marcos</h3>
+                <p class="text-[10px] text-secondary/50 mt-0.5">Taxa atual composta com reinvestimento automático</p>
+              </div>
+              <div class="flex flex-col gap-5">
+                <div>
+                  <div class="flex justify-between items-start mb-1">
+                    <span class="text-[11px] uppercase font-semibold tracking-wide text-secondary/70">Quando vou me
+                      tornar milionário?</span>
+                    <span id="milestone-1m" class="text-[11px] font-bold text-primary text-right ml-2">—</span>
+                  </div>
+                  <div id="milestone-1m-date" class="text-[10px] text-secondary/50 mb-1.5"></div>
+                  <div class="milestone-track">
+                    <div id="bar-1m" class="milestone-fill" style="width:0%"></div>
+                  </div>
+                  <div class="flex justify-between mt-1"><span class="text-[9px] text-secondary/30">Meta: R$
+                      1.000.000</span><span id="milestone-1m-pct" class="text-[9px] text-secondary/30">0%</span></div>
+                </div>
+                <div>
+                  <div class="flex justify-between items-start mb-1">
+                    <span class="text-[11px] uppercase font-semibold tracking-wide text-secondary/70">Quando vou me
+                      tornar bilionário?</span>
+                    <span id="milestone-1b" class="text-[11px] font-bold text-primary/60 text-right ml-2">—</span>
+                  </div>
+                  <div id="milestone-1b-date" class="text-[10px] text-secondary/50 mb-1.5"></div>
+                  <div class="milestone-track">
+                    <div id="bar-1b" class="milestone-fill" style="width:0%;opacity:.6"></div>
+                  </div>
+                  <div class="flex justify-between mt-1"><span class="text-[9px] text-secondary/30">Meta: R$
+                      1.000.000.000</span><span id="milestone-1b-pct" class="text-[9px] text-secondary/30">0%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Dynamic Insights -->
+            <div class="premium-card rounded-xl p-5">
+              <h3 class="text-sm font-semibold text-on-surface mb-4">Insights Automáticos</h3>
+              <div id="dynamic-insights" class="flex flex-col gap-2">
+                <p class="text-xs text-secondary/50 text-center py-4">Insights aparecem automaticamente conforme você
+                  cadastra investimentos.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+       SCREEN: CALCULADORA
+       ============================================================ -->
+    <div id="screen-calculator" class="screen">
+      <div class="p-4 md:p-8 max-w-[1200px]">
+        <div class="mb-8">
+          <h1 class="text-2xl md:text-[2.75rem] font-bold text-on-surface tracking-tight leading-tight">Projeção de
+            Wealth</h1>
+          <p class="text-sm md:text-base text-on-surface-variant mt-2 max-w-xl">Simule o crescimento do seu capital.
+            Ajuste os parâmetros e veja o resultado em tempo real.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- Params -->
+          <div class="lg:col-span-5">
+            <div class="glass-panel rounded-xl p-6 md:p-8 flex flex-col gap-8">
+              <h2 class="flex items-center gap-2 text-base font-semibold text-on-surface">
+                <span class="material-symbols-outlined text-primary text-[20px]"
+                  style="font-variation-settings:'wght' 300">tune</span>
+                Parâmetros
+              </h2>
+
+              <!-- Capital Investido -->
+              <div>
+                <div class="flex justify-between items-end mb-3">
+                  <label class="text-[10px] font-semibold tracking-[.1em] uppercase text-on-surface-variant">Capital
+                    Investido</label>
+                  <span id="calc-amount-display" class="text-lg font-bold text-primary tabular-nums">R$ 10.000,00</span>
+                </div>
+                <input type="range" id="calc-amount" min="1000" max="1000000" step="1000" value="10000" class="w-full"
+                  oninput="onSliderChange(this,'calc-amount-input')" />
+                <div class="flex justify-between mt-1.5 text-[10px] text-outline-variant">
+                  <span>R$ 1k</span><span>R$ 1M</span>
+                </div>
+                <input type="number" id="calc-amount-input" class="fi mt-2 text-center text-sm w-full" value="10000" placeholder="Digite o valor (R$)" oninput="syncCalcInput('calc-amount-input','calc-amount')" onblur="clampCalcInput('calc-amount-input','calc-amount',0)" />
+              </div>
+
+              <!-- Lucro por Período -->
+              <div>
+                <div class="flex justify-between items-end mb-3">
+                  <label class="text-[10px] font-semibold tracking-[.1em] uppercase text-on-surface-variant">Lucro por
+                    Período (%)</label>
+                  <span id="calc-rate-display" class="text-lg font-bold text-primary tabular-nums">10,0%</span>
+                </div>
+                <input type="range" id="calc-rate" min="0" max="50" step="0.25" value="10" class="w-full"
+                  oninput="onSliderChange(this,'calc-rate-input')" />
+                <div class="flex justify-between mt-1.5 text-[10px] text-outline-variant">
+                  <span>0%</span><span>50%</span>
+                </div>
+                <input type="number" id="calc-rate-input" class="fi mt-2 text-center text-sm w-full" value="10" placeholder="Taxa por Período (%)" oninput="syncCalcInput('calc-rate-input','calc-rate')" onblur="clampCalcInput('calc-rate-input','calc-rate',0)" />
+              </div>
+
+              <!-- Frequência de Lucro -->
+              <div>
+                <label class="text-[10px] font-semibold tracking-[.1em] uppercase text-on-surface-variant block mb-2">Frequência de Lucro</label>
+                <select id="calc-frequency" class="fi" onchange="toggleCalcFreq(this); updateCalc()">
+                  <option value="monthly">Mensal (1 mês)</option>
+                  <option value="bimonthly">Bimestral (2 meses)</option>
+                  <option value="quarterly">Trimestral (3 meses)</option>
+                  <option value="semiannual">Semestral (6 meses)</option>
+                  <option value="at_maturity">No Vencimento</option>
+                  <option value="custom">Personalizado</option>
+                </select>
+                <div id="calc-custom-freq-wrap" class="hidden mt-2">
+                  <input type="number" id="calc-custom-freq-months" class="fi" placeholder="Período em meses" min="1" step="1" oninput="updateCalc()" />
+                </div>
+              </div>
+
+              <!-- Duração -->
+              <div>
+                <div class="flex justify-between items-end mb-3">
+                  <label class="text-[10px] font-semibold tracking-[.1em] uppercase text-on-surface-variant">Duração
+                    (meses)</label>
+                  <span id="calc-months-display" class="text-lg font-bold text-primary tabular-nums">12 meses</span>
+                </div>
+                <input type="range" id="calc-months" min="1" max="360" step="1" value="12" class="w-full"
+                  oninput="onSliderChange(this,'calc-months-input')" />
+                <div class="flex justify-between mt-1.5 text-[10px] text-outline-variant">
+                  <span>1 mês</span><span>360 meses</span>
+                </div>
+                <input type="number" id="calc-months-input" class="fi mt-2 text-center text-sm w-full" value="12" placeholder="Meses" oninput="syncCalcInput('calc-months-input','calc-months')" onblur="clampCalcInput('calc-months-input','calc-months',1)" />
+              </div>
+
+              <!-- Aportes Mensais -->
+              <div>
+                <div class="flex justify-between items-end mb-3">
+                  <label class="text-[10px] font-semibold tracking-[.1em] uppercase text-on-surface-variant">Aportes
+                    Mensais</label>
+                  <span id="calc-monthly-display" class="text-lg font-bold text-primary tabular-nums">R$ 0,00</span>
+                </div>
+                <input type="range" id="calc-monthly" min="0" max="50000" step="500" value="0" class="w-full"
+                  oninput="onSliderChange(this,'calc-monthly-input')" />
+                <div class="flex justify-between mt-1.5 text-[10px] text-outline-variant">
+                  <span>R$ 0</span><span>R$ 50k</span>
+                </div>
+                <input type="number" id="calc-monthly-input" class="fi mt-2 text-center text-sm w-full" value="0" placeholder="Aporte mensal (R$)" oninput="syncCalcInput('calc-monthly-input','calc-monthly')" onblur="clampCalcInput('calc-monthly-input','calc-monthly',0)" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Results -->
+          <div class="lg:col-span-7">
+            <div
+              class="glass-panel rounded-xl p-6 md:p-10 flex flex-col justify-center relative overflow-hidden glow-card h-full">
+              <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none"></div>
+              <div class="relative z-10">
+                <p class="text-[10px] font-semibold tracking-[.12em] uppercase text-on-surface-variant mb-3">Valor Final
+                  Projetado</p>
+                <div class="mb-8">
+                  <span id="calc-result" class="hero-value text-primary font-bold tabular-nums">R$ 0,00</span>
+                  <div id="calc-result-bdm" class="text-base text-secondary mt-2 tabular-nums font-medium">— BDM</div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6 border-t border-white/8 pt-6 mb-6">
+                  <div>
+                    <p class="text-[10px] font-semibold tracking-wider uppercase text-on-surface-variant mb-1">Lucro
+                      Bruto</p>
+                    <p id="calc-profit" class="text-xl font-bold text-secondary tabular-nums">+ R$ 0,00</p>
+                  </div>
+                  <div>
+                    <p class="text-[10px] font-semibold tracking-wider uppercase text-on-surface-variant mb-1">
+                      Multiplicador</p>
+                    <p id="calc-multiplier" class="text-xl font-bold text-secondary tabular-nums">1.0x</p>
+                  </div>
+                  <div>
+                    <p id="calc-real-label" class="text-[10px] font-semibold tracking-wider uppercase text-on-surface-variant mb-1">Ganho Real (s/ IPCA)</p>
+                    <p id="calc-real-profit" class="text-xl font-bold text-secondary tabular-nums">+ R$ 0,00</p>
+                  </div>
+                  <div>
+                    <p class="text-[10px] font-semibold tracking-wider uppercase text-on-surface-variant mb-1">Total
+                      Aportado</p>
+                    <p id="calc-total-invested" class="text-xl font-bold text-secondary tabular-nums">R$ 0,00</p>
+                  </div>
+                </div>
+
+                <!-- Mini chart -->
+                <div style="height:140px">
+                  <canvas id="calc-chart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+       SCREEN: AGENTE IA
+       ============================================================ -->
+    <div id="screen-ai" class="screen">
+
+      <!-- Header -->
+      <div class="px-4 md:px-8 py-4 border-b border-white/8 flex items-center justify-between flex-shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+            <span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings:'FILL' 1;'wght' 400">smart_toy</span>
+          </div>
+          <div>
+            <h1 class="text-base font-semibold text-on-surface leading-tight">Agente IA</h1>
+            <p class="text-[11px] text-secondary/50 mt-px">Analista financeiro especializado em BDM</p>
+          </div>
+        </div>
+        <button onclick="clearAIChat()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-secondary/50 hover:text-on-surface hover:bg-white/5 transition-colors text-[11px] font-medium">
+          <span class="material-symbols-outlined text-[14px]" style="font-variation-settings:'wght' 300">delete_sweep</span>
+          Limpar
+        </button>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="px-4 md:px-8 py-2.5 flex gap-2 overflow-x-auto flex-shrink-0 border-b border-white/6" style="scrollbar-width:none">
+        <button onclick="aiAnalyzePortfolio()" class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-primary/25 bg-primary/5 text-primary text-[11px] font-semibold hover:bg-primary/10 transition-colors">
+          <span class="material-symbols-outlined text-[14px]" style="font-variation-settings:'wght' 300">analytics</span>
+          Analisar Carteira
+        </button>
+        <button onclick="aiAskQuickAction('Qual dos meus investimentos possui o melhor ROI real considerando o IPCA atual?')" class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-outline-variant/40 text-secondary/70 text-[11px] font-medium hover:bg-white/5 transition-colors">
+          <span class="material-symbols-outlined text-[14px]" style="font-variation-settings:'wght' 300">trending_up</span>
+          Melhor ROI
+        </button>
+        <button onclick="aiAskQuickAction('Há concentração de risco excessiva na minha carteira? O que devo diversificar?')" class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-outline-variant/40 text-secondary/70 text-[11px] font-medium hover:bg-white/5 transition-colors">
+          <span class="material-symbols-outlined text-[14px]" style="font-variation-settings:'wght' 300">shield</span>
+          Risco
+        </button>
+        <button onclick="aiAskQuickAction('Me ajude a marcar um novo investimento no sistema. Pergunte os dados necessários.')" class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-outline-variant/40 text-secondary/70 text-[11px] font-medium hover:bg-white/5 transition-colors">
+          <span class="material-symbols-outlined text-[14px]" style="font-variation-settings:'wght' 300">add_circle</span>
+          Novo Aporte
+        </button>
+      </div>
+
+      <!-- Messages -->
+      <div id="ai-messages" class="ai-chat-messages flex-1 overflow-y-auto px-4 md:px-8 py-5 flex flex-col gap-4">
+        <div class="ai-msg from-ai">
+          <div class="ai-msg-avatar">
+            <span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings:'FILL' 1">smart_toy</span>
+          </div>
+          <div class="ai-msg-bubble">
+            <p class="text-sm leading-relaxed">Sou seu analista financeiro do BDM Tracker. Posso avaliar sua carteira, calcular ROI real, identificar riscos e registrar investimentos direto no calendário.<br><br>O que deseja analisar?</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div class="px-4 md:px-8 py-4 border-t border-white/8 flex-shrink-0">
+        <div class="flex gap-2.5 items-end">
+          <textarea id="ai-input" class="fi flex-1 resize-none min-h-[44px] max-h-32 py-2.5 text-sm leading-relaxed" rows="1"
+            placeholder="Pergunte sobre seus investimentos ou descreva um novo aporte..."
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIMessage()}"
+            oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,128)+'px'"></textarea>
+          <button onclick="sendAIMessage()" id="ai-send-btn"
+            class="w-11 h-11 flex-shrink-0 rounded-xl bg-primary flex items-center justify-center text-on-primary gold-glow hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+            <span class="material-symbols-outlined text-[18px]" style="font-variation-settings:'wght' 400">send</span>
+          </button>
+        </div>
+        <p class="text-[10px] text-secondary/25 mt-2 text-center">Dados da carteira são enviados ao modelo · Enter para enviar · Shift+Enter para nova linha</p>
+      </div>
+
+    </div>
+
+  </main><!-- end main -->
+
+
+  <!-- ===================================================================
+     MODAL: ADD / EDIT INVESTMENT
+     =================================================================== -->
+  <div id="modal-investment" class="fixed inset-0 z-[100] items-end sm:items-center justify-center p-0 sm:p-4"
+    style="display:none">
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeInvestmentModal()"></div>
+    <div class="glass-modal rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto relative z-10">
+      <div class="p-6 border-b border-white/8 flex items-center justify-between">
+        <h2 id="modal-inv-title" class="text-base font-semibold text-on-surface">Novo Investimento</h2>
+        <button onclick="closeInvestmentModal()"
+          class="w-8 h-8 rounded-lg flex items-center justify-center text-secondary hover:text-on-surface hover:bg-white/5 transition-colors">
+          <span class="material-symbols-outlined text-[18px]" style="font-variation-settings:'wght' 300">close</span>
+        </button>
+      </div>
+      <form id="form-investment" onsubmit="saveInvestment(event)" class="p-6 flex flex-col gap-5">
+        <input type="hidden" id="inv-edit-id" />
+
+        <div>
+          <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Nome do
+            Investimento *</label>
+          <input type="text" id="inv-name" class="fi" placeholder="Ex: CDB Banco XYZ" required />
+        </div>
+
+        <div>
+          <label
+            class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Categoria</label>
+          <select id="inv-category" class="fi">
+            <option value="">— Sem Categoria —</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Capital
+              Investido (R$) *</label>
+            <input type="number" id="inv-principal" class="fi" placeholder="0,00" min="0.01" step="0.01" required />
+          </div>
+          <div>
+            <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Lucro por
+              Período (%) *</label>
+            <input type="number" id="inv-profit-pct" class="fi" placeholder="0,00" min="0.01" step="0.01" required />
+          </div>
+        </div>
+
+        <div>
+          <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Data de
+            Início *</label>
+          <input type="date" id="inv-start-date" class="fi" required />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Frequência
+              de Lucro *</label>
+            <select id="inv-frequency" class="fi" required onchange="toggleCustomFreq(this)">
+              <option value="monthly">Mensal (1 mês)</option>
+              <option value="bimonthly">Bimestral (2 meses)</option>
+              <option value="quarterly">Trimestral (3 meses)</option>
+              <option value="semiannual">Semestral (6 meses)</option>
+              <option value="at_maturity">No Vencimento</option>
+              <option value="custom">Personalizado</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Duração
+              (meses) *</label>
+            <input type="number" id="inv-duration" class="fi" placeholder="12" min="1" step="1" required />
+          </div>
+        </div>
+
+        <div id="inv-custom-freq-wrap" class="hidden">
+          <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Período
+            Personalizado (meses) *</label>
+          <input type="number" id="inv-custom-freq-months" class="fi" placeholder="Ex: 4 (a cada 4 meses)" min="1"
+            step="1" />
+          <p class="text-[10px] text-secondary/50 mt-1">Defina o intervalo em meses entre cada pagamento de lucro.</p>
+        </div>
+
+        <div
+          class="flex items-center justify-between p-4 rounded-xl bg-surface-container border border-outline-variant/20">
+          <div>
+            <div class="text-sm font-medium text-on-surface">Exibir em BDM</div>
+            <div class="text-xs text-secondary/60 mt-0.5">Mostra o lucro convertido em BDM</div>
+          </div>
+          <label class="tog">
+            <input type="checkbox" id="inv-show-bdm" />
+            <div class="tog-track"></div>
+            <div class="tog-thumb"></div>
+          </label>
+        </div>
+
+        <div id="inv-error"
+          class="hidden text-xs text-error bg-error-container/30 border border-error/30 rounded-lg px-4 py-3"></div>
+
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="closeInvestmentModal()"
+            class="flex-1 py-3 rounded-xl border border-outline-variant/40 text-secondary text-sm font-medium hover:bg-white/5 transition-colors">Cancelar</button>
+          <button type="submit"
+            class="flex-1 py-3 rounded-xl bg-primary text-on-primary text-sm font-bold gold-glow transition-all active:scale-[.98]">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ===================================================================
+     MODAL: CATEGORIES
+     =================================================================== -->
+  <div id="modal-category" class="fixed inset-0 z-[100] items-end sm:items-center justify-center p-0 sm:p-4"
+    style="display:none">
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeCategoryModal()"></div>
+    <div class="glass-modal rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md relative z-10">
+      <div class="p-6 border-b border-white/8 flex items-center justify-between">
+        <h2 class="text-base font-semibold text-on-surface">Gerenciar Categorias</h2>
+        <button onclick="closeCategoryModal()"
+          class="w-8 h-8 rounded-lg flex items-center justify-center text-secondary hover:text-on-surface hover:bg-white/5 transition-colors">
+          <span class="material-symbols-outlined text-[18px]" style="font-variation-settings:'wght' 300">close</span>
+        </button>
+      </div>
+      <div class="p-6 flex flex-col gap-5">
+        <!-- Existing categories -->
+        <div>
+          <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-2">Categorias
+            Existentes</label>
+          <div id="category-list" class="flex flex-col gap-2 mb-4">
+            <p class="text-xs text-secondary/40 py-2">Nenhuma categoria criada.</p>
+          </div>
+        </div>
+        <!-- New category form -->
+        <div class="border-t border-white/8 pt-5">
+          <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-3">Nova
+            Categoria</label>
+          <div class="flex gap-3">
+            <input type="text" id="cat-name" class="fi flex-1" placeholder="Nome da categoria" />
+            <input type="color" id="cat-color" value="#D4AF37"
+              class="w-10 h-10 rounded-lg cursor-pointer border border-outline-variant/40 bg-surface-container p-1" />
+          </div>
+          <button onclick="saveCategory()"
+            class="w-full mt-3 py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-sm font-semibold hover:bg-primary/15 transition-all">
+            Adicionar Categoria
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===================================================================
+     MODAL: BDM RATE
+     =================================================================== -->
+  <div id="modal-bdm" class="fixed inset-0 z-[100] items-end sm:items-center justify-center p-0 sm:p-4"
+    style="display:none">
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeBDMModal()"></div>
+    <div class="glass-modal rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm relative z-10 p-6">
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="text-base font-semibold text-on-surface">Atualizar Cotação BDM</h2>
+        <button onclick="closeBDMModal()"
+          class="w-8 h-8 rounded-lg flex items-center justify-center text-secondary hover:text-on-surface hover:bg-white/5 transition-colors">
+          <span class="material-symbols-outlined text-[18px]" style="font-variation-settings:'wght' 300">close</span>
+        </button>
+      </div>
+      <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-2">1 BDM = R$</label>
+      <input type="number" id="bdm-rate-input" class="fi text-xl font-bold tabular-nums" placeholder="0,00" min="0.01"
+        step="0.01" />
+      <p class="text-xs text-secondary/50 mt-2">Esta cotação será usada para converter todos os rendimentos para BDM.
+      </p>
+      <div class="flex gap-3 mt-5">
+        <button onclick="closeBDMModal()"
+          class="flex-1 py-2.5 rounded-xl border border-outline-variant/40 text-secondary text-sm font-medium hover:bg-white/5 transition-colors">Cancelar</button>
+        <button onclick="saveBDMRate()"
+          class="flex-1 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-bold gold-glow transition-all">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===================================================================
+     MODAL: DAY DETAIL (Mobile)
+     =================================================================== -->
+  <div id="modal-day" class="fixed inset-0 z-[100] items-end justify-center" style="display:none">
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeDayModal()"></div>
+    <div class="glass-modal rounded-t-2xl w-full max-h-[75vh] overflow-y-auto relative z-10 p-6">
+      <div class="flex items-center justify-between mb-5">
+        <h2 id="day-modal-title" class="text-base font-semibold text-on-surface">Detalhes do Dia</h2>
+        <button onclick="closeDayModal()"
+          class="w-8 h-8 rounded-lg flex items-center justify-center text-secondary hover:text-on-surface hover:bg-white/5 transition-colors">
+          <span class="material-symbols-outlined text-[18px]" style="font-variation-settings:'wght' 300">close</span>
+        </button>
+      </div>
+      <div id="day-modal-content"></div>
+    </div>
+  </div>
+
+
+  <!-- ===================================================================
+     TOAST NOTIFICATION
+     =================================================================== -->
+  <div id="toast"
+    class="fixed bottom-20 md:bottom-5 left-1/2 -translate-x-1/2 z-[200] px-4 py-3 rounded-xl glass-modal flex items-center gap-3 min-w-64 shadow-xl">
+    <span id="toast-icon" class="material-symbols-outlined text-[18px]"
+      style="font-variation-settings:'FILL' 1">check_circle</span>
+    <span id="toast-msg" class="text-sm font-medium">Sucesso!</span>
+  </div>
+
+
+  <!-- ===================================================================
+     SCRIPTS
+     =================================================================== -->
+  <script>
+    // =========================================================
+    // SUPABASE CONFIG
+    // =========================================================
+    const SUPABASE_URL = 'https://rzsciusbrlqvgazizsuq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6c2NpdXNicmxxdmdheml6c3VxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NjUxNjAsImV4cCI6MjA5NTE0MTE2MH0._iatS3QCpL1LJtXN7ajlH2ejRZnKuLjdHE-iX_YxPgM';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, storageKey: 'bdm_session' }
+    });
+
+    // =========================================================
+    // STATE
+    // =========================================================
+    const App = {
+      currentUser: null,
+      investments: [],
+      categories: [],
+      events: [],
+      bdmRate: 0,
+      ipcaRate: 5.0,
+      useIPCA: true,
+      currentScreen: 'calendar',
+      calView: 'month',
+      calDate: new Date(),
+      selectedDate: null,
+      projectionYears: 5,
+      charts: { donut: null, line: null, calc: null },
+      editingInvestmentId: null,
+      reinvestInsights: true,
+      reinvestCalendar: true,
+    };
+
+    const frequencyMonths = BDMSchedule.frequencyMonths;
+
+    // O desagio de 10% e a taxa de saque do BDM: so se aplica a investimentos marcados
+    // para exibir em BDM (showInBDM). Investimentos so em reais nao tem saque de BDM, logo
+    // sem desagio. Os valores em BDM sempre usam o bruto.
+    function eventDesagioFactor(e) {
+      const inv = App.investments.find(i => i.id === e.investmentId);
+      return (inv && inv.showInBDM) ? (1 - BDMSchedule.WITHDRAWAL_DESAGIO) : 1;
+    }
+    // Lucro do evento em R$ (com desagio so quando o ativo e BDM).
+    function profitBRLevt(e) { return e.amount * eventDesagioFactor(e); }
+    // Total em R$ de um evento: lucro + capital devolvido (capital nunca tem desagio).
+    function eventTotalBRL(e) { return profitBRLevt(e) + (e.principalReturn || 0); }
+
+    // =========================================================
+    // AUTH UI HELPERS
+    // =========================================================
+    let _authMode = 'login';
+
+    function switchAuthTab(mode) {
+      _authMode = mode;
+      document.getElementById('auth-tab-login').classList.toggle('active', mode === 'login');
+      document.getElementById('auth-tab-signup').classList.toggle('active', mode === 'signup');
+      document.getElementById('auth-submit-label').textContent = mode === 'login' ? 'Entrar' : 'Criar Conta';
+      document.getElementById('auth-password').autocomplete = mode === 'login' ? 'current-password' : 'new-password';
+      document.getElementById('auth-pw-hint').classList.toggle('hidden', mode === 'login');
+      clearAuthError();
+    }
+
+    function showAuthScreen() {
+      document.getElementById('screen-auth').classList.remove('hidden');
+    }
+
+    function hideAuthScreen() {
+      document.getElementById('screen-auth').classList.add('hidden');
+    }
+
+    function showAuthError(msg) {
+      const el = document.getElementById('auth-error');
+      el.textContent = msg;
+      el.classList.add('visible');
+    }
+
+    function clearAuthError() {
+      document.getElementById('auth-error').classList.remove('visible');
+    }
+
+    function setAuthLoading(loading) {
+      const btn = document.getElementById('auth-submit-btn');
+      btn.disabled = loading;
+      document.getElementById('auth-submit-label').textContent = loading
+        ? 'Aguarde...'
+        : (_authMode === 'login' ? 'Entrar' : 'Criar Conta');
+    }
+
+    function toggleAuthPasswordVisibility() {
+      const pw = document.getElementById('auth-password');
+      const icon = document.getElementById('auth-pw-icon');
+      const visible = pw.type === 'text';
+      pw.type = visible ? 'password' : 'text';
+      icon.textContent = visible ? 'visibility' : 'visibility_off';
+    }
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      clearAuthError();
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value;
+      const remember = document.getElementById('auth-remember').checked;
+
+      if (password.length < 8) {
+        showAuthError('A senha deve ter no minimo 8 caracteres.');
+        return;
+      }
+
+      setAuthLoading(true);
+      try {
+        if (_authMode === 'login') {
+          await signIn(email, password, remember);
+        } else {
+          await signUp(email, password, remember);
+        }
+      } catch (err) {
+        showAuthError(err.message || 'Erro desconhecido. Tente novamente.');
+      } finally {
+        setAuthLoading(false);
+      }
+    }
+
+    // =========================================================
+    // AUTH FUNCTIONS
+    // =========================================================
+    async function signUp(email, password, remember) {
+      const { data, error } = await sb.auth.signUp({ email, password });
+      if (error) throw new Error(translateAuthError(error.message));
+      // data.session is present when email confirmation is disabled
+      if (data.session && data.user) {
+        await onAuthSuccess(data.user, remember);
+      } else if (data.user && !data.session) {
+        // Email confirmation still active (fallback message)
+        throw new Error('Cadastro realizado! Verifique seu e-mail para confirmar o acesso.');
+      }
+    }
+
+    async function signIn(email, password, remember) {
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) throw new Error(translateAuthError(error.message));
+      await onAuthSuccess(data.user, remember);
+    }
+
+    async function signOut() {
+      await sb.auth.signOut();
+      App.currentUser = null;
+      App.investments = [];
+      App.categories = [];
+      App.events = [];
+      App.bdmRate = 0;
+      const emailEl = document.getElementById('sidebar-user-email');
+      if (emailEl) emailEl.textContent = '\u2014';
+      updateBDMDisplays();
+      showAuthScreen();
+    }
+
+    async function onAuthSuccess(user, remember) {
+      // Persist preference in localStorage; mark tab as active in sessionStorage
+      localStorage.setItem('bdm_remember', remember ? '1' : '0');
+      if (!remember) {
+        // Mark this tab as active. If tab closes, sessionStorage is cleared
+        // and checkSession will detect this and sign out.
+        sessionStorage.setItem('bdm_tab_active', '1');
+      } else {
+        sessionStorage.removeItem('bdm_tab_active');
+      }
+
+      App.currentUser = user;
+      const emailEl = document.getElementById('sidebar-user-email');
+      if (emailEl) emailEl.textContent = user.email;
+
+      hideAuthScreen();
+      await loadAllData();
+      navigate('calendar');
+      renderCalendar();
+      document.querySelectorAll('input[type=range]').forEach(updateSliderTrack);
+      updateCalc();
+      const dateEl = document.getElementById('inv-start-date');
+      if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+    }
+
+    function translateAuthError(msg) {
+      if (msg.includes('Invalid login credentials')) return 'E-mail ou senha incorretos.';
+      if (msg.includes('Email not confirmed')) return 'Confirme seu e-mail antes de entrar.';
+      if (msg.includes('User already registered')) return 'Este e-mail ja possui uma conta. Faca login.';
+      if (msg.includes('Password should be at least')) return 'A senha deve ter no minimo 8 caracteres.';
+      if (msg.includes('Unable to validate email address')) return 'E-mail invalido.';
+      if (msg.includes('rate limit')) return 'Muitas tentativas. Aguarde um momento e tente novamente.';
+      return msg;
+    }
+
+    async function checkSession() {
+      const { data } = await sb.auth.getSession();
+      const user = data?.session?.user;
+      if (!user) return null;
+
+      const remember = localStorage.getItem('bdm_remember');
+
+      // "No persist" mode: session should only last while tab is open.
+      // sessionStorage is cleared when tab closes, so if bdm_tab_active
+      // is missing it means the tab was closed and reopened — sign out.
+      if (remember === '0') {
+        const tabActive = sessionStorage.getItem('bdm_tab_active');
+        if (!tabActive) {
+          await sb.auth.signOut();
+          localStorage.removeItem('bdm_remember');
+          return null;
+        }
+      }
+
+      return user;
+    }
+
+    // =========================================================
+    // DATABASE (Supabase)
+    // =========================================================
+    function getUserId() { return App.currentUser?.id; }
+
+    async function loadAllData() {
+      const uid = getUserId();
+      if (!uid) return;
+
+      const [invRes, catRes, evtRes, setRes] = await Promise.all([
+        sb.from('investments').select('*').eq('user_id', uid),
+        sb.from('categories').select('*').eq('user_id', uid),
+        sb.from('events').select('*').eq('user_id', uid),
+        sb.from('settings').select('*').eq('user_id', uid).maybeSingle(),
+      ]);
+
+      App.investments = (invRes.data || []).map(mapInvestmentFromDB);
+      App.categories = catRes.data || [];
+      App.events = (evtRes.data || []).map(mapEventFromDB);
+
+      const settings = setRes.data;
+      if (settings) {
+        App.bdmRate = settings.bdm_rate || 0;
+        App.ipcaRate = settings.ipca_rate || 5.0;
+        App.useIPCA = settings.use_ipca !== undefined ? settings.use_ipca : true;
+        const ipEl = document.getElementById('ipca-input');
+        if (ipEl) ipEl.value = App.ipcaRate;
+        const togEl = document.getElementById('ipca-toggle');
+        if (togEl) togEl.checked = App.useIPCA;
+      }
+      updateBDMDisplays();
+    }
+
+    function mapInvestmentFromDB(r) {
+      return {
+        id: r.id,
+        name: r.name,
+        categoryId: r.category_id,
+        principal: parseFloat(r.principal),
+        profitPercentage: parseFloat(r.profit_percentage),
+        startDate: r.start_date,
+        frequency: r.frequency,
+        customFrequencyMonths: r.custom_frequency_months,
+        durationMonths: r.duration_months,
+        showInBDM: r.show_in_bdm,
+        createdAt: r.created_at,
+      };
+    }
+
+    function mapInvestmentToDB(inv) {
+      return {
+        id: inv.id,
+        user_id: getUserId(),
+        name: inv.name,
+        category_id: inv.categoryId,
+        principal: inv.principal,
+        profit_percentage: inv.profitPercentage,
+        start_date: inv.startDate,
+        frequency: inv.frequency,
+        custom_frequency_months: inv.customFrequencyMonths,
+        duration_months: inv.durationMonths,
+        show_in_bdm: inv.showInBDM,
+        created_at: inv.createdAt,
+      };
+    }
+
+    function mapEventFromDB(r) {
+      return {
+        id: r.id,
+        investmentId: r.investment_id,
+        date: r.date,
+        amount: parseFloat(r.amount),
+        principalReturn: parseFloat(r.principal_return || 0),
+        isLastPayment: r.is_last_payment,
+      };
+    }
+
+    function mapEventToDB(ev) {
+      return {
+        id: ev.id,
+        user_id: getUserId(),
+        investment_id: ev.investmentId,
+        date: ev.date,
+        amount: ev.amount,
+        principal_return: ev.principalReturn || 0,
+        is_last_payment: ev.isLastPayment || false,
+      };
+    }
+
+    async function dbPutInvestment(inv) {
+      const { error } = await sb.from('investments').upsert(mapInvestmentToDB(inv));
+      if (error) throw new Error(error.message);
+    }
+
+    async function dbDeleteInvestment(id) {
+      const { error } = await sb.from('investments').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+    }
+
+    async function dbPutCategory(cat) {
+      const { error } = await sb.from('categories').upsert({ ...cat, user_id: getUserId() });
+      if (error) throw new Error(error.message);
+    }
+
+    async function dbDeleteCategory(id) {
+      const { error } = await sb.from('categories').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+    }
+
+    async function dbPutEvents(evts) {
+      if (evts.length === 0) return;
+      const { error } = await sb.from('events').upsert(evts.map(mapEventToDB));
+      if (error) throw new Error(error.message);
+    }
+
+    async function dbDeleteEventsByInvestment(invId) {
+      const { error } = await sb.from('events').delete().eq('investment_id', invId).eq('user_id', getUserId());
+      if (error) throw new Error(error.message);
+    }
+
+    async function saveSettings() {
+      const uid = getUserId();
+      if (!uid) return;
+      await sb.from('settings').upsert({ user_id: uid, bdm_rate: App.bdmRate, ipca_rate: App.ipcaRate, use_ipca: App.useIPCA });
+    }
+
+    // =========================================================
+    // UTILITIES
+    // =========================================================
+    let _idCounter = 0;
+    function uid() { return Date.now().toString(36) + (++_idCounter).toString(36) + Math.random().toString(36).slice(2, 5); }
+
+    const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+    const NUM = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    function fmtBRL(v) { return BRL.format(v); }
+    function fmtBDM(v) { return NUM.format(v) + ' BDM'; }
+    function toBDM(v) { return App.bdmRate > 0 ? v / App.bdmRate : null; }
+
+    function dateKey(d) {
+      const dd = new Date(d);
+      const y = dd.getFullYear();
+      const m = String(dd.getMonth() + 1).padStart(2, '0');
+      const day = String(dd.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function addMonths(d, n) {
+      const r = new Date(d);
+      r.setMonth(r.getMonth() + n);
+      return r;
+    }
+
+    function monthName(m) {
+      return ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][m];
+    }
+
+    function shortMonthName(m) {
+      return ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'][m];
+    }
+
+    function updateSliderTrack(el) {
+      const min = +el.min, max = +el.max, val = +el.value;
+      const pct = ((val - min) / (max - min) * 100).toFixed(1) + '%';
+      el.style.setProperty('--pct', pct);
+    }
+
+    // =========================================================
+    // EVENT GENERATION
+    // =========================================================
+    function toggleCustomFreq(sel) {
+      const wrap = document.getElementById('inv-custom-freq-wrap');
+      if (sel.value === 'custom') {
+        wrap.classList.remove('hidden');
+      } else {
+        wrap.classList.add('hidden');
+        document.getElementById('inv-custom-freq-months').value = '';
+      }
+    }
+
+    function generateEvents(inv) {
+      const events = [];
+      const start = new Date(inv.startDate + 'T12:00:00');
+      const end = addMonths(start, inv.durationMonths);
+      const interval = frequencyMonths(inv.frequency, inv.durationMonths, inv.customFrequencyMonths);
+
+      let cur = addMonths(start, interval);
+      const profitAmt = inv.principal * (inv.profitPercentage / 100); // bruto, fixo por periodo
+
+      while (cur <= end) {
+        const isLast = addMonths(cur, interval) > end || dateKey(cur) === dateKey(end);
+
+        events.push({
+          id: uid(),
+          investmentId: inv.id,
+          date: dateKey(cur),
+          amount: profitAmt,
+          principalReturn: isLast ? inv.principal : 0,
+          isLastPayment: isLast,
+        });
+
+        if (isLast) break;
+        cur = addMonths(cur, interval);
+      }
+      return events;
+    }
+
+    async function deleteInvestmentEvents(invId) {
+      await dbDeleteEventsByInvestment(invId);
+    }
+
+    // =========================================================
+    // NAVIGATION
+    // =========================================================
+    function navigate(screen) {
+      App.currentScreen = screen;
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('screen-' + screen).classList.add('active');
+
+      // Desktop nav
+      document.querySelectorAll('[id^="nav-"]').forEach(b => b.classList.remove('active'));
+      const nb = document.getElementById('nav-' + screen);
+      if (nb) nb.classList.add('active');
+
+      // Mobile nav
+      document.querySelectorAll('.mobile-nav').forEach(b => {
+        const ds = b.dataset.screen;
+        b.style.color = ds === screen ? '#f2ca50' : '#c7c6c4';
+      });
+
+      if (screen === 'insights') renderInsights();
+      if (screen === 'calendar') renderCalendar();
+    }
+
+    // =========================================================
+    // BDM RATE
+    // =========================================================
+    function updateBDMDisplays() {
+      const display = App.bdmRate > 0 ? fmtBRL(App.bdmRate) : '—';
+      const el1 = document.getElementById('bdm-rate-sidebar');
+      const el2 = document.getElementById('bdm-rate-mobile');
+      if (el1) el1.textContent = display;
+      if (el2) el2.textContent = display;
+      // Refresh current screen data if displayed
+      if (App.currentScreen === 'insights') renderInsights();
+      if (App.currentScreen === 'calendar') { renderCalendar(); renderDetailPanel(App.selectedDate); }
+      updateCalc();
+    }
+
+    function openBDMModal() {
+      const el = document.getElementById('bdm-rate-input');
+      el.value = App.bdmRate > 0 ? App.bdmRate : '';
+      showModal('modal-bdm');
+    }
+    function closeBDMModal() { hideModal('modal-bdm'); }
+    async function saveBDMRate() {
+      const val = parseFloat(document.getElementById('bdm-rate-input').value);
+      if (!val || val <= 0) { toast('Digite uma cotação válida', 'error'); return; }
+      App.bdmRate = val;
+      await saveSettings();
+      updateBDMDisplays();
+      closeBDMModal();
+      toast('Cotação BDM atualizada!', 'success');
+    }
+
+    // =========================================================
+    // CALENDAR
+    // =========================================================
+    function setView(v) {
+      App.calView = v;
+      document.querySelectorAll('.cal-view').forEach(el => el.classList.add('hidden'));
+      document.getElementById('view-' + v).classList.remove('hidden');
+      document.querySelectorAll('.cal-view-btn').forEach(b => {
+        b.className = 'cal-view-btn px-3 py-1.5 rounded-md text-[11px] font-semibold tracking-wide text-secondary transition-all';
+      });
+      const ab = document.getElementById('btn-' + v);
+      if (ab) ab.className = 'cal-view-btn px-3 py-1.5 rounded-md text-[11px] font-semibold tracking-wide bg-surface text-on-surface shadow-sm border border-outline-variant/40 transition-all';
+      renderCalendar();
+    }
+
+    function prevPeriod() {
+      if (App.calView === 'year') App.calDate.setFullYear(App.calDate.getFullYear() - 1);
+      else App.calDate.setMonth(App.calDate.getMonth() - 1);
+      renderCalendar();
+    }
+    function nextPeriod() {
+      if (App.calView === 'year') App.calDate.setFullYear(App.calDate.getFullYear() + 1);
+      else App.calDate.setMonth(App.calDate.getMonth() + 1);
+      renderCalendar();
+    }
+
+    function renderCalendar() {
+      const y = App.calDate.getFullYear(), m = App.calDate.getMonth();
+      const titleEl = document.getElementById('cal-title');
+
+      if (App.calView === 'month') {
+        titleEl.textContent = monthName(m) + ' ' + y;
+        renderMonthGrid(y, m);
+        updatePeriodBanner('month', y, m);
+      } else if (App.calView === 'year') {
+        titleEl.textContent = String(y);
+        renderYearGrid(y);
+        updatePeriodBanner('year', y, m);
+      } else {
+        titleEl.textContent = 'Agenda — ' + monthName(m) + ' ' + y;
+        renderAgenda();
+        document.getElementById('period-total-banner').classList.add('hidden');
+      }
+    }
+
+    function updatePeriodBanner(view, y, m) {
+      const banner = document.getElementById('period-total-banner');
+      const prefix = view === 'month'
+        ? String(y) + '-' + String(m + 1).padStart(2, '0')
+        : String(y);
+      const total = App.events
+        .filter(e => e.date.startsWith(prefix))
+        .reduce((s, e) => s + eventTotalBRL(e), 0);
+
+      const bdmInvs = App.events.filter(e => {
+        if (!e.date.startsWith(prefix)) return false;
+        const inv = App.investments.find(i => i.id === e.investmentId);
+        return inv && inv.showInBDM;
+      });
+      const bdmTotal = bdmInvs.reduce((s, e) => s + e.amount + (e.principalReturn || 0), 0);
+      const bdmV = App.bdmRate > 0 && bdmInvs.length > 0 ? toBDM(bdmTotal) : null;
+
+      const label = view === 'month' ? 'Total a Receber em ' + monthName(m) + ' ' + y : 'Total a Receber em ' + y;
+      const countLabel = view === 'month'
+        ? App.events.filter(e => e.date.startsWith(prefix)).length + ' pagamento(s) no mês'
+        : App.events.filter(e => e.date.startsWith(prefix)).length + ' pagamento(s) no ano';
+
+      document.getElementById('period-total-label').textContent = label;
+      document.getElementById('period-total-sublabel').textContent = countLabel;
+      document.getElementById('period-total-value').textContent = fmtBRL(total);
+      document.getElementById('period-total-bdm').textContent = bdmV !== null ? fmtBDM(bdmV) : '';
+      banner.classList.remove('hidden');
+    }
+
+    // Build a map: dateKey -> [events]
+    function getEventMap() {
+      const map = {};
+      for (const e of App.events) {
+        if (!map[e.date]) map[e.date] = [];
+        map[e.date].push(e);
+      }
+      return map;
+    }
+
+    function getCategoryColor(catId) {
+      if (!catId) return '#99907c';
+      const cat = App.categories.find(c => c.id === catId);
+      return cat ? cat.color : '#99907c';
+    }
+
+    function getInvestmentColor(invId) {
+      const inv = App.investments.find(i => i.id === invId);
+      if (!inv) return '#D4AF37';
+      return getCategoryColor(inv.categoryId);
+    }
+
+    function renderMonthGrid(y, m) {
+      const grid = document.getElementById('month-grid');
+      const eMap = getEventMap();
+      const today = dateKey(new Date());
+      const firstDay = new Date(y, m, 1).getDay();
+      const daysInMonth = new Date(y, m + 1, 0).getDate();
+      const daysInPrev = new Date(y, m, 0).getDate();
+
+      let html = '';
+      let totalCells = 0;
+
+      // Prev month cells
+      for (let i = firstDay - 1; i >= 0; i--) {
+        const d = daysInPrev - i;
+        const dk = dateKey(new Date(y, m - 1, d));
+        html += buildCell(dk, d, true, eMap, today);
+        totalCells++;
+      }
+      // Current month
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dk = dateKey(new Date(y, m, d));
+        html += buildCell(dk, d, false, eMap, today);
+        totalCells++;
+      }
+      // Next month fill (complete to multiple of 7)
+      let nd = 1;
+      while (totalCells % 7 !== 0) {
+        const dk = dateKey(new Date(y, m + 1, nd));
+        html += buildCell(dk, nd, true, eMap, today);
+        nd++; totalCells++;
+      }
+
+      grid.innerHTML = html;
+    }
+
+    function buildCell(dk, dayNum, otherMonth, eMap, today) {
+      const evts = eMap[dk] || [];
+      const hasEvents = evts.length > 0;
+      const hasMaturity = evts.some(e => e.isLastPayment);
+      const totalAmt = evts.reduce((s, e) => s + e.amount, 0);
+      const isToday = dk === today;
+
+      let classes = 'cal-cell';
+      if (otherMonth) classes += ' other-month';
+      if (isToday) classes += ' is-today';
+      if (hasMaturity) classes += ' has-maturity';
+
+      let inner = `<span class="text-xs font-bold ${isToday ? 'text-primary' : otherMonth ? 'text-secondary/50' : 'text-on-surface'} tabular-nums">${dayNum}</span>`;
+
+
+      if (hasMaturity) {
+        inner += `<div class="maturity-flag"><span class="material-symbols-outlined text-[11px]" style="color:rgba(255,100,80,.85);font-variation-settings:'FILL' 1">flag</span></div>`;
+      }
+
+      if (hasEvents) {
+        const color = getInvestmentColor(evts[0].investmentId);
+        const bdmEvts = evts.filter(e => { const inv = App.investments.find(i => i.id === e.investmentId); return inv && inv.showInBDM; });
+        const bdmAmt = bdmEvts.reduce((s, e) => s + e.amount, 0);
+        const bdm = App.bdmRate > 0 && bdmEvts.length > 0 ? toBDM(bdmAmt) : null;
+        const highVol = bdm !== null && bdm >= 1;
+
+        if (highVol) {
+          inner += `<div class="profit-bar" style="background:${color}"></div>`;
+        } else {
+          inner += `<div class="profit-dot" style="background:${color}"></div>`;
+        }
+        inner += `<div class="cal-label">${bdm !== null ? '+' + NUM.format(bdm) : ''}</div>`;
+      }
+
+      return `<div class="${classes}" onclick="selectDay('${dk}')">${inner}</div>`;
+    }
+
+    function renderYearGrid(y) {
+      const grid = document.getElementById('year-grid');
+      const eMap = getEventMap();
+      const today = dateKey(new Date());
+      let html = '';
+
+      for (let m = 0; m < 12; m++) {
+        const daysInMonth = new Date(y, m + 1, 0).getDate();
+        const firstDay = new Date(y, m, 1).getDay();
+        const daysInPrev = new Date(y, m, 0).getDate();
+
+        let cells = '';
+        // Header: day letters
+        ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].forEach(l => {
+          cells += `<div class="text-[10px] text-center font-bold text-secondary/60 py-0.5">${l}</div>`;
+        });
+        // Prev month
+        for (let i = firstDay - 1; i >= 0; i--) {
+          cells += `<div class="mini-cell opacity-15"></div>`;
+        }
+        // Current month
+        for (let d = 1; d <= daysInMonth; d++) {
+          const dk = dateKey(new Date(y, m, d));
+          const hasEv = !!eMap[dk];
+          const isT = dk === today;
+          let cls = 'mini-cell';
+          if (hasEv) cls += ' has-event';
+          if (isT) cls += ' is-today';
+          const numColor = isT ? '#f2ca50' : 'rgba(234,225,212,0.55)';
+          cells += `<div class="${cls}" onclick="navigate('calendar');App.calDate=new Date(${y},${m},${d});setView('month');selectDay('${dk}')" title="${dk}"><span style="font-size:8px;line-height:1;color:${numColor};font-weight:${isT ? '700' : '400'}">${d}</span></div>`;
+        }
+
+        html += `<div class="premium-card rounded-xl p-3">
+      <div class="text-[11px] font-semibold text-secondary mb-2">${shortMonthName(m)}</div>
+      <div class="mini-cal-grid">${cells}</div>
+    </div>`;
+      }
+      grid.innerHTML = html;
+    }
+
+    function renderAgenda() {
+      const list = document.getElementById('agenda-list');
+      const now = new Date(); now.setHours(0, 0, 0, 0);
+      const future = App.events.filter(e => new Date(e.date) >= now).sort((a, b) => a.date.localeCompare(b.date));
+
+      if (future.length === 0) {
+        list.innerHTML = `<div class="text-center py-16 text-secondary/40">
+      <span class="material-symbols-outlined text-[48px] block mb-3" style="font-variation-settings:'wght' 200">event_available</span>
+      <p class="text-sm">Nenhum pagamento futuro registrado.</p>
+      <p class="text-xs mt-1">Adicione investimentos para ver o calendário de recebimentos.</p>
+    </div>`;
+        return;
+      }
+
+      // Group by date
+      const grouped = {};
+      for (const e of future) {
+        if (!grouped[e.date]) grouped[e.date] = [];
+        grouped[e.date].push(e);
+      }
+
+      let html = '';
+      const keys = Object.keys(grouped).slice(0, 60); // show up to 60 days
+      for (const dk of keys) {
+        const evts = grouped[dk];
+        const d = new Date(dk + 'T12:00:00');
+        const total = evts.reduce((s, e) => s + eventTotalBRL(e), 0);
+        const bdmEvtsAg = evts.filter(e => { const inv = App.investments.find(i => i.id === e.investmentId); return inv && inv.showInBDM; });
+        const bdmTotalAg = bdmEvtsAg.reduce((s, e) => s + e.amount + (e.principalReturn || 0), 0);
+        const bdmV = App.bdmRate > 0 && bdmEvtsAg.length > 0 ? toBDM(bdmTotalAg) : null;
+        const today = dateKey(new Date()) === dk;
+
+        html += `<div class="premium-card rounded-xl p-4 ${today ? 'border-primary/30 bg-primary/5' : ''}">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          ${today ? '<span class="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase tracking-wider">Hoje</span>' : ''}
+          <span class="text-sm font-semibold text-on-surface">${d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}</span>
+        </div>
+        <div class="text-right">
+          <div class="text-sm font-bold text-primary">${fmtBRL(total)}</div>
+          ${bdmV !== null ? `<div class="text-[11px] text-secondary/60">${fmtBDM(bdmV)}</div>` : ''}
+        </div>
+      </div>
+      ${evts.map(e => {
+          const inv = App.investments.find(i => i.id === e.investmentId);
+          const color = getInvestmentColor(e.investmentId);
+          const totalEvt = eventTotalBRL(e);
+          const bdmE = (inv && inv.showInBDM && App.bdmRate > 0) ? toBDM(e.amount + (e.principalReturn || 0)) : null;
+          const reinvAg = (App.reinvestCalendar && e.isLastPayment && inv) ? BDMSchedule.computeSchedule(inv, { reinvest: true }).totalReinvest : null;
+          return `<div class="flex items-center justify-between py-2 border-t border-white/5">
+          <div class="flex items-center gap-2 flex-1 min-w-0 mr-3">
+            <div class="w-2 h-2 rounded-full flex-shrink-0" style="background:${color}"></div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-xs text-on-surface font-medium">${inv ? inv.name : '—'}</span>
+                ${e.isLastPayment ? '<span class="text-[9px] text-error bg-error/10 px-1.5 py-0.5 rounded-full font-semibold">ÚLTIMO</span>' : ''}
+              </div>
+              ${e.isLastPayment && e.principalReturn > 0 ? `<div class="text-[10px] text-secondary/50 mt-0.5">Lucro: ${fmtBRL(profitBRLevt(e))} · Capital: ${fmtBRL(e.principalReturn)}</div>` : ''}
+              ${reinvAg !== null ? `<div class="text-[10px] text-primary font-semibold mt-0.5">Com reinvestimento: ${fmtBRL(reinvAg)}</div>` : ''}
+            </div>
+          </div>
+          <div class="text-right flex-shrink-0">
+            <span class="text-xs font-bold text-primary">${fmtBRL(totalEvt)}</span>
+            ${bdmE !== null ? `<div class="text-[10px] text-secondary/60">${fmtBDM(bdmE)}</div>` : ''}
+          </div>
+        </div>`;
+        }).join('')}
+    </div>`;
+      }
+      list.innerHTML = html;
+    }
+
+    function selectDay(dk) {
+      App.selectedDate = dk;
+      // Remove active from all cells
+      document.querySelectorAll('.cal-cell.is-active').forEach(c => c.classList.remove('is-active'));
+      // Add active to clicked cell
+      const cells = document.querySelectorAll('.cal-cell');
+      cells.forEach(c => { if (c.getAttribute('onclick')?.includes(`'${dk}'`)) c.classList.add('is-active'); });
+
+      renderDetailPanel(dk);
+
+      // On mobile, open modal
+      if (window.innerWidth < 1024) {
+        const evts = App.events.filter(e => e.date === dk);
+        if (evts.length > 0) openDayModal(dk, evts);
+      }
+    }
+
+    function renderDetailPanel(dk) {
+      const panel = document.getElementById('detail-content');
+      if (!dk || !panel) return;
+
+      const evts = App.events.filter(e => e.date === dk);
+      const d = new Date(dk + 'T12:00:00');
+
+      if (evts.length === 0) {
+        panel.innerHTML = `<div class="mb-5">
+      <div class="text-xs font-semibold tracking-wider uppercase text-secondary/60 mb-1">Data Selecionada</div>
+      <div class="text-xl font-bold text-on-surface">${d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}</div>
+    </div>
+    <div class="text-center py-10 text-secondary/30">
+      <span class="material-symbols-outlined text-[36px] block mb-2" style="font-variation-settings:'wght' 200">money_off</span>
+      <p class="text-xs">Sem recebimentos neste dia</p>
+    </div>`;
+        return;
+      }
+
+      const totalProfit = evts.reduce((s, e) => s + profitBRLevt(e), 0);
+      const totalPrincipalReturn = evts.reduce((s, e) => s + (e.principalReturn || 0), 0);
+      const totalReceived = totalProfit + totalPrincipalReturn;
+      const bdmEvts = evts.filter(e => { const inv = App.investments.find(i => i.id === e.investmentId); return inv && inv.showInBDM; });
+      const bdmAmt = bdmEvts.reduce((s, e) => s + e.amount, 0);
+      const totalBDM = App.bdmRate > 0 && bdmEvts.length > 0 ? toBDM(bdmAmt) : null;
+
+      panel.innerHTML = `<div class="mb-5">
+    <div class="text-[10px] font-semibold tracking-[.1em] uppercase text-secondary/60 mb-1">Data Selecionada</div>
+    <div class="text-xl font-bold text-on-surface">${d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}</div>
+  </div>
+  <div class="bg-surface-container/50 rounded-xl p-4 mb-5 border border-outline-variant/10">
+    <div class="text-[10px] font-semibold tracking-wider uppercase text-secondary/60 mb-1">Recebimento do Dia</div>
+    <div class="text-2xl font-bold text-on-surface tabular-nums">${fmtBRL(totalReceived)}</div>
+    ${totalPrincipalReturn > 0 ? `<div class="text-[10px] text-secondary/50 mt-1">Lucro: ${fmtBRL(totalProfit)} + Capital: ${fmtBRL(totalPrincipalReturn)}</div>` : ''}
+    ${totalBDM !== null ? `<div class="flex items-center gap-1.5 mt-1.5">
+      <span class="material-symbols-outlined text-primary text-[14px]" style="font-variation-settings:'FILL' 1">trending_up</span>
+      <span class="text-sm font-bold text-primary tabular-nums">+${fmtBDM(totalBDM)}</span>
+      <span class="text-[10px] text-secondary/50 ml-1">@ ${fmtBRL(App.bdmRate)}/BDM</span>
+    </div>` : ''}
+  </div>
+  <div class="text-[10px] font-semibold tracking-[.1em] uppercase text-secondary/60 mb-3">Transações (clique para expandir)</div>
+  <div class="flex flex-col gap-2">
+    ${evts.map(e => {
+        const inv = App.investments.find(i => i.id === e.investmentId);
+        const color = getInvestmentColor(e.investmentId);
+        const bdmE = (inv && inv.showInBDM && App.bdmRate > 0) ? toBDM(e.amount + (e.principalReturn || 0)) : null;
+        const totalEvt = eventTotalBRL(e);
+        const sched = (App.reinvestCalendar && e.isLastPayment && inv) ? BDMSchedule.computeSchedule(inv, { reinvest: true }) : null;
+        const reinvBdm = (sched && inv.showInBDM && App.bdmRate > 0) ? ` (${fmtBDM(toBDM(sched.totalReinvest))})` : '';
+        const freqLabel = { monthly: 'Mensal', bimonthly: 'Bimestral', quarterly: 'Trimestral', semiannual: 'Semestral', at_maturity: 'No Vencimento', custom: 'Personalizado' };
+        return `<div class="rounded-lg border ${e.isLastPayment ? 'border-error/30' : 'border-white/5'} overflow-hidden">
+        <div class="txn-row flex items-center justify-between p-3" onclick="toggleTxnDetails('dp-${e.id}')">
+          <div class="flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style="background:${color}22;border:1px solid ${color}44">
+              <span class="material-symbols-outlined text-[14px]" style="color:${color};font-variation-settings:'wght' 300">${e.isLastPayment ? 'payments' : 'arrow_downward'}</span>
+            </div>
+            <div>
+              <div class="text-xs font-semibold text-on-surface">${inv ? inv.name : '—'}</div>
+              ${e.isLastPayment ? '<div class="text-[10px] text-error font-semibold">Vencimento — devolvido</div>' : ''}
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <div class="text-right">
+              <div class="text-xs font-bold text-primary tabular-nums">+${fmtBRL(totalEvt)}</div>
+              ${bdmE !== null ? `<div class="text-[10px] text-secondary/60 tabular-nums">${fmtBDM(bdmE)}</div>` : ''}
+            </div>
+            <span class="material-symbols-outlined text-[16px] text-secondary/30" id="chev-dp-${e.id}">expand_more</span>
+          </div>
+        </div>
+        <div id="txn-dp-${e.id}" class="hidden px-3 pb-3 border-t border-white/5 bg-surface-container/20">
+          ${inv ? `<div class="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-2.5 text-[10px]">
+            <div><span class="text-secondary/50">Capital:</span> <span class="font-semibold text-on-surface">${fmtBRL(inv.principal)}</span></div>
+            <div><span class="text-secondary/50">Lucro/período:</span> <span class="font-semibold text-primary">+${NUM.format(inv.profitPercentage)}%</span></div>
+            <div><span class="text-secondary/50">Frequência:</span> <span class="font-semibold text-on-surface">${freqLabel[inv.frequency] || inv.frequency}${inv.frequency === 'custom' ? ' (' + inv.customFrequencyMonths + 'm)' : ''}</span></div>
+            <div><span class="text-secondary/50">Duração:</span> <span class="font-semibold text-on-surface">${inv.durationMonths} meses</span></div>
+            <div><span class="text-secondary/50">Início:</span> <span class="font-semibold text-on-surface">${new Date(inv.startDate + 'T12:00:00').toLocaleDateString('pt-BR')}</span></div>
+            ${e.isLastPayment ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-white/8"><span class="text-secondary/50">Recebimento:</span> <span class="font-bold text-on-surface">Lucro ${fmtBRL(profitBRLevt(e))} + Capital ${fmtBRL(e.principalReturn || 0)} = ${fmtBRL(totalEvt)}</span></div>` : ''}
+            ${sched ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-primary/20"><span class="text-secondary/50">Com reinvestimento no vencimento:</span> <span class="font-bold text-primary">${fmtBRL(sched.totalReinvest)}${reinvBdm}</span></div>` : ''}
+          </div>` : '<p class="text-[10px] text-secondary/40 mt-2">Investimento não encontrado.</p>'}
+        </div>
+      </div>`;
+      }).join('')}
+  </div>`;
+    }
+
+    function toggleTxnDetails(id) {
+      const el = document.getElementById('txn-' + id);
+      const chev = document.getElementById('chev-' + id);
+      if (el) { el.classList.toggle('hidden'); }
+      if (chev) chev.textContent = el && !el.classList.contains('hidden') ? 'expand_less' : 'expand_more';
+    }
+
+    // =========================================================
+    // DAY MODAL (Mobile)
+    // =========================================================
+    function openDayModal(dk, evts) {
+      const d = new Date(dk + 'T12:00:00');
+      document.getElementById('day-modal-title').textContent = d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+      const totalProfit = evts.reduce((s, e) => s + profitBRLevt(e), 0);
+      const totalPrincipalReturn = evts.reduce((s, e) => s + (e.principalReturn || 0), 0);
+      const totalReceived = totalProfit + totalPrincipalReturn;
+      const bdmEvts = evts.filter(e => { const inv = App.investments.find(i => i.id === e.investmentId); return inv && inv.showInBDM; });
+      const bdmAmt = bdmEvts.reduce((s, e) => s + e.amount, 0);
+      const totalBDM = App.bdmRate > 0 && bdmEvts.length > 0 ? toBDM(bdmAmt) : null;
+
+      let html = `<div class="bg-surface-container/50 rounded-xl p-4 mb-4 border border-outline-variant/10">
+    <div class="text-[10px] font-semibold tracking-wider uppercase text-secondary/60 mb-1">Recebimento do Dia</div>
+    <div class="text-2xl font-bold text-on-surface tabular-nums">${fmtBRL(totalReceived)}</div>
+    ${totalPrincipalReturn > 0 ? `<div class="text-xs text-secondary/50 mt-0.5">Lucro ${fmtBRL(totalProfit)} + Capital ${fmtBRL(totalPrincipalReturn)}</div>` : ''}
+    ${totalBDM !== null ? `<div class="text-sm font-bold text-primary mt-1 tabular-nums">+${fmtBDM(totalBDM)}</div>` : ''}
+  </div>
+  <p class="text-[10px] text-secondary/40 mb-2 uppercase font-semibold tracking-wider">Transações — toque para expandir</p>`;
+
+      html += evts.map(e => {
+        const inv = App.investments.find(i => i.id === e.investmentId);
+        const color = getInvestmentColor(e.investmentId);
+        const bdmE = (inv && inv.showInBDM && App.bdmRate > 0) ? toBDM(e.amount + (e.principalReturn || 0)) : null;
+        const totalEvt = eventTotalBRL(e);
+        const sched = (App.reinvestCalendar && e.isLastPayment && inv) ? BDMSchedule.computeSchedule(inv, { reinvest: true }) : null;
+        const reinvBdm = (sched && inv.showInBDM && App.bdmRate > 0) ? ` (${fmtBDM(toBDM(sched.totalReinvest))})` : '';
+        const freqLabel = { monthly: 'Mensal', bimonthly: 'Bimestral', quarterly: 'Trimestral', semiannual: 'Semestral', at_maturity: 'No Vencimento', custom: 'Personalizado' };
+        return `<div class="rounded-lg border ${e.isLastPayment ? 'border-error/30' : 'border-white/6'} mb-2 overflow-hidden">
+      <div class="txn-row flex items-center justify-between p-3" onclick="toggleTxnDetails('mob-${e.id}')">
+        <div class="flex items-center gap-2">
+          <div class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:${color}"></div>
+          <div>
+            <div class="text-sm font-semibold text-on-surface">${inv ? inv.name : '—'}</div>
+            ${e.isLastPayment ? '<div class="text-xs text-error font-semibold">Vencimento</div>' : ''}
+          </div>
+        </div>
+        <div class="flex items-center gap-1">
+          <div class="text-right">
+            <div class="text-sm font-bold text-primary tabular-nums">+${fmtBRL(totalEvt)}</div>
+            ${bdmE !== null ? `<div class="text-xs text-secondary/60 tabular-nums">${fmtBDM(bdmE)}</div>` : ''}
+          </div>
+          <span class="material-symbols-outlined text-[16px] text-secondary/30" id="chev-mob-${e.id}">expand_more</span>
+        </div>
+      </div>
+      <div id="txn-mob-${e.id}" class="hidden px-3 pb-3 border-t border-white/5 bg-surface-container/20">
+        ${inv ? `<div class="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-2.5 text-[10px]">
+          <div><span class="text-secondary/50">Capital:</span> <span class="font-semibold text-on-surface">${fmtBRL(inv.principal)}</span></div>
+          <div><span class="text-secondary/50">Lucro/período:</span> <span class="font-semibold text-primary">+${NUM.format(inv.profitPercentage)}%</span></div>
+          <div><span class="text-secondary/50">Frequência:</span> <span class="font-semibold text-on-surface">${freqLabel[inv.frequency] || inv.frequency}</span></div>
+          <div><span class="text-secondary/50">Duração:</span> <span class="font-semibold text-on-surface">${inv.durationMonths} meses</span></div>
+          ${e.isLastPayment ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-white/8"><span class="text-secondary/50">Total:</span> <span class="font-bold text-on-surface">Lucro ${fmtBRL(profitBRLevt(e))} + Capital ${fmtBRL(e.principalReturn || 0)}</span></div>` : ''}
+          ${sched ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-primary/20"><span class="text-secondary/50">Com reinvestimento no vencimento:</span> <span class="font-bold text-primary">${fmtBRL(sched.totalReinvest)}${reinvBdm}</span></div>` : ''}
+        </div>` : ''}
+      </div>
+    </div>`;
+      }).join('');
+
+      document.getElementById('day-modal-content').innerHTML = html;
+      showModal('modal-day');
+    }
+    function closeDayModal() { hideModal('modal-day'); }
+
+    // =========================================================
+    // MODAL HELPERS
+    // =========================================================
+    function showModal(id) {
+      const el = document.getElementById(id);
+      el.style.display = 'flex';
+    }
+    function hideModal(id) {
+      const el = document.getElementById(id);
+      el.style.display = 'none';
+    }
+
+    // =========================================================
+    // INVESTMENT MODAL
+    // =========================================================
+    function openAddModal() {
+      App.editingInvestmentId = null;
+      document.getElementById('modal-inv-title').textContent = 'Novo Investimento';
+      document.getElementById('form-investment').reset();
+      document.getElementById('inv-edit-id').value = '';
+      document.getElementById('inv-start-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('inv-error').classList.add('hidden');
+      document.getElementById('inv-custom-freq-wrap').classList.add('hidden');
+      document.getElementById('inv-custom-freq-months').value = '';
+      populateCategorySelect();
+      showModal('modal-investment');
+    }
+
+    function closeInvestmentModal() {
+      hideModal('modal-investment');
+    }
+
+    function populateCategorySelect() {
+      const sel = document.getElementById('inv-category');
+      sel.innerHTML = '<option value="">— Sem Categoria —</option>';
+      for (const cat of App.categories) {
+        sel.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
+      }
+      if (App.editingInvestmentId) {
+        const inv = App.investments.find(i => i.id === App.editingInvestmentId);
+        if (inv) sel.value = inv.categoryId || '';
+      }
+    }
+
+    async function saveInvestment(e) {
+      e.preventDefault();
+      const errEl = document.getElementById('inv-error');
+      errEl.classList.add('hidden');
+
+      const name = document.getElementById('inv-name').value.trim();
+      const categoryId = document.getElementById('inv-category').value || null;
+      const principal = parseFloat(document.getElementById('inv-principal').value);
+      const profitPercentage = parseFloat(document.getElementById('inv-profit-pct').value);
+      const startDate = document.getElementById('inv-start-date').value;
+      const frequency = document.getElementById('inv-frequency').value;
+      const durationMonths = parseInt(document.getElementById('inv-duration').value);
+      const showInBDM = document.getElementById('inv-show-bdm').checked;
+      const customFrequencyMonths = frequency === 'custom' ? parseInt(document.getElementById('inv-custom-freq-months').value) : null;
+
+      if (!name || isNaN(principal) || principal <= 0) { showError('Preencha todos os campos obrigatórios.'); return; }
+      if (isNaN(profitPercentage) || profitPercentage <= 0) { showError('O lucro por período deve ser positivo.'); return; }
+      if (!startDate) { showError('Selecione uma data de início.'); return; }
+      if (isNaN(durationMonths) || durationMonths < 1) { showError('A duração deve ser de pelo menos 1 mês.'); return; }
+      if (frequency === 'custom' && (isNaN(customFrequencyMonths) || customFrequencyMonths < 1)) { showError('Defina o período personalizado em meses (mínimo 1).'); return; }
+
+      const intervalCheck = frequencyMonths(frequency, durationMonths, customFrequencyMonths);
+      if (durationMonths % intervalCheck !== 0) {
+        if (!confirm(`Aviso: A duração de ${durationMonths} meses não é um múltiplo exato da frequência de recebimento (${intervalCheck} meses). O último pagamento será antecipado ou cortado. Deseja continuar?`)) {
+          return;
+        }
+      }
+
+      const editId = document.getElementById('inv-edit-id').value;
+      const inv = {
+        id: editId || uid(),
+        name, categoryId, principal, profitPercentage, startDate, frequency, durationMonths, showInBDM, customFrequencyMonths,
+        createdAt: editId ? (App.investments.find(i => i.id === editId)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
+      };
+
+      try {
+        if (editId) await deleteInvestmentEvents(editId);
+        await dbPutInvestment(inv);
+        const evts = generateEvents(inv);
+        await dbPutEvents(evts);
+        await loadAllData();
+        renderCalendar();
+        closeInvestmentModal();
+        toast(editId ? 'Investimento atualizado!' : `${evts.length} evento(s) gerado(s) no calendário!`, 'success');
+      } catch (err) {
+        showError('Erro ao salvar: ' + err.message);
+      }
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('inv-error');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    async function deleteInvestment(invId) {
+      if (!confirm('Tem certeza que deseja excluir este investimento e todos os seus eventos?')) return;
+      await deleteInvestmentEvents(invId);
+      await dbDeleteInvestment(invId);
+      await loadAllData();
+      renderCalendar();
+      if (App.currentScreen === 'insights') renderInsights();
+      toast('Investimento excluido.', 'info');
+    }
+
+    function editInvestment(invId) {
+      App.editingInvestmentId = invId;
+      const inv = App.investments.find(i => i.id === invId);
+      if (!inv) return;
+      document.getElementById('modal-inv-title').textContent = 'Editar Investimento';
+      document.getElementById('inv-edit-id').value = inv.id;
+      document.getElementById('inv-name').value = inv.name;
+      document.getElementById('inv-principal').value = inv.principal;
+      document.getElementById('inv-profit-pct').value = inv.profitPercentage;
+      document.getElementById('inv-start-date').value = inv.startDate;
+      document.getElementById('inv-frequency').value = inv.frequency;
+      document.getElementById('inv-duration').value = inv.durationMonths;
+      document.getElementById('inv-show-bdm').checked = inv.showInBDM;
+      const customWrap = document.getElementById('inv-custom-freq-wrap');
+      if (inv.frequency === 'custom') {
+        customWrap.classList.remove('hidden');
+        document.getElementById('inv-custom-freq-months').value = inv.customFrequencyMonths || '';
+      } else {
+        customWrap.classList.add('hidden');
+        document.getElementById('inv-custom-freq-months').value = '';
+      }
+      populateCategorySelect();
+      document.getElementById('inv-category').value = inv.categoryId || '';
+      document.getElementById('inv-error').classList.add('hidden');
+      showModal('modal-investment');
+    }
+
+    // =========================================================
+    // CATEGORY MODAL
+    // =========================================================
+    function openCategoryModal() {
+      renderCategoryList();
+      document.getElementById('cat-name').value = '';
+      document.getElementById('cat-color').value = '#D4AF37';
+      showModal('modal-category');
+    }
+    function closeCategoryModal() { hideModal('modal-category'); }
+
+    function renderCategoryList() {
+      const el = document.getElementById('category-list');
+      if (App.categories.length === 0) {
+        el.innerHTML = '<p class="text-xs text-secondary/40 py-2">Nenhuma categoria criada.</p>';
+        return;
+      }
+      el.innerHTML = App.categories.map(cat => `
+    <div class="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 transition-colors">
+      <div class="w-5 h-5 rounded flex-shrink-0 border border-white/20" style="background:${cat.color}"></div>
+      <span class="text-sm text-on-surface flex-1">${cat.name}</span>
+      <button onclick="deleteCategory('${cat.id}')" class="text-secondary/40 hover:text-error transition-colors">
+        <span class="material-symbols-outlined text-[16px]" style="font-variation-settings:'wght' 300">delete</span>
+      </button>
+    </div>`).join('');
+    }
+
+    async function saveCategory() {
+      const name = document.getElementById('cat-name').value.trim();
+      const color = document.getElementById('cat-color').value;
+      if (!name) { toast('Digite um nome para a categoria.', 'error'); return; }
+
+      const cat = { id: uid(), name, color };
+      await dbPutCategory(cat);
+      await loadAllData();
+      renderCategoryList();
+      document.getElementById('cat-name').value = '';
+      toast('Categoria criada!', 'success');
+    }
+
+    async function deleteCategory(catId) {
+      if (!confirm('Excluir esta categoria? Os investimentos associados ficarão sem categoria.')) return;
+      await dbDeleteCategory(catId);
+      // Update investments that use this category
+      const affected = App.investments.filter(i => i.categoryId === catId);
+      for (const inv of affected) { inv.categoryId = null; await dbPutInvestment(inv); }
+      await loadAllData();
+      renderCategoryList();
+      renderCalendar();
+      toast('Categoria excluida.', 'info');
+    }
+
+    // =========================================================
+    // INSIGHTS
+    // =========================================================
+    function getTotalPatrimony() { return App.investments.reduce((s, i) => s + i.principal, 0); }
+
+    function getMonthlyIncomeEst() {
+      let total = 0;
+      for (const inv of App.investments) {
+        if (!inv.durationMonths) continue;
+        const s = BDMSchedule.computeSchedule(inv, {});
+        total += (s.netPerPeriod * s.numPeriods) / inv.durationMonths; // lucro liquido medio por mes
+      }
+      return total;
+    }
+
+    function getAvgMonthlyYield() {
+      const pat = getTotalPatrimony();
+      if (pat <= 0) return 0;
+      return (getMonthlyIncomeEst() / pat) * 100;
+    }
+
+    function getAvgAnnualYield() {
+      const r = getAvgMonthlyYield() / 100;
+      return r > 0 ? (Math.pow(1 + r, 12) - 1) * 100 : 0;
+    }
+
+    function getInvestmentROI(inv) {
+      const evts = App.events.filter(e => e.investmentId === inv.id);
+      const totalProfit = evts.reduce((s, e) => s + e.amount, 0);
+      return inv.principal > 0 ? (totalProfit / inv.principal) * 100 : 0;
+    }
+
+    function calculateMilestone(target) {
+      const val = getTotalPatrimony();
+      if (val >= target) return 0;
+      if (val <= 0) return null;
+      // Mesma simulacao do grafico: acumula o lucro liquido mes a mes ate cruzar o alvo.
+      // Sem reinvestimento o patrimonio estaciona no vencimento (pode ser inatingivel).
+      const HORIZON = 1200; // 100 anos
+      const profitByMonth = buildProfitByMonth(HORIZON, App.reinvestInsights, true);
+      let cumulative = 0;
+      for (let mth = 1; mth <= HORIZON; mth++) {
+        cumulative += (profitByMonth[mth] || 0);
+        if (val + cumulative >= target) return mth;
+      }
+      return null;
+    }
+
+    // Lucro liquido nominal por mes (chave = meses a partir de agora). Fonte unica para
+    // grafico de projecao, projecao real (IPCA) e marcos. OFF: ciclo unico (patrimonio
+    // estaciona no vencimento). ON: compoe o principal no vencimento de cada ciclo.
+    // spread=true distribui o lucro de cada periodo pelos meses do intervalo (usado nos
+    // marcos, para previsao com granularidade mensal); o grafico usa spread=false (blocos).
+    function buildProfitByMonth(totalMonths, reinvest, spread) {
+      const DES = BDMSchedule.WITHDRAWAL_DESAGIO;
+      const base = new Date(); base.setDate(1); base.setHours(0, 0, 0, 0);
+      const profitByMonth = {};
+      const addPeriod = (payM, interval, amount) => {
+        if (spread) {
+          const per = amount / interval;
+          for (let k = 0; k < interval; k++) {
+            const mm = payM - k;
+            if (mm > 0 && mm <= totalMonths) profitByMonth[mm] = (profitByMonth[mm] || 0) + per;
+          }
+        } else if (payM > 0 && payM <= totalMonths) {
+          profitByMonth[payM] = (profitByMonth[payM] || 0) + amount;
+        }
+      };
+      for (const inv of App.investments) {
+        if (!inv.startDate || !inv.durationMonths) continue;
+        const sched = BDMSchedule.computeSchedule(inv, { reinvest });
+        const eff = sched.applyDesagio ? DES : 0; // desagio so para ativos BDM
+        const startDate = new Date(inv.startDate + 'T12:00:00');
+        let cycleStartM = (startDate.getFullYear() - base.getFullYear()) * 12 +
+                          (startDate.getMonth() - base.getMonth());
+        let principal = inv.principal;
+
+        if (!reinvest) {
+          const netPer = principal * (inv.profitPercentage / 100) * (1 - eff);
+          for (let p = 1; p <= sched.numPeriods; p++) addPeriod(cycleStartM + p * sched.interval, sched.interval, netPer);
+          continue;
+        }
+
+        // Reinvestimento: compoe o principal no vencimento de cada ciclo usando lucro liquido
+        while (cycleStartM + inv.durationMonths <= 0) {
+          const netPer = principal * (inv.profitPercentage / 100) * (1 - eff);
+          principal += netPer * sched.numPeriods;
+          cycleStartM += inv.durationMonths;
+        }
+        while (cycleStartM < totalMonths) {
+          const netPer = principal * (inv.profitPercentage / 100) * (1 - eff);
+          for (let p = 1; p <= sched.numPeriods; p++) addPeriod(cycleStartM + p * sched.interval, sched.interval, netPer);
+          principal += netPer * sched.numPeriods;
+          cycleStartM += inv.durationMonths;
+        }
+      }
+      return profitByMonth;
+    }
+
+    function getProjectionData(years) {
+      const totalMonths = years * 12;
+      const step = years <= 2 ? 1 : years <= 5 ? 3 : 6;
+      const base = new Date(); base.setDate(1); base.setHours(0, 0, 0, 0);
+
+      const profitByMonth = buildProfitByMonth(totalMonths, App.reinvestInsights);
+
+      const startVal = getTotalPatrimony();
+      const labels = [], data = [];
+      let cumulativeProfit = 0;
+      let nextM = 0;
+
+      for (let i = 0; i <= totalMonths; i += step) {
+        while (nextM <= i) { cumulativeProfit += (profitByMonth[nextM] || 0); nextM++; }
+        const d = new Date(base); d.setMonth(d.getMonth() + i);
+        labels.push(d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }));
+        data.push(Math.round(startVal + cumulativeProfit));
+      }
+      return { labels, data };
+    }
+
+    function getPortfolioDistribution() {
+      const groups = {};
+      for (const inv of App.investments) {
+        const key = inv.categoryId || '__none__';
+        if (!groups[key]) groups[key] = { amount: 0, catId: inv.categoryId };
+        groups[key].amount += inv.principal;
+      }
+      const total = Object.values(groups).reduce((s, g) => s + g.amount, 0);
+      return Object.entries(groups).map(([key, g]) => ({
+        label: key === '__none__' ? 'Sem Categoria' : (App.categories.find(c => c.id === key)?.name || '?'),
+        color: key === '__none__' ? '#6b7280' : (App.categories.find(c => c.id === key)?.color || '#D4AF37'),
+        amount: g.amount,
+        pct: total > 0 ? (g.amount / total * 100) : 0,
+      }));
+    }
+
+    function generateDynamicInsights() {
+      const insights = [];
+      if (App.investments.length === 0) return insights;
+
+      // Permanent notice: reinvestment assumption (condicional ao toggle)
+      if (App.reinvestInsights) {
+        insights.push({ type: 'info', icon: 'autorenew', msg: 'Com reinvestimento ligado: ao vencer, cada ativo é reaplicado com o capital mais o lucro líquido (já com o deságio de 10% do saque). Gráfico e marcos refletem esse crescimento.' });
+      } else {
+        insights.push({ type: 'info', icon: 'info', msg: 'Sem reinvestimento: o lucro de cada período é fixo sobre o valor investido. Os valores em reais já consideram o deságio de 10% no saque do lucro.' });
+      }
+
+      const totalProfit = App.investments.reduce((s, inv) => s + App.events.filter(e => e.investmentId === inv.id).reduce((ss, e) => ss + e.amount, 0), 0);
+
+      // Concentration check
+      const profitByInv = App.investments.map(inv => ({
+        name: inv.name,
+        profit: App.events.filter(e => e.investmentId === inv.id).reduce((s, e) => s + e.amount, 0),
+      })).sort((a, b) => b.profit - a.profit);
+
+      if (profitByInv[0] && totalProfit > 0) {
+        const pct = (profitByInv[0].profit / totalProfit * 100).toFixed(0);
+        if (pct > 60) {
+          insights.push({ type: 'warn', icon: 'warning', msg: `"${profitByInv[0].name}" representa ${pct}% do seu lucro total. Considere diversificar a carteira.` });
+        }
+      }
+
+      // Upcoming maturities
+      const thirtyDays = new Date(); thirtyDays.setDate(thirtyDays.getDate() + 30);
+      const expiring = App.events.filter(e => e.isLastPayment && new Date(e.date) >= new Date() && new Date(e.date) <= thirtyDays);
+      if (expiring.length > 0) {
+        insights.push({ type: 'warn', icon: 'schedule', msg: `${expiring.length} investimento(s) vencem nos próximos 30 dias. Planeje o reinvestimento.` });
+      }
+
+      // Diversification
+      const cats = new Set(App.investments.map(i => i.categoryId || '__none__'));
+      if (App.investments.length > 3 && cats.size < 2) {
+        insights.push({ type: 'info', icon: 'pie_chart', msg: 'Seus investimentos estão todos em uma única categoria. Diversificar reduz riscos.' });
+      }
+
+      // Performance vs IPCA
+      const annualYield = getAvgAnnualYield();
+      if (annualYield > App.ipcaRate) {
+        const real = (annualYield - App.ipcaRate).toFixed(1);
+        insights.push({ type: 'success', icon: 'trending_up', msg: `Portfólio rendendo ${annualYield.toFixed(1)}% a.a., superando o IPCA em +${real} pontos percentuais. Ganho real positivo!` });
+      } else if (annualYield > 0 && annualYield <= App.ipcaRate) {
+        insights.push({ type: 'warn', icon: 'trending_down', msg: `Rendimento de ${annualYield.toFixed(1)}% a.a. está abaixo do IPCA de ${App.ipcaRate.toFixed(1)}%. Ganho real negativo.` });
+      }
+
+      // No events
+      if (App.events.length === 0 && App.investments.length > 0) {
+        insights.push({ type: 'info', icon: 'info', msg: 'Seus investimentos não geraram eventos no calendário. Verifique as datas e frequências.' });
+      }
+
+      return insights;
+    }
+
+    let _projYears = 5;
+    function setProjectionYears(y) {
+      _projYears = y;
+      document.querySelectorAll('.proj-btn').forEach(b => {
+        b.className = `proj-btn px-2 py-0.5 rounded text-[11px] ${parseInt(b.dataset.years) === y ? 'bg-primary/10 text-primary' : 'text-secondary/60 hover:text-secondary'}`;
+      });
+      renderLineChart();
+    }
+
+    function getRealAnnualYield() {
+      const nominal = getAvgAnnualYield() / 100;
+      const ipca = App.ipcaRate / 100;
+      return ((1 + nominal) / (1 + ipca) - 1) * 100;
+    }
+
+    function renderInsights() {
+      const patrimony = getTotalPatrimony();
+      const monthly = getMonthlyIncomeEst();
+      const avgMonthly = getAvgMonthlyYield();
+      const avgAnnual = getAvgAnnualYield();
+      const bdmP = toBDM(patrimony);
+      const realAnnual = getRealAnnualYield();
+
+      // KPIs
+      document.getElementById('kpi-patrimony').textContent = fmtBRL(patrimony);
+      document.getElementById('kpi-patrimony-bdm').textContent = bdmP !== null ? fmtBDM(bdmP) : '— BDM';
+      document.getElementById('kpi-monthly').textContent = fmtBRL(monthly);
+
+      if (App.useIPCA) {
+        const realMonthlyRate = (Math.pow(1 + realAnnual / 100, 1 / 12) - 1) * 100;
+        document.getElementById('kpi-monthly-pct').textContent = `Nominal: ${NUM.format(avgMonthly)}% a.m. | Real: ${NUM.format(realMonthlyRate)}%`;
+      } else {
+        document.getElementById('kpi-monthly-pct').textContent = `Yield médio: ${NUM.format(avgMonthly)}% a.m.`;
+      }
+
+      document.getElementById('kpi-real-yield').textContent = NUM.format(avgAnnual) + '% a.a.';
+      document.getElementById('kpi-real-yield-label').textContent = App.useIPCA ? 'Nominal a.a.' : 'Rentabilidade a.a.';
+
+      const gainRowEl = document.getElementById('kpi-real-gain-row');
+      const gainEl = document.getElementById('kpi-real-gain');
+      if (App.useIPCA) {
+        gainRowEl.classList.remove('hidden');
+        gainEl.textContent = NUM.format(realAnnual) + '% a.a.';
+        gainEl.className = 'font-semibold ' + (realAnnual >= 0 ? 'text-green-400' : 'text-red-400');
+      } else {
+        gainRowEl.classList.add('hidden');
+      }
+
+      // IPCA bar: shows real yield (post-IPCA) when active, nominal otherwise
+      // Enabling IPCA shrinks the bar (inflation erodes returns); red when real < 0
+      const barYield = App.useIPCA && App.ipcaRate > 0 ? realAnnual : avgAnnual;
+      const ipcaBarPct = Math.min(100, Math.max(0, barYield / 30 * 100));
+      const bar = document.getElementById('kpi-ipca-bar');
+      bar.style.width = ipcaBarPct + '%';
+      bar.style.background = (App.useIPCA && realAnnual < 0) ? '#ef4444' : '#D4AF37';
+
+      // Charts
+      renderDonutChart();
+      renderLineChart();
+
+      // Rankings
+      renderRankings();
+
+      // Milestones
+      renderMilestones();
+
+      // Dynamic insights
+      renderDynamicInsights();
+
+      // Sync IPCA UI
+      const togEl = document.getElementById('ipca-toggle');
+      if (togEl) togEl.checked = App.useIPCA;
+      const statusEl = document.getElementById('ipca-status-label');
+      if (statusEl) statusEl.textContent = App.useIPCA
+        ? 'Considerando inflação na projeção patrimonial'
+        : 'IPCA desativado — projeção sem correção inflacionária';
+    }
+
+    function renderDonutChart() {
+      const dist = getPortfolioDistribution();
+      const donutWrap = document.getElementById('donut-wrap');
+      const donutEmpty = document.getElementById('donut-empty');
+
+      if (dist.length === 0) {
+        donutWrap.style.display = 'none';
+        donutEmpty.style.display = 'flex';
+        document.getElementById('donut-legend').innerHTML = '';
+        return;
+      }
+      donutWrap.style.display = '';
+      donutEmpty.style.display = 'none';
+
+      const ctx = document.getElementById('donut-chart').getContext('2d');
+      if (App.charts.donut) App.charts.donut.destroy();
+
+      App.charts.donut = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: dist.map(d => d.label),
+          datasets: [{ data: dist.map(d => d.amount), backgroundColor: dist.map(d => d.color), borderColor: '#09090b', borderWidth: 3 }]
+        },
+        options: {
+          cutout: '68%',
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: (c) => ` ${c.label}: ${fmtBRL(c.raw)} (${NUM.format(dist[c.dataIndex].pct)}%)` } }
+          },
+          animation: { duration: 600 },
+        }
+      });
+
+      document.getElementById('donut-center').textContent = fmtBRL(getTotalPatrimony()).replace('R$ ', 'R$ ');
+      document.getElementById('donut-legend').innerHTML = dist.map(d =>
+        `<div class="flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <div class="w-2.5 h-2.5 rounded-sm flex-shrink-0" style="background:${d.color}"></div>
+        <span class="text-xs text-secondary truncate max-w-[120px]">${d.label}</span>
+      </div>
+      <span class="text-xs font-semibold text-on-surface tabular-nums whitespace-nowrap">${NUM.format(d.pct)}%</span>
+    </div>`).join('');
+    }
+
+    function getProjectionDataReal(years) {
+      const totalMonths = years * 12;
+      const step = years <= 2 ? 1 : years <= 5 ? 3 : 6;
+      const base = new Date(); base.setDate(1); base.setHours(0, 0, 0, 0);
+      const ipcaMonthly = Math.pow(1 + App.ipcaRate / 100, 1 / 12) - 1;
+
+      // Lucro nominal liquido por mes (a deflacao por IPCA acontece no laco cumulativo abaixo)
+      const profitByMonth = buildProfitByMonth(totalMonths, App.reinvestInsights);
+
+      const startVal = getTotalPatrimony();
+      const labels = [], data = [];
+      let cumulativeRealProfit = 0;
+      let nextM = 0;
+
+      for (let i = 0; i <= totalMonths; i += step) {
+        while (nextM <= i) {
+          const profit = profitByMonth[nextM] || 0;
+          const deflator = ipcaMonthly > 0 ? Math.pow(1 + ipcaMonthly, nextM) : 1;
+          cumulativeRealProfit += profit / deflator;
+          nextM++;
+        }
+        const d = new Date(base); d.setMonth(d.getMonth() + i);
+        labels.push(d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }));
+        data.push(Math.round(startVal + cumulativeRealProfit));
+      }
+      return { labels, data };
+    }
+
+    function renderLineChart() {
+      const lineWrap = document.getElementById('line-wrap');
+      const lineEmpty = document.getElementById('line-empty');
+
+      if (App.investments.length === 0) {
+        lineWrap.style.display = 'none';
+        lineEmpty.style.display = 'flex';
+        return;
+      }
+      lineWrap.style.display = '';
+      lineEmpty.style.display = 'none';
+
+      const { labels, data } = getProjectionData(_projYears);
+      const ctx = document.getElementById('line-chart').getContext('2d');
+      if (App.charts.line) App.charts.line.destroy();
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+      gradient.addColorStop(0, 'rgba(212,175,55,.25)');
+      gradient.addColorStop(1, 'rgba(212,175,55,0)');
+
+      const datasets = [{
+        label: 'Nominal',
+        data,
+        borderColor: '#D4AF37',
+        backgroundColor: gradient,
+        fill: true,
+        tension: 0,
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: '#f2ca50',
+        stepped: true,
+      }];
+
+      if (App.useIPCA) {
+        const { data: realData } = getProjectionDataReal(_projYears);
+        datasets.push({
+          label: 'Real (- IPCA)',
+          data: realData,
+          borderColor: 'rgba(99,179,237,.7)',
+          backgroundColor: 'transparent',
+          fill: false,
+          tension: 0,
+          borderWidth: 1.5,
+          borderDash: [5, 3],
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          stepped: true,
+          pointHoverBackgroundColor: '#90cdf4',
+        });
+      }
+
+      App.charts.line = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: App.useIPCA, labels: { color: '#99907c', font: { size: 10 }, boxWidth: 20 } },
+            tooltip: {
+              mode: 'index', intersect: false,
+              callbacks: { label: c => ` ${c.dataset.label}: ${fmtBRL(c.raw)}` }
+            }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(229,228,226,.05)' }, ticks: { color: '#99907c', font: { size: 10 }, maxTicksLimit: 8 } },
+            y: { grid: { color: 'rgba(229,228,226,.05)' }, ticks: { color: '#99907c', font: { size: 10 }, callback: v => v >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : v >= 1e3 ? (v / 1e3).toFixed(0) + 'k' : v } }
+          },
+          animation: { duration: 600 },
+        }
+      });
+    }
+
+    function renderRankings() {
+      const list = document.getElementById('ranking-list');
+      if (App.investments.length === 0) {
+        list.innerHTML = `<div class="text-center py-8 text-secondary/40">
+      <span class="material-symbols-outlined text-[36px] mb-2 block" style="font-variation-settings:'wght' 200">leaderboard</span>
+      <p class="text-xs">Nenhum investimento cadastrado</p>
+    </div>`;
+        return;
+      }
+
+      const ranked = App.investments.map(inv => ({ inv, roi: getInvestmentROI(inv) })).sort((a, b) => b.roi - a.roi);
+      const maxROI = ranked[0]?.roi || 1;
+
+      list.innerHTML = ranked.map((item, idx) => {
+        const color = getCategoryColor(item.inv.categoryId);
+        const barPct = maxROI > 0 ? Math.min(100, item.roi / maxROI * 100) : 0;
+        return `<div class="flex items-center gap-3 p-2.5 rounded-lg ${idx === 0 ? 'bg-primary/5 border border-primary/15' : 'hover:bg-white/3'} transition-colors group">
+      <div class="text-[11px] font-bold ${idx === 0 ? 'text-primary' : 'text-secondary/40'} w-5 text-center tabular-nums">${idx + 1}</div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-xs font-semibold text-on-surface truncate">${item.inv.name}</span>
+          <span class="text-xs font-bold ${item.roi >= 0 ? 'text-primary' : 'text-error'} tabular-nums ml-2 whitespace-nowrap">+${NUM.format(item.roi)}%</span>
+        </div>
+        <div class="w-full bg-surface-container rounded-full h-1">
+          <div class="ranking-bar" style="width:${barPct}%;background:${color}"></div>
+        </div>
+      </div>
+      <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button onclick="editInvestment('${item.inv.id}')" class="p-1 rounded text-secondary/50 hover:text-primary transition-colors">
+          <span class="material-symbols-outlined text-[14px]" style="font-variation-settings:'wght' 300">edit</span>
+        </button>
+        <button onclick="deleteInvestment('${item.inv.id}')" class="p-1 rounded text-secondary/50 hover:text-error transition-colors">
+          <span class="material-symbols-outlined text-[14px]" style="font-variation-settings:'wght' 300">delete</span>
+        </button>
+      </div>
+    </div>`;
+      }).join('');
+    }
+
+    function renderMilestones() {
+      const patrimony = getTotalPatrimony();
+      const m1 = calculateMilestone(1_000_000);
+      const m1b = calculateMilestone(1_000_000_000);
+
+      function fmtMonthsText(months) {
+        if (months === null) return 'Inatingível no ritmo atual';
+        if (months === 0) return 'Já atingido!';
+        const y = Math.floor(months / 12), mo = months % 12;
+        const parts = [];
+        if (y > 0) parts.push(`${y} ${y === 1 ? 'ano' : 'anos'}`);
+        if (mo > 0) parts.push(`${mo} ${mo === 1 ? 'mês' : 'meses'}`);
+        return `Em ${parts.join(' e ')}`;
+      }
+
+      function fmtMilestoneDate(months) {
+        if (months === null || months === 0) return '';
+        const d = new Date();
+        d.setMonth(d.getMonth() + months);
+        return 'Previsão: ' + d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      }
+
+      document.getElementById('milestone-1m').textContent = fmtMonthsText(m1);
+      document.getElementById('milestone-1b').textContent = fmtMonthsText(m1b);
+      document.getElementById('milestone-1m-date').textContent = fmtMilestoneDate(m1);
+      document.getElementById('milestone-1b-date').textContent = fmtMilestoneDate(m1b);
+
+      const p1m = m1 !== null && m1 > 0 ? Math.min(100, patrimony / 1_000_000 * 100) : (m1 === 0 ? 100 : 0);
+      const p1b = m1b !== null && m1b > 0 ? Math.min(100, patrimony / 1_000_000_000 * 100) : (m1b === 0 ? 100 : 0);
+      document.getElementById('bar-1m').style.width = p1m + '%';
+      document.getElementById('bar-1b').style.width = p1b + '%';
+      const pct1mEl = document.getElementById('milestone-1m-pct');
+      const pct1bEl = document.getElementById('milestone-1b-pct');
+      if (pct1mEl) pct1mEl.textContent = p1m.toFixed(1) + '%';
+      if (pct1bEl) pct1bEl.textContent = p1b.toFixed(4) + '%';
+    }
+
+    function renderDynamicInsights() {
+      const insights = generateDynamicInsights();
+      const el = document.getElementById('dynamic-insights');
+      if (insights.length === 0) {
+        el.innerHTML = '<p class="text-xs text-secondary/50 text-center py-4">Insights aparecem automaticamente conforme você cadastra investimentos.</p>';
+        return;
+      }
+      el.innerHTML = insights.map(ins => `
+    <div class="insight-badge ${ins.type}">
+      <span class="material-symbols-outlined text-[16px] flex-shrink-0 mt-0.5" style="font-variation-settings:'FILL' 1">${ins.icon}</span>
+      <span>${ins.msg}</span>
+    </div>`).join('');
+    }
+
+    // IPCA update
+    function updateIPCA(val) {
+      App.ipcaRate = parseFloat(val) || 5.0;
+      saveSettings();
+      if (App.currentScreen === 'insights') renderInsights();
+    }
+
+    function toggleIPCA(checked) {
+      App.useIPCA = checked;
+      saveSettings();
+      if (App.currentScreen === 'insights') renderInsights();
+    }
+
+    function toggleReinvestInsights(checked) {
+      App.reinvestInsights = checked;
+      const n = document.getElementById('reinvest-notice-text');
+      if (n) n.textContent = checked
+        ? 'Cálculos consideram reinvestimento no vencimento'
+        : 'Cálculos sem reinvestimento (lucro por período, sem composição)';
+      renderInsights();
+    }
+
+    function toggleReinvestCalendar(checked) {
+      App.reinvestCalendar = checked;
+      renderCalendar();
+    }
+
+    // =========================================================
+    // CALCULATOR
+    // =========================================================
+    let _calcChart = null;
+
+    // Text input is always primary source of truth; slider is visual only.
+    function getCalcVal(inputId, sliderId, isInt) {
+      const inputEl = document.getElementById(inputId);
+      if (inputEl && inputEl.value !== '') {
+        const v = isInt ? parseInt(inputEl.value) : parseFloat(inputEl.value);
+        if (!isNaN(v)) return v;
+      }
+      const v = isInt
+        ? parseInt(document.getElementById(sliderId).value)
+        : parseFloat(document.getElementById(sliderId).value);
+      return isNaN(v) ? 0 : v;
+    }
+
+    // Called by slider oninput: push slider value into text field then recalc.
+    function onSliderChange(slider, inputId) {
+      const inputEl = document.getElementById(inputId);
+      if (inputEl) inputEl.value = slider.value;
+      updateCalc();
+    }
+
+    // Called by text input oninput: keep slider in sync (clamped to slider range) then recalc.
+    function syncCalcInput(inputId, sliderId) {
+      const raw = parseFloat(document.getElementById(inputId).value);
+      const slider = document.getElementById(sliderId);
+      if (!isNaN(raw)) slider.value = Math.min(Math.max(raw, +slider.min), +slider.max);
+      updateCalc();
+    }
+
+    // Called by text input onblur: enforce minimum only, no upper limit.
+    function clampCalcInput(inputId, sliderId, min) {
+      const el = document.getElementById(inputId);
+      let val = parseFloat(el.value);
+      if (isNaN(val) || val < min) val = min;
+      el.value = val;
+      const slider = document.getElementById(sliderId);
+      slider.value = Math.min(Math.max(val, +slider.min), +slider.max);
+      updateCalc();
+    }
+
+    function toggleCalcFreq(sel) {
+      const wrap = document.getElementById('calc-custom-freq-wrap');
+      wrap.classList.toggle('hidden', sel.value !== 'custom');
+      if (sel.value !== 'custom') document.getElementById('calc-custom-freq-months').value = '';
+    }
+
+    function calcFreqMonths(frequency, durationMonths) {
+      if (frequency === 'monthly') return 1;
+      if (frequency === 'bimonthly') return 2;
+      if (frequency === 'quarterly') return 3;
+      if (frequency === 'semiannual') return 6;
+      if (frequency === 'at_maturity') return durationMonths;
+      if (frequency === 'custom') return parseInt(document.getElementById('calc-custom-freq-months').value) || 1;
+      return 1;
+    }
+
+    function updateCalc() {
+      document.querySelectorAll('#screen-calculator input[type=range]').forEach(updateSliderTrack);
+
+      const amount = getCalcVal('calc-amount-input', 'calc-amount', false);
+      const profitPct = getCalcVal('calc-rate-input', 'calc-rate', false);
+      const months = Math.max(1, getCalcVal('calc-months-input', 'calc-months', true));
+      const monthly = getCalcVal('calc-monthly-input', 'calc-monthly', false);
+      const frequency = document.getElementById('calc-frequency').value;
+      const freqMonths = calcFreqMonths(frequency, months);
+
+      document.getElementById('calc-amount-display').textContent = fmtBRL(amount);
+      document.getElementById('calc-rate-display').textContent = profitPct.toFixed(2).replace('.', ',') + '%';
+      document.getElementById('calc-months-display').textContent = months + (months === 1 ? ' mês' : ' meses');
+      document.getElementById('calc-monthly-display').textContent = fmtBRL(monthly);
+
+
+      // Monthly rate derived from profit-per-period + frequency
+      const monthlyRate = freqMonths > 0 ? Math.pow(1 + profitPct / 100, 1 / freqMonths) - 1 : 0;
+      const inflationMonthly = Math.pow(1 + App.ipcaRate / 100, 1 / 12) - 1;
+
+      // Future value: principal compounds, monthly contributions compound
+      let fv = amount * Math.pow(1 + monthlyRate, months);
+      if (monthly > 0 && monthlyRate > 0) {
+        fv += monthly * (Math.pow(1 + monthlyRate, months) - 1) / monthlyRate;
+      } else if (monthly > 0) {
+        fv += monthly * months;
+      }
+
+      const totalInvested = amount + monthly * months;
+      const profit = fv - totalInvested;
+      const multiplier = totalInvested > 0 ? fv / amount : 1;
+
+      // Real gain deflated by global IPCA
+      let fvInflated = amount * Math.pow(1 + inflationMonthly, months);
+      if (monthly > 0 && inflationMonthly > 0) {
+        fvInflated += monthly * (Math.pow(1 + inflationMonthly, months) - 1) / inflationMonthly;
+      } else if (monthly > 0) {
+        fvInflated += monthly * months;
+      }
+      const realProfit = fv - fvInflated;
+
+      document.getElementById('calc-result').textContent = fmtBRL(fv);
+      document.getElementById('calc-profit').textContent = '+ ' + fmtBRL(profit);
+      document.getElementById('calc-multiplier').textContent = multiplier.toFixed(2) + 'x';
+      document.getElementById('calc-real-profit').textContent = (realProfit >= 0 ? '+ ' : '- ') + fmtBRL(Math.abs(realProfit));
+      document.getElementById('calc-total-invested').textContent = fmtBRL(totalInvested);
+      const lbl = document.getElementById('calc-real-label');
+      if (lbl) lbl.textContent = `Ganho Real (s/ IPCA ${App.ipcaRate.toFixed(1)}%)`;
+
+      const bdmFV = toBDM(fv);
+      document.getElementById('calc-result-bdm').textContent = bdmFV !== null ? fmtBDM(bdmFV) : '— BDM';
+
+      // Mini chart
+      renderCalcChart(amount, monthly, monthlyRate, months);
+    }
+
+    function renderCalcChart(amount, monthly, monthlyRate, months) {
+      const step = Math.max(1, Math.floor(months / 24));
+      const labels = [], data = [], dataNoComp = [];
+
+      for (let i = 0; i <= months; i += step) {
+        const d = new Date(); d.setMonth(d.getMonth() + i);
+        labels.push(d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }));
+
+        let fv = amount * Math.pow(1 + monthlyRate, i);
+        if (monthly > 0 && monthlyRate > 0) fv += monthly * (Math.pow(1 + monthlyRate, i) - 1) / monthlyRate;
+        else if (monthly > 0) fv += monthly * i;
+        data.push(Math.round(fv));
+
+        dataNoComp.push(amount + monthly * i);
+      }
+
+      const ctx = document.getElementById('calc-chart').getContext('2d');
+      if (_calcChart) _calcChart.destroy();
+
+      const g = ctx.createLinearGradient(0, 0, 0, 140);
+      g.addColorStop(0, 'rgba(212,175,55,.3)');
+      g.addColorStop(1, 'rgba(212,175,55,0)');
+
+      _calcChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { data, borderColor: '#D4AF37', backgroundColor: g, fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0, label: 'Com juros compostos' },
+            { data: dataNoComp, borderColor: 'rgba(199,198,196,.3)', fill: false, tension: 0, borderWidth: 1, pointRadius: 0, borderDash: [4, 4], label: 'Sem juros' },
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { mode: 'index', intersect: false, callbacks: { label: c => ` ${c.dataset.label}: ${fmtBRL(c.raw)}` } }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#99907c', font: { size: 9 }, maxTicksLimit: 6 } },
+            y: { grid: { color: 'rgba(229,228,226,.04)' }, ticks: { color: '#99907c', font: { size: 9 }, callback: v => v >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : v >= 1e3 ? (v / 1e3).toFixed(0) + 'k' : v } }
+          },
+          animation: { duration: 300 },
+        }
+      });
+    }
+
+    // =========================================================
+    // TOAST
+    // =========================================================
+    let _toastTimer;
+    function toast(msg, type = 'success') {
+      const el = document.getElementById('toast');
+      const icon = document.getElementById('toast-icon');
+      const msgEl = document.getElementById('toast-msg');
+
+      const styles = {
+        success: ['check_circle', 'text-green-400'],
+        error: ['error', 'text-red-400'],
+        info: ['info', 'text-blue-400'],
+        warn: ['warning', 'text-yellow-400'],
+      };
+      const [iconName, colorClass] = styles[type] || styles.success;
+
+      icon.textContent = iconName;
+      icon.className = `material-symbols-outlined text-[18px] ${colorClass}`;
+      msgEl.textContent = msg;
+      el.classList.add('show');
+
+      clearTimeout(_toastTimer);
+      _toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+    }
+
+    // =========================================================
+    // AI AGENT — via Edge Function 'ai-chat' (a chave da OpenRouter fica no servidor)
+    // =========================================================
+    const AI_SYSTEM_PROMPT = `Você é o analista financeiro e agente de automação nativo do BDM Tracker, plataforma premium focada em investimentos BDM e ativos tradicionais.
+
+## REGRAS ABSOLUTAS — NUNCA VIOLE NENHUMA
+
+R1. PROIBIDO LaTeX ou notação com colchetes/\\frac{}. Use texto puro: G_real = (1+N)/(1+I) - 1
+R2. PROIBIDO blocos de codigo (triple backtick). Use bullet "-" e negrito **texto**.
+R3. PROIBIDO JSON para listar/descrever investimentos. Isso é SEMPRE texto em linguagem natural.
+R4. PROIBIDO usar a data de hoje como startDate. Se nao informado, PERGUNTE a data de inicio.
+R5. PROIBIDO gerar JSON enquanto qualquer campo obrigatorio estiver faltando. Colete TODOS os dados ausentes em UMA UNICA mensagem — nunca campo a campo em mensagens separadas.
+R6. Ao gerar JSON de acao: resposta deve ser EXCLUSIVAMENTE o JSON. Zero texto antes ou depois, zero explicacao, zero "Aqui esta:".
+R7. Seja humano e acolhedor: cumprimente de volta quando o usuario cumprimentar, use tom caloroso e natural, demonstre empatia. Mantenha a objetividade nas acoes, sem enrolacao.
+R8. Para QUALQUER acao com multiplos itens (excluir 2, criar 3, editar varios): SEMPRE use array JSON [...]. NUNCA envie dois objetos JSON separados nem explique as acoes em texto.
+R9. NUNCA exponha termos tecnicos ao usuario: nada de true/false, nomes de campos em ingles, JSON visivel ou jargao de programacao. Fale SEMPRE em portugues (ptbr), salvo se o usuario pedir explicitamente outro idioma. Ao faltar dados, pergunte em linguagem natural (ex.: "Voce quer acompanhar esse investimento em BDM ou em reais?" em vez de "showInBDM: true/false").
+
+## CHECKLIST OBRIGATORIO — confirme TODOS antes de gerar create/edit JSON
+
+1. name (string)
+2. principal (numero em R$, > 0)
+3. lucro por periodo (em %, maior que zero)
+4. startDate (YYYY-MM-DD) — NUNCA presuma a data de hoje
+5. frequency: monthly | bimonthly | quarterly | semiannual | at_maturity | custom
+6. customFrequencyMonths (numero de meses se frequency=custom, senao null)
+7. durationMonths (inteiro >= 1)
+8. Forma de exibicao (em BDM ou em reais) — pergunte de forma natural, nunca como "true/false". SEMPRE pergunte se nao foi explicito
+9. categoryId (ID do contexto ou null) — SEMPRE pergunte qual categoria ou se prefere sem
+
+## MODOS DE OPERACAO
+
+### MODO 1 — Analise (TEXTO)
+ROI real: G_real = (1+N)/(1+I) - 1 (N=rendimento nominal anual, I=IPCA do contexto).
+Output: max 3 bullet points — melhor ativo vs IPCA + alertas de concentracao.
+Nao afirme reinvestimento automatico como fato. O lucro de cada periodo e fixo sobre o valor investido. Se relevante, diga que o reinvestimento depende da opcao "Considerar Reinvestimento" estar ligada na tela.
+
+### MODO 2 — Educacao Financeira (TEXTO)
+Resposta tecnica e direta sobre rentabilidade, prazos, taxas, ecossistema BDM.
+
+### MODO 3 — Criar Investimento (JSON PURO — zero texto extra)
+Confirme os 9 campos antes. Entao gere apenas:
+1 investimento: {"action":"create_investment","data":{"name":"...","categoryId":null,"principal":1000,"profitPercentage":5.0,"startDate":"YYYY-MM-DD","frequency":"monthly","customFrequencyMonths":null,"durationMonths":12,"showInBDM":false}}
+Varios: [{"action":"create_investment","data":{...}},{"action":"create_investment","data":{...}}]
+
+### MODO 4 — Excluir (JSON PURO)
+1 item:  {"action":"delete_investment","data":{"id":"id-exato-do-contexto","name":"nome"}}
+Varios:  [{"action":"delete_investment","data":{"id":"id1","name":"nome1"}},{"action":"delete_investment","data":{"id":"id2","name":"nome2"}}]
+
+### MODO 5 — Editar (JSON PURO)
+Confirme todos os campos. ID do contexto:
+1 item:  {"action":"edit_investment","data":{"id":"id-exato","name":"...","categoryId":null,"principal":0,"profitPercentage":0,"startDate":"YYYY-MM-DD","frequency":"monthly","customFrequencyMonths":null,"durationMonths":12,"showInBDM":false}}
+Varios:  [{"action":"edit_investment","data":{...}},{"action":"edit_investment","data":{...}}]
+
+## CONTEXTO INJETADO
+Estado atual do app (investimentos com IDs, categorias, cotacao BDM, IPCA) fornecido abaixo. Use IDs exatos.`;
+
+    let _aiHistory  = [];
+    let _aiTyping   = false;
+    const _aiPending = {}; // { actionId: data }
+
+    function _escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    // Convert AI markdown text to safe HTML for display in chat
+    function _renderMsg(text) {
+      // 1. Escape HTML (prevent injection from AI content)
+      let s = String(text)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+      // 2. Bold: **text** (process before italic/bullet to avoid conflicts)
+      s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+      // 3. Italic: _text_ (use underscore to avoid bullet * confusion)
+      s = s.replace(/_([^_\n]+?)_/g, '<em>$1</em>');
+
+      // 4. Inline code: `code`
+      s = s.replace(/`([^`\n]+)`/g, '<code style="background:rgba(255,255,255,.08);border-radius:.2em;padding:.05em .35em;font-size:11px;color:#f2ca50">$1</code>');
+
+      // 5. Bullet lines: "- item" or "* item" at line start → gold dot layout
+      s = s.replace(/^[ \t]*[-*]\s+(.+)/gm,
+        '<div style="display:flex;gap:.45em;margin:.1em 0;align-items:baseline"><span style="color:#f2ca50;flex-shrink:0">·</span><span>$1</span></div>'
+      );
+
+      // 6. Remaining newlines → <br>
+      s = s.replace(/\n/g, '<br>');
+
+      // 7. Remove <br> immediately before/after block divs to avoid double-spacing
+      s = s.replace(/<br>(<div )/g, '$1');
+      s = s.replace(/(<\/div>)<br>/g, '$1');
+
+      return s;
+    }
+
+    // Normalize AI response into an array of action objects, or null
+    function _normalizeActionList(parsed) {
+      if (Array.isArray(parsed)) {
+        const valid = parsed.filter(o => o && o.action && o.data);
+        return valid.length ? valid : null;
+      }
+      return (parsed && parsed.action && parsed.data) ? [parsed] : null;
+    }
+
+    function _appendAIMsg(role, innerHtml) {
+      const c = document.getElementById('ai-messages');
+      if (!c) return;
+      const w = document.createElement('div');
+      w.className = 'ai-msg ' + (role === 'user' ? 'from-user' : 'from-ai');
+      if (role === 'user') {
+        w.innerHTML = `<div class="ai-msg-bubble"><p class="text-sm whitespace-pre-wrap leading-relaxed">${innerHtml}</p></div>`;
+      } else {
+        w.innerHTML = `<div class="ai-msg-avatar"><span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings:'FILL' 1">smart_toy</span></div><div class="flex-1 min-w-0">${innerHtml}</div>`;
+      }
+      c.appendChild(w);
+      c.scrollTop = c.scrollHeight;
+      return w;
+    }
+
+    function _showTyping() {
+      const c = document.getElementById('ai-messages');
+      if (!c) return;
+      const el = document.createElement('div');
+      el.className = 'ai-msg from-ai';
+      el.id = 'ai-typing-indicator';
+      el.innerHTML = `<div class="ai-msg-avatar"><span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings:'FILL' 1">smart_toy</span></div><div class="ai-msg-bubble"><div class="typing-indicator"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div></div>`;
+      c.appendChild(el);
+      c.scrollTop = c.scrollHeight;
+    }
+
+    function _hideTyping() {
+      const el = document.getElementById('ai-typing-indicator');
+      if (el) el.remove();
+    }
+
+    function _buildContext() {
+      const invs = App.investments.map(i => ({
+        id: i.id, name: i.name, principal: i.principal, profitPercentage: i.profitPercentage,
+        frequency: i.frequency, durationMonths: i.durationMonths, startDate: i.startDate,
+        showInBDM: i.showInBDM, categoryId: i.categoryId,
+      }));
+      const cats = App.categories.map(c => ({ id: c.id, name: c.name }));
+      return `[ESTADO DO APP — ${new Date().toISOString().split('T')[0]}]
+Cotacao BDM: R$ ${App.bdmRate > 0 ? App.bdmRate.toFixed(2) : 'N/A'}
+IPCA anual: ${App.ipcaRate}%
+Categorias disponiveis: ${JSON.stringify(cats)}
+Investimentos ativos (${invs.length}): ${JSON.stringify(invs)}`;
+    }
+
+    // Walk text char-by-char from startIdx to find the matching closing bracket.
+    // Returns the balanced JSON substring, or null if not found.
+    function _extractJsonFrom(text, startIdx) {
+      const open = text[startIdx];
+      const close = open === '[' ? ']' : '}';
+      let depth = 0, inStr = false, esc = false;
+      for (let i = startIdx; i < text.length; i++) {
+        const c = text[i];
+        if (esc) { esc = false; continue; }
+        if (c === '\\' && inStr) { esc = true; continue; }
+        if (c === '"') { inStr = !inStr; continue; }
+        if (inStr) continue;
+        if (c === open) depth++;
+        else if (c === close && --depth === 0) return text.slice(startIdx, i + 1);
+      }
+      return null;
+    }
+
+    // Returns: null | array of valid action objects
+    function _tryParseActions(text) {
+      const s = text.trim();
+
+      // Strategy 1: all code-fence blocks (handles ```json ... ```)
+      const fenceRe = /```(?:json)?[ \t]*\r?\n?([\s\S]+?)\r?\n?```/g;
+      let fm;
+      while ((fm = fenceRe.exec(s)) !== null) {
+        try { const r = _normalizeActionList(JSON.parse(fm[1].trim())); if (r?.length) return r; } catch {}
+      }
+
+      // Strategy 2: whole string as JSON
+      try { const r = _normalizeActionList(JSON.parse(s)); if (r?.length) return r; } catch {}
+
+      // Strategy 3: balanced-bracket extraction from first { or [
+      // (handles text BEFORE or AFTER the JSON without corrupting the parse)
+      const firstIdx = s.search(/[\[{]/);
+      if (firstIdx >= 0) {
+        const extracted = _extractJsonFrom(s, firstIdx);
+        if (extracted) {
+          try { const r = _normalizeActionList(JSON.parse(extracted)); if (r?.length) return r; } catch {}
+        }
+      }
+
+      // Strategy 4: line-by-line (handles AI sending separate objects on separate lines)
+      const lineActions = [];
+      for (const line of s.split(/\r?\n/)) {
+        const t = line.trim();
+        if (!t || (!t.startsWith('{') && !t.startsWith('['))) continue;
+        try {
+          const r = _normalizeActionList(JSON.parse(t));
+          if (r) lineActions.push(...r);
+        } catch {}
+      }
+      if (lineActions.length) return lineActions;
+
+      return null;
+    }
+
+    // ---- CREATE card ----
+    function _showCreateCard(data, label) {
+      const aid = 'ai_' + uid();
+      _aiPending[aid] = data;
+      const freqMap = { monthly:'Mensal', bimonthly:'Bimestral', quarterly:'Trimestral', semiannual:'Semestral', at_maturity:'No Vencimento', custom:`A cada ${data.customFrequencyMonths||'?'} meses` };
+      const freq = freqMap[data.frequency] || data.frequency || '—';
+      const catName = data.categoryId
+        ? (App.categories.find(c => c.id === data.categoryId)?.name || data.categoryId)
+        : 'Sem categoria';
+      const headerLabel = label || 'Novo Investimento Detectado';
+      const html = `<div class="ai-action-card" data-aid="${aid}">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings:'FILL' 1">add_circle</span>
+          <span class="text-[10px] font-bold tracking-[.08em] uppercase text-primary">${_escHtml(headerLabel)}</span>
+        </div>
+        <div class="grid grid-cols-2 gap-x-5 gap-y-2 mb-4">
+          <span class="text-[11px] text-secondary/50">Nome</span><span class="text-[12px] font-semibold text-on-surface">${_escHtml(data.name||'—')}</span>
+          <span class="text-[11px] text-secondary/50">Principal</span><span class="text-[12px] font-bold text-primary">${data.principal ? fmtBRL(data.principal) : '—'}</span>
+          <span class="text-[11px] text-secondary/50">Lucro/período</span><span class="text-[12px] text-on-surface">${data.profitPercentage != null ? data.profitPercentage + '%' : '—'}</span>
+          <span class="text-[11px] text-secondary/50">Frequência</span><span class="text-[12px] text-on-surface">${_escHtml(freq)}</span>
+          <span class="text-[11px] text-secondary/50">Início</span><span class="text-[12px] text-on-surface">${_escHtml(data.startDate||'—')}</span>
+          <span class="text-[11px] text-secondary/50">Duração</span><span class="text-[12px] text-on-surface">${data.durationMonths != null ? data.durationMonths + ' meses' : '—'}</span>
+          <span class="text-[11px] text-secondary/50">Categoria</span><span class="text-[12px] text-on-surface">${_escHtml(catName)}</span>
+          <span class="text-[11px] text-secondary/50">Em BDM</span><span class="text-[12px] text-on-surface">${data.showInBDM ? 'Sim' : 'Não'}</span>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="confirmAICreate('${aid}')" class="flex-1 py-2 rounded-xl bg-primary text-on-primary text-[12px] font-bold gold-glow hover:brightness-110 transition-all">Confirmar e Salvar</button>
+          <button onclick="cancelAIAction('${aid}')" class="px-4 py-2 rounded-xl border border-outline-variant/40 text-secondary text-[12px] hover:bg-white/5 transition-colors">Cancelar</button>
+        </div>
+      </div>`;
+      _appendAIMsg('ai', html);
+    }
+
+    // ---- DELETE card ----
+    function _showDeleteCard(data) {
+      const aid = 'ai_' + uid();
+      _aiPending[aid] = data;
+      const inv = App.investments.find(i => i.id === data.id);
+      const displayName = inv ? inv.name : (data.name || data.id);
+      const html = `<div class="ai-action-card" data-aid="${aid}">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="material-symbols-outlined text-[16px]" style="color:#ffb4ab;font-variation-settings:'FILL' 1">delete</span>
+          <span class="text-[10px] font-bold tracking-[.08em] uppercase" style="color:#ffb4ab">Excluir Investimento</span>
+        </div>
+        <p class="text-[12px] text-on-surface mb-1"><strong>${_escHtml(displayName)}</strong></p>
+        <p class="text-[11px] text-secondary/50 mb-4">Todos os eventos do calendário serão removidos. Esta ação não pode ser desfeita.</p>
+        <div class="flex gap-2">
+          <button onclick="confirmAIDelete('${aid}')" class="flex-1 py-2 rounded-xl text-[12px] font-bold transition-all" style="background:rgba(255,180,171,.15);border:1px solid rgba(255,180,171,.3);color:#ffb4ab">Confirmar Exclusão</button>
+          <button onclick="cancelAIAction('${aid}')" class="px-4 py-2 rounded-xl border border-outline-variant/40 text-secondary text-[12px] hover:bg-white/5 transition-colors">Cancelar</button>
+        </div>
+      </div>`;
+      _appendAIMsg('ai', html);
+    }
+
+    // ---- EDIT card ----
+    function _showEditCard(data) {
+      const aid = 'ai_' + uid();
+      _aiPending[aid] = data;
+      const existing = App.investments.find(i => i.id === data.id);
+      const displayName = existing ? existing.name : (data.name || '—');
+      const freqMap = { monthly:'Mensal', bimonthly:'Bimestral', quarterly:'Trimestral', semiannual:'Semestral', at_maturity:'No Vencimento', custom:`A cada ${data.customFrequencyMonths||'?'} meses` };
+      const freq = freqMap[data.frequency] || data.frequency || '—';
+      const catName = data.categoryId
+        ? (App.categories.find(c => c.id === data.categoryId)?.name || data.categoryId)
+        : 'Sem categoria';
+      const html = `<div class="ai-action-card" data-aid="${aid}">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="material-symbols-outlined text-[16px]" style="color:#90cdf4;font-variation-settings:'FILL' 1">edit</span>
+          <span class="text-[10px] font-bold tracking-[.08em] uppercase" style="color:#90cdf4">Editar: ${_escHtml(displayName)}</span>
+        </div>
+        <div class="grid grid-cols-2 gap-x-5 gap-y-2 mb-4">
+          <span class="text-[11px] text-secondary/50">Nome</span><span class="text-[12px] font-semibold text-on-surface">${_escHtml(data.name||'—')}</span>
+          <span class="text-[11px] text-secondary/50">Principal</span><span class="text-[12px] font-bold text-primary">${data.principal != null ? fmtBRL(data.principal) : '—'}</span>
+          <span class="text-[11px] text-secondary/50">Lucro/período</span><span class="text-[12px] text-on-surface">${data.profitPercentage != null ? data.profitPercentage + '%' : '—'}</span>
+          <span class="text-[11px] text-secondary/50">Frequência</span><span class="text-[12px] text-on-surface">${_escHtml(freq)}</span>
+          <span class="text-[11px] text-secondary/50">Início</span><span class="text-[12px] text-on-surface">${_escHtml(data.startDate||'—')}</span>
+          <span class="text-[11px] text-secondary/50">Duração</span><span class="text-[12px] text-on-surface">${data.durationMonths != null ? data.durationMonths + ' meses' : '—'}</span>
+          <span class="text-[11px] text-secondary/50">Categoria</span><span class="text-[12px] text-on-surface">${_escHtml(catName)}</span>
+          <span class="text-[11px] text-secondary/50">Em BDM</span><span class="text-[12px] text-on-surface">${data.showInBDM ? 'Sim' : 'Não'}</span>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="confirmAIEdit('${aid}')" class="flex-1 py-2 rounded-xl text-[12px] font-bold transition-all" style="background:rgba(144,205,244,.12);border:1px solid rgba(144,205,244,.25);color:#90cdf4">Confirmar Edição</button>
+          <button onclick="cancelAIAction('${aid}')" class="px-4 py-2 rounded-xl border border-outline-variant/40 text-secondary text-[12px] hover:bg-white/5 transition-colors">Cancelar</button>
+        </div>
+      </div>`;
+      _appendAIMsg('ai', html);
+    }
+
+    // ---- Common cancel ----
+    function cancelAIAction(aid) {
+      delete _aiPending[aid];
+      document.querySelector(`.ai-action-card[data-aid="${aid}"]`)?.closest('.ai-msg')?.remove();
+    }
+
+    // ---- Confirm create ----
+    async function confirmAICreate(aid) {
+      const data = _aiPending[aid];
+      if (!data) return;
+      delete _aiPending[aid];
+      document.querySelector(`.ai-action-card[data-aid="${aid}"]`)?.closest('.ai-msg')?.remove();
+      try {
+        const inv = {
+          id: uid(),
+          name: data.name || 'Investimento IA',
+          categoryId: data.categoryId || null,
+          principal: parseFloat(data.principal) || 0,
+          profitPercentage: parseFloat(data.profitPercentage) || 0,
+          startDate: data.startDate || new Date().toISOString().split('T')[0],
+          frequency: data.frequency || 'monthly',
+          durationMonths: parseInt(data.durationMonths) || 12,
+          showInBDM: !!data.showInBDM,
+          customFrequencyMonths: data.customFrequencyMonths || null,
+          createdAt: new Date().toISOString(),
+        };
+        await dbPutInvestment(inv);
+        const evts = generateEvents(inv);
+        await dbPutEvents(evts);
+        await loadAllData();
+        renderCalendar();
+        _appendAIMsg('ai', `<div class="ai-msg-bubble"><p class="text-sm">&#10003; <strong>${_escHtml(inv.name)}</strong> salvo! ${evts.length} evento(s) gerado(s) no calendário.</p></div>`);
+        toast(`${evts.length} evento(s) gerado(s) no calendário!`, 'success');
+      } catch (err) {
+        _appendAIMsg('ai', `<div class="ai-msg-bubble"><p class="text-sm" style="color:#ffb4ab">Erro ao salvar: ${_escHtml(err.message)}</p></div>`);
+        toast('Erro ao salvar investimento', 'error');
+      }
+    }
+
+    // ---- Confirm delete ----
+    async function confirmAIDelete(aid) {
+      const data = _aiPending[aid];
+      if (!data) return;
+      delete _aiPending[aid];
+      document.querySelector(`.ai-action-card[data-aid="${aid}"]`)?.closest('.ai-msg')?.remove();
+      try {
+        const inv = App.investments.find(i => i.id === data.id);
+        const name = inv ? inv.name : data.name;
+        await deleteInvestmentEvents(data.id);
+        await dbDeleteInvestment(data.id);
+        await loadAllData();
+        renderCalendar();
+        if (App.currentScreen === 'insights') renderInsights();
+        _appendAIMsg('ai', `<div class="ai-msg-bubble"><p class="text-sm">&#10003; Investimento <strong>${_escHtml(name)}</strong> excluído com sucesso.</p></div>`);
+        toast('Investimento excluído.', 'info');
+      } catch (err) {
+        _appendAIMsg('ai', `<div class="ai-msg-bubble"><p class="text-sm" style="color:#ffb4ab">Erro ao excluir: ${_escHtml(err.message)}</p></div>`);
+        toast('Erro ao excluir investimento', 'error');
+      }
+    }
+
+    // ---- Confirm edit ----
+    async function confirmAIEdit(aid) {
+      const data = _aiPending[aid];
+      if (!data) return;
+      delete _aiPending[aid];
+      document.querySelector(`.ai-action-card[data-aid="${aid}"]`)?.closest('.ai-msg')?.remove();
+      try {
+        const existing = App.investments.find(i => i.id === data.id);
+        const inv = {
+          id: data.id,
+          name: data.name || existing?.name || 'Investimento',
+          categoryId: data.categoryId !== undefined ? (data.categoryId || null) : (existing?.categoryId || null),
+          principal: parseFloat(data.principal) || existing?.principal || 0,
+          profitPercentage: parseFloat(data.profitPercentage) || existing?.profitPercentage || 0,
+          startDate: data.startDate || existing?.startDate || new Date().toISOString().split('T')[0],
+          frequency: data.frequency || existing?.frequency || 'monthly',
+          durationMonths: parseInt(data.durationMonths) || existing?.durationMonths || 12,
+          showInBDM: data.showInBDM !== undefined ? !!data.showInBDM : !!existing?.showInBDM,
+          customFrequencyMonths: data.customFrequencyMonths || existing?.customFrequencyMonths || null,
+          createdAt: existing?.createdAt || new Date().toISOString(),
+        };
+        await deleteInvestmentEvents(data.id);
+        await dbPutInvestment(inv);
+        const evts = generateEvents(inv);
+        await dbPutEvents(evts);
+        await loadAllData();
+        renderCalendar();
+        if (App.currentScreen === 'insights') renderInsights();
+        _appendAIMsg('ai', `<div class="ai-msg-bubble"><p class="text-sm">&#10003; <strong>${_escHtml(inv.name)}</strong> atualizado! ${evts.length} evento(s) regenerado(s).</p></div>`);
+        toast('Investimento atualizado!', 'success');
+      } catch (err) {
+        _appendAIMsg('ai', `<div class="ai-msg-bubble"><p class="text-sm" style="color:#ffb4ab">Erro ao editar: ${_escHtml(err.message)}</p></div>`);
+        toast('Erro ao editar investimento', 'error');
+      }
+    }
+
+    // ---- Route actions from AI response ----
+    function _handleAIActions(actions) {
+      const list = Array.isArray(actions) ? actions : [actions];
+      if (list.length > 1) {
+        _appendAIMsg('ai', `<div class="ai-msg-bubble"><p class="text-sm">${list.length} investimentos detectados. Confirme cada um abaixo:</p></div>`);
+      }
+      list.forEach((action, idx) => {
+        const label = list.length > 1 ? `Investimento ${idx + 1} de ${list.length}` : null;
+        if (action.action === 'create_investment') _showCreateCard(action.data, label);
+        else if (action.action === 'delete_investment') _showDeleteCard(action.data);
+        else if (action.action === 'edit_investment')   _showEditCard(action.data);
+      });
+    }
+
+    async function sendAIMessage() {
+      if (_aiTyping) return;
+      const inputEl = document.getElementById('ai-input');
+      const msg = (inputEl?.value || '').trim();
+      if (!msg) return;
+      inputEl.value = '';
+      inputEl.style.height = 'auto';
+
+      _appendAIMsg('user', _escHtml(msg));
+      _aiHistory.push({ role: 'user', content: msg });
+
+      _aiTyping = true;
+      const sendBtn = document.getElementById('ai-send-btn');
+      if (sendBtn) sendBtn.disabled = true;
+      _showTyping();
+
+      try {
+        const { data, error } = await sb.functions.invoke('ai-chat', {
+          body: {
+            messages: [
+              { role: 'system', content: AI_SYSTEM_PROMPT + '\n\n' + _buildContext() },
+              ..._aiHistory,
+            ],
+          },
+        });
+        if (error) throw new Error(error.message || 'Falha ao contatar o assistente.');
+        if (data && data.error) throw new Error(data.error);
+        const reply = data?.choices?.[0]?.message?.content || '';
+        _hideTyping();
+        _aiHistory.push({ role: 'assistant', content: reply });
+
+        const actions = _tryParseActions(reply);
+        if (actions && actions.length) {
+          _handleAIActions(actions);
+        } else {
+          _appendAIMsg('ai', `<div class="ai-msg-bubble"><div class="text-sm leading-relaxed" style="overflow-wrap:break-word">${_renderMsg(reply)}</div></div>`);
+        }
+      } catch (err) {
+        _hideTyping();
+        _appendAIMsg('ai', `<div class="ai-msg-bubble"><p class="text-sm" style="color:#ffb4ab">Erro de conexão: ${_escHtml(err.message)}</p></div>`);
+      } finally {
+        _aiTyping = false;
+        if (sendBtn) sendBtn.disabled = false;
+        const c = document.getElementById('ai-messages');
+        if (c) c.scrollTop = c.scrollHeight;
+      }
+    }
+
+    function aiAnalyzePortfolio() {
+      const el = document.getElementById('ai-input');
+      if (el) el.value = 'Com base nos meus investimentos ativos, qual performa melhor frente ao IPCA e onde há concentração de risco?';
+      sendAIMessage();
+    }
+
+    function aiAskQuickAction(msg) {
+      const el = document.getElementById('ai-input');
+      if (el) el.value = msg;
+      sendAIMessage();
+    }
+
+    function clearAIChat() {
+      _aiHistory = [];
+      Object.keys(_aiPending).forEach(k => delete _aiPending[k]);
+      const c = document.getElementById('ai-messages');
+      if (!c) return;
+      c.innerHTML = `<div class="ai-msg from-ai"><div class="ai-msg-avatar"><span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings:'FILL' 1">smart_toy</span></div><div class="ai-msg-bubble"><p class="text-sm leading-relaxed">Conversa reiniciada. Como posso ajudar com seus investimentos?</p></div></div>`;
+    }
+
+    // =========================================================
+    // INIT
+    // =========================================================
+    async function init() {
+      try {
+        const user = await checkSession();
+        if (user) {
+          App.currentUser = user;
+          const emailEl = document.getElementById('sidebar-user-email');
+          if (emailEl) emailEl.textContent = user.email;
+          hideAuthScreen();
+          await loadAllData();
+          navigate('calendar');
+          renderCalendar();
+          document.querySelectorAll('input[type=range]').forEach(updateSliderTrack);
+          updateCalc();
+          document.getElementById('inv-start-date').value = new Date().toISOString().split('T')[0];
+        } else {
+          showAuthScreen();
+          document.querySelectorAll('input[type=range]').forEach(updateSliderTrack);
+          updateCalc();
+          // Token may be refreshing in background — load app if refresh succeeds
+          const { data: { subscription } } = sb.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'TOKEN_REFRESHED' && session?.user && !App.currentUser) {
+              subscription.unsubscribe();
+              App.currentUser = session.user;
+              const emailEl = document.getElementById('sidebar-user-email');
+              if (emailEl) emailEl.textContent = session.user.email;
+              hideAuthScreen();
+              await loadAllData();
+              navigate('calendar');
+              renderCalendar();
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Init error:', err);
+        showAuthScreen();
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+
+    // Mobile nav active state init
+    document.querySelectorAll('.mobile-nav').forEach(b => {
+      if (b.dataset.screen === 'calendar') b.style.color = '#f2ca50';
+    });
+  </script>
+</body>
+
+</html>
