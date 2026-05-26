@@ -27,3 +27,5 @@ desktop.ini
 *.swp
 .vscode/
 .idea/
+
+supabase/.temp/
