@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport" />
-  <title>BDM Tracker — Gestão de Investimentos</title>
+  <title>Cripto Tracker — Gestão de Investimentos</title>
   <script src="https://cdn.tailwindcss.com?plugins=container-queries"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -23,8 +23,8 @@
             'surface-container': '#231f17', 'surface-container-high': '#2d2a21',
             'surface-container-highest': '#38342b', 'on-surface': '#eae1d4',
             'on-surface-variant': '#d0c5af', 'outline': '#99907c', 'outline-variant': '#4d4635',
-            'primary': '#f2ca50', 'on-primary': '#3c2f00', 'primary-container': '#d4af37',
-            'on-primary-container': '#554300', 'secondary': '#c7c6c4', 'on-secondary': '#303130',
+            'primary': '#38bdf8', 'on-primary': '#001524', 'primary-container': '#0ea5e9',
+            'on-primary-container': '#001d3d', 'secondary': '#c7c6c4', 'on-secondary': '#303130',
             'secondary-container': '#464746', 'error': '#ffb4ab', 'error-container': '#93000a',
             'background': '#16130b', 'on-background': '#eae1d4',
           },
@@ -85,15 +85,15 @@
     }
 
     .gold-glow {
-      box-shadow: 0 0 20px rgba(212, 175, 55, .15)
+      box-shadow: 0 0 20px rgba(14, 165, 233, .15)
     }
 
     .gold-glow:hover {
-      box-shadow: 0 0 30px rgba(212, 175, 55, .3)
+      box-shadow: 0 0 30px rgba(14, 165, 233, .3)
     }
 
     .glow-card {
-      box-shadow: 0 0 40px rgba(212, 175, 55, .08)
+      box-shadow: 0 0 40px rgba(14, 165, 233, .08)
     }
 
     /* Calendar */
@@ -115,16 +115,16 @@
     }
 
     .cal-cell:hover {
-      background: rgba(212, 175, 55, .06)
+      background: rgba(14, 165, 233, .06)
     }
 
     .cal-cell.is-today {
-      background: rgba(242, 202, 80, .08)
+      background: rgba(56, 189, 248, .08)
     }
 
     .cal-cell.is-active {
-      background: rgba(212, 175, 55, .12);
-      outline: 1px solid rgba(212, 175, 55, .4)
+      background: rgba(14, 165, 233, .12);
+      outline: 1px solid rgba(14, 165, 233, .4)
     }
 
     .cal-cell.other-month {
@@ -145,7 +145,7 @@
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: #D4AF37
+      background: #0EA5E9
     }
 
     .profit-bar {
@@ -164,7 +164,7 @@
       right: 4px;
       font-size: 10px;
       font-weight: 600;
-      color: #f2ca50;
+      color: #38bdf8;
       text-align: right;
       line-height: 1
     }
@@ -189,7 +189,7 @@
     input[type=range]::-webkit-slider-runnable-track {
       height: 4px;
       border-radius: 2px;
-      background: linear-gradient(to right, #d4af37 var(--pct, 0%), #4d4635 var(--pct, 0%))
+      background: linear-gradient(to right, #0ea5e9 var(--pct, 0%), #4d4635 var(--pct, 0%))
     }
 
     input[type=range]::-moz-range-track {
@@ -200,7 +200,7 @@
 
     input[type=range]::-moz-range-progress {
       height: 4px;
-      background: #d4af37;
+      background: #0ea5e9;
       border-radius: 2px
     }
 
@@ -212,7 +212,7 @@
       background: #e3e2e0;
       cursor: pointer;
       border: 2.5px solid #09090b;
-      box-shadow: 0 0 8px rgba(212, 175, 55, .35);
+      box-shadow: 0 0 8px rgba(14, 165, 233, .35);
       margin-top: -8px
     }
 
@@ -222,7 +222,7 @@
       border-radius: 50%;
       background: #e3e2e0;
       border: 2.5px solid #09090b;
-      box-shadow: 0 0 8px rgba(212, 175, 55, .35)
+      box-shadow: 0 0 8px rgba(14, 165, 233, .35)
     }
 
     /* Form controls */
@@ -238,7 +238,7 @@
       box-shadow: none;
       transition: border-color .2s, box-shadow .2s, background .2s;
       -webkit-text-fill-color: #eae1d4 !important;
-      caret-color: #f2ca50;
+      caret-color: #38bdf8;
       appearance: none;
       -webkit-appearance: none
     }
@@ -249,9 +249,9 @@
     }
 
     .fi:focus {
-      border-color: #f2ca50 !important;
-      box-shadow: 0 0 0 2px rgba(242, 202, 80, .18) !important;
-      background: rgba(242, 202, 80, .04) !important;
+      border-color: #38bdf8 !important;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, .18) !important;
+      background: rgba(56, 189, 248, .04) !important;
       -webkit-text-fill-color: #eae1d4 !important
     }
 
@@ -319,7 +319,7 @@
     }
 
     .tog input:checked+.tog-track {
-      background: #d4af37
+      background: #0ea5e9
     }
 
     .tog-thumb {
@@ -362,8 +362,8 @@
     }
 
     .nav-btn.active {
-      color: #f2ca50;
-      background: rgba(242, 202, 80, .1)
+      color: #38bdf8;
+      background: rgba(56, 189, 248, .1)
     }
 
     .nav-btn .icon {
@@ -453,15 +453,15 @@
       width: 3px;
       height: 3px;
       border-radius: 50%;
-      background: #D4AF37
+      background: #0EA5E9
     }
 
     .mini-cell:hover {
-      background: rgba(212, 175, 55, .1)
+      background: rgba(14, 165, 233, .1)
     }
 
     .mini-cell.is-today {
-      background: rgba(242, 202, 80, .15)
+      background: rgba(56, 189, 248, .15)
     }
 
     .hero-value {
@@ -474,7 +474,7 @@
     .ranking-bar {
       height: 4px;
       border-radius: 2px;
-      background: linear-gradient(to right, #d4af37, #f2ca50);
+      background: linear-gradient(to right, #0ea5e9, #38bdf8);
       transition: width .5s ease
     }
 
@@ -521,7 +521,7 @@
     .milestone-fill {
       height: 100%;
       border-radius: 3px;
-      background: linear-gradient(to right, #d4af37, #f2ca50);
+      background: linear-gradient(to right, #0ea5e9, #38bdf8);
       transition: width .8s ease;
       position: relative
     }
@@ -546,8 +546,8 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: radial-gradient(ellipse at 60% 20%, rgba(212, 175, 55, .08) 0%, transparent 60%),
-        radial-gradient(ellipse at 20% 80%, rgba(242, 202, 80, .05) 0%, transparent 50%),
+      background: radial-gradient(ellipse at 60% 20%, rgba(14, 165, 233, .08) 0%, transparent 60%),
+        radial-gradient(ellipse at 20% 80%, rgba(56, 189, 248, .05) 0%, transparent 50%),
         #09090b;
       padding: 1rem;
     }
@@ -564,7 +564,7 @@
       -webkit-backdrop-filter: blur(24px);
       border: 1px solid rgba(229, 228, 226, .12);
       border-radius: 1.5rem;
-      box-shadow: 0 32px 80px -12px rgba(0, 0, 0, .9), 0 0 0 1px rgba(212, 175, 55, .06);
+      box-shadow: 0 32px 80px -12px rgba(0, 0, 0, .9), 0 0 0 1px rgba(14, 165, 233, .06);
       padding: 2.5rem 2rem;
     }
 
@@ -583,9 +583,9 @@
     }
 
     .auth-tab.active {
-      background: rgba(242, 202, 80, .12);
-      color: #f2ca50;
-      box-shadow: 0 0 0 1px rgba(242, 202, 80, .2);
+      background: rgba(56, 189, 248, .12);
+      color: #38bdf8;
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, .2);
     }
 
     .auth-error {
@@ -606,7 +606,7 @@
       width: 100%;
       padding: .875rem;
       border-radius: .875rem;
-      background: linear-gradient(135deg, #d4af37, #f2ca50);
+      background: linear-gradient(135deg, #0ea5e9, #38bdf8);
       color: #1a1000;
       font-weight: 700;
       font-size: 15px;
@@ -614,11 +614,11 @@
       border: none;
       cursor: pointer;
       transition: all .2s;
-      box-shadow: 0 4px 20px rgba(212, 175, 55, .3);
+      box-shadow: 0 4px 20px rgba(14, 165, 233, .3);
     }
 
     .auth-submit-btn:hover {
-      box-shadow: 0 6px 28px rgba(212, 175, 55, .45);
+      box-shadow: 0 6px 28px rgba(14, 165, 233, .45);
       transform: translateY(-1px);
     }
 
@@ -695,8 +695,8 @@
       width: 2rem;
       height: 2rem;
       border-radius: .625rem;
-      background: rgba(242, 202, 80, .07);
-      border: 1px solid rgba(242, 202, 80, .15);
+      background: rgba(56, 189, 248, .07);
+      border: 1px solid rgba(56, 189, 248, .15);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -713,14 +713,14 @@
     }
 
     .ai-msg.from-user .ai-msg-bubble {
-      background: rgba(242, 202, 80, .09);
-      border-color: rgba(242, 202, 80, .2);
+      background: rgba(56, 189, 248, .09);
+      border-color: rgba(56, 189, 248, .2);
       border-radius: .875rem .25rem .875rem .875rem;
     }
 
     .ai-action-card {
       background: #1a1710;
-      border: 1px solid rgba(242, 202, 80, .22);
+      border: 1px solid rgba(56, 189, 248, .22);
       border-radius: .875rem;
       padding: 1rem;
       min-width: 240px;
@@ -737,7 +737,7 @@
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: rgba(242, 202, 80, .5);
+      background: rgba(56, 189, 248, .5);
       animation: dotBounce 1.2s infinite ease-in-out;
     }
 
@@ -775,7 +775,7 @@
     <div class="auth-card">
       <!-- Logo -->
       <div class="text-center mb-7">
-        <div class="text-2xl font-bold text-primary tracking-tight mb-0.5">BDM Tracker</div>
+        <div class="text-2xl font-bold text-primary tracking-tight mb-0.5">Cripto Tracker</div>
         <div class="text-[10px] font-semibold text-secondary/50 tracking-[.14em] uppercase">Institutional Grade</div>
       </div>
 
@@ -835,10 +835,10 @@
 
   <!-- ===== MOBILE TOP BAR ===== -->
   <nav
-    class="md:hidden fixed top-0 w-full z-50 h-16 flex items-center justify-between px-4 bg-[#09090b]/90 backdrop-blur-xl border-b border-white/8">
+    class="md:hidden fixed top-0 w-full z-50 h-16 flex items-center justify-between px-4 bg-[#09090b] border-b border-white/8">
     <div
       class="text-lg font-bold bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent tracking-tight">
-      BDM Tracker</div>
+      Cripto Tracker</div>
     <div class="flex items-center gap-3">
       <button onclick="openBDMModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-panel">
         <span class="text-xs font-semibold text-secondary">BDM</span>
@@ -859,14 +859,14 @@
     <div class="flex items-end gap-5">
       <div class="fab-dial-item flex flex-col items-center gap-2" style="transition-delay:40ms">
         <button onclick="openAddModal();closeFAB()" class="w-14 h-14 rounded-2xl flex items-center justify-center active:scale-95 transition-transform"
-          style="background:linear-gradient(135deg,#d4af37,#f2ca50);box-shadow:0 6px 24px rgba(212,175,55,.45)">
+          style="background:linear-gradient(135deg,#0ea5e9,#38bdf8);box-shadow:0 6px 24px rgba(14,165,233,.45)">
           <span class="material-symbols-outlined text-[22px] text-on-primary" style="font-variation-settings:'wght' 500">add_circle</span>
         </button>
         <span class="text-[10px] font-semibold tracking-wide whitespace-nowrap px-2.5 py-1 rounded-full" style="color:#eae1d4;background:rgba(9,9,11,.8)">Investimento</span>
       </div>
       <div class="fab-dial-item flex flex-col items-center gap-2" style="transition-delay:0ms">
         <button onclick="openCategoryModal();closeFAB()" class="w-14 h-14 rounded-2xl flex items-center justify-center active:scale-95 transition-transform"
-          style="background:rgba(242,202,80,.1);border:1.5px solid rgba(242,202,80,.4);box-shadow:0 6px 24px rgba(212,175,55,.2)">
+          style="background:rgba(56,189,248,.1);border:1.5px solid rgba(56,189,248,.4);box-shadow:0 6px 24px rgba(14,165,233,.2)">
           <span class="material-symbols-outlined text-[22px] text-primary" style="font-variation-settings:'wght' 400">label</span>
         </button>
         <span class="text-[10px] font-semibold tracking-wide whitespace-nowrap px-2.5 py-1 rounded-full" style="color:#eae1d4;background:rgba(9,9,11,.8)">Categoria</span>
@@ -875,7 +875,7 @@
   </div>
 
   <!-- ===== MOBILE BOTTOM BAR (5 itens, FAB central) ===== -->
-  <nav class="md:hidden fixed bottom-0 w-full z-50 px-0 bg-[#09090b]/90 backdrop-blur-xl border-t border-white/8"
+  <nav class="md:hidden fixed bottom-0 w-full z-50 px-0 bg-[#09090b] border-t border-white/8"
     style="padding-bottom: env(safe-area-inset-bottom, 0px)">
     <div class="h-16 flex items-center w-full">
       <button onclick="navigate('calendar')" data-screen="calendar"
@@ -893,7 +893,7 @@
       <div class="flex-1 flex items-center justify-center">
         <button id="fab-btn" onclick="toggleFAB()"
           class="w-14 h-14 rounded-full flex items-center justify-center active:scale-90 transition-transform gold-glow"
-          style="margin-top:-28px;background:linear-gradient(135deg,#d4af37,#f2ca50);box-shadow:0 4px 22px rgba(212,175,55,.55)">
+          style="margin-top:-28px;background:linear-gradient(135deg,#0ea5e9,#38bdf8);box-shadow:0 4px 22px rgba(14,165,233,.55)">
           <span id="fab-icon" class="material-symbols-outlined text-on-primary text-[26px]" style="font-variation-settings:'wght' 500">add</span>
         </button>
       </div>
@@ -915,7 +915,7 @@
   <aside
     class="hidden md:flex flex-col fixed left-0 top-0 h-screen w-60 border-r border-white/6 py-7 px-3 z-40 bg-[#0d0d10]">
     <div class="mb-8 px-3">
-      <div class="text-xl font-bold text-primary tracking-tight">BDM Tracker</div>
+      <div class="text-xl font-bold text-primary tracking-tight">Cripto Tracker</div>
       <div class="text-[10px] font-semibold text-secondary/60 tracking-[.12em] uppercase mt-0.5">Institutional Grade
       </div>
     </div>
@@ -948,7 +948,7 @@
     <!-- BDM Rate widget -->
     <button onclick="openBDMModal()"
       class="mx-1 mb-4 p-4 rounded-xl glass-panel text-left hover:border-primary/30 transition-colors group">
-      <div class="text-[10px] font-semibold tracking-[.1em] uppercase text-secondary/70 mb-1">Cotação BDM</div>
+      <div class="text-[10px] font-semibold tracking-[.1em] uppercase text-secondary/70 mb-1">Cotação Cripto</div>
       <div id="bdm-rate-sidebar" class="text-xl font-bold text-primary tabular-nums">—</div>
       <div class="text-[11px] text-secondary/50 mt-0.5">Clique para atualizar</div>
     </button>
@@ -1071,7 +1071,7 @@
               </div>
               <div class="flex items-center gap-1.5">
                 <div class="w-4 h-1.5 rounded-sm bg-primary/70"></div><span class="text-[11px] text-secondary">Alto
-                  volume (&gt;1 BDM)</span>
+                  volume (&gt;1 Cripto)</span>
               </div>
               <div class="flex items-center gap-1.5">
                 <div class="w-3 h-3 rounded border border-red-400/50"></div><span
@@ -1189,7 +1189,7 @@
             <div id="kpi-real-yield-label" class="text-xs text-secondary/60 mt-1 tabular-nums">Nominal a.a.</div>
             <div class="w-full bg-surface-container-highest rounded-full h-1.5 mt-2">
               <div id="kpi-ipca-bar" class="h-1.5 rounded-full transition-all duration-700"
-                style="width:0%;background:#D4AF37"></div>
+                style="width:0%;background:#0EA5E9"></div>
             </div>
             <div id="kpi-real-gain-row" class="hidden mt-2">
               <div class="flex justify-between text-[10px] text-secondary/50">
@@ -1259,7 +1259,7 @@
               <canvas id="line-chart"></canvas>
             </div>
             <p class="text-[10px] text-secondary/50 mt-2">Os valores em reais já descontam o deságio de 10% que a
-              plataforma cobra no saque do lucro. Valores exibidos em BDM mostram o lucro cheio.</p>
+              plataforma cobra no saque do lucro. Valores exibidos em Cripto mostram o lucro cheio.</p>
           </div>
         </div>
 
@@ -1501,7 +1501,7 @@
           </div>
           <div>
             <h1 class="text-base font-semibold text-on-surface leading-tight">Agente IA</h1>
-            <p class="text-[11px] text-secondary/50 mt-px">Analista financeiro especializado em BDM</p>
+            <p class="text-[11px] text-secondary/50 mt-px">Analista financeiro especializado em Cripto</p>
           </div>
         </div>
         <button onclick="clearAIChat()"
@@ -1551,7 +1551,7 @@
               style="font-variation-settings:'FILL' 1">smart_toy</span>
           </div>
           <div class="ai-msg-bubble">
-            <p class="text-sm leading-relaxed">Sou seu analista financeiro do BDM Tracker. Posso avaliar sua carteira,
+            <p class="text-sm leading-relaxed">Sou seu analista financeiro do Cripto Tracker. Posso avaliar sua carteira,
               calcular ROI real, identificar riscos e registrar investimentos direto no calendário.<br><br>O que deseja
               analisar?</p>
           </div>
@@ -1660,7 +1660,7 @@
         <div
           class="flex items-center justify-between p-4 rounded-xl bg-surface-container border border-outline-variant/20">
           <div>
-            <div class="text-sm font-medium text-on-surface">Exibir em BDM</div>
+            <div class="text-sm font-medium text-on-surface">Exibir em Cripto</div>
             <div class="text-xs text-secondary/60 mt-0.5">Mostra o lucro convertido em BDM</div>
           </div>
           <label class="tog">
@@ -1713,7 +1713,7 @@
             Categoria</label>
           <div class="flex gap-3">
             <input type="text" id="cat-name" class="fi flex-1" placeholder="Nome da categoria" />
-            <input type="color" id="cat-color" value="#D4AF37"
+            <input type="color" id="cat-color" value="#0EA5E9"
               class="w-10 h-10 rounded-lg cursor-pointer border border-outline-variant/40 bg-surface-container p-1" />
           </div>
           <button onclick="saveCategory()"
@@ -1734,16 +1734,16 @@
     <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeBDMModal()"></div>
     <div class="glass-modal rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm relative z-10 p-6">
       <div class="flex items-center justify-between mb-5">
-        <h2 class="text-base font-semibold text-on-surface">Atualizar Cotação BDM</h2>
+        <h2 class="text-base font-semibold text-on-surface">Atualizar Cotação Cripto</h2>
         <button onclick="closeBDMModal()"
           class="w-8 h-8 rounded-lg flex items-center justify-center text-secondary hover:text-on-surface hover:bg-white/5 transition-colors">
           <span class="material-symbols-outlined text-[18px]" style="font-variation-settings:'wght' 300">close</span>
         </button>
       </div>
-      <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-2">1 BDM = R$</label>
+      <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-2">1 Cripto = R$</label>
       <input type="number" id="bdm-rate-input" class="fi text-xl font-bold tabular-nums" placeholder="0,00" min="0.01"
         step="0.01" />
-      <p class="text-xs text-secondary/50 mt-2">Esta cotação será usada para converter todos os rendimentos para BDM.
+      <p class="text-xs text-secondary/50 mt-2">Esta cotação será usada para converter todos os rendimentos para Cripto.
       </p>
       <div class="flex gap-3 mt-5">
         <button onclick="closeBDMModal()"
@@ -2226,7 +2226,7 @@
       // Mobile nav
       document.querySelectorAll('.mobile-nav').forEach(b => {
         const ds = b.dataset.screen;
-        b.style.color = ds === screen ? '#f2ca50' : '#c7c6c4';
+        b.style.color = ds === screen ? '#38bdf8' : '#c7c6c4';
       });
 
       if (screen === 'insights') renderInsights();
@@ -2396,7 +2396,7 @@
 
     function getInvestmentColor(invId) {
       const inv = App.investments.find(i => i.id === invId);
-      if (!inv) return '#D4AF37';
+      if (!inv) return '#0EA5E9';
       return getCategoryColor(inv.categoryId);
     }
 
@@ -2500,7 +2500,7 @@
           let cls = 'mini-cell';
           if (hasEv) cls += ' has-event';
           if (isT) cls += ' is-today';
-          const numColor = isT ? '#f2ca50' : 'rgba(234,225,212,0.55)';
+          const numColor = isT ? '#38bdf8' : 'rgba(234,225,212,0.55)';
           cells += `<div class="${cls}" onclick="navigate('calendar');App.calDate=new Date(${y},${m},${d});setView('month');selectDay('${dk}')" title="${dk}"><span style="font-size:8px;line-height:1;color:${numColor};font-weight:${isT ? '700' : '400'}">${d}</span></div>`;
         }
 
@@ -2899,7 +2899,7 @@
     function openCategoryModal() {
       renderCategoryList();
       document.getElementById('cat-name').value = '';
-      document.getElementById('cat-color').value = '#D4AF37';
+      document.getElementById('cat-color').value = '#0EA5E9';
       showModal('modal-category');
     }
     function closeCategoryModal() { hideModal('modal-category'); }
@@ -3075,7 +3075,7 @@
       const total = Object.values(groups).reduce((s, g) => s + g.amount, 0);
       return Object.entries(groups).map(([key, g]) => ({
         label: key === '__none__' ? 'Sem Categoria' : (App.categories.find(c => c.id === key)?.name || '?'),
-        color: key === '__none__' ? '#6b7280' : (App.categories.find(c => c.id === key)?.color || '#D4AF37'),
+        color: key === '__none__' ? '#6b7280' : (App.categories.find(c => c.id === key)?.color || '#0EA5E9'),
         amount: g.amount,
         pct: total > 0 ? (g.amount / total * 100) : 0,
       }));
@@ -3191,7 +3191,7 @@
       const ipcaBarPct = Math.min(100, Math.max(0, barYield / 30 * 100));
       const bar = document.getElementById('kpi-ipca-bar');
       bar.style.width = ipcaBarPct + '%';
-      bar.style.background = (App.useIPCA && realAnnual < 0) ? '#ef4444' : '#D4AF37';
+      bar.style.background = (App.useIPCA && realAnnual < 0) ? '#ef4444' : '#0EA5E9';
 
       // Charts
       renderDonutChart();
@@ -3304,20 +3304,20 @@
       if (App.charts.line) App.charts.line.destroy();
 
       const gradient = ctx.createLinearGradient(0, 0, 0, 200);
-      gradient.addColorStop(0, 'rgba(212,175,55,.25)');
-      gradient.addColorStop(1, 'rgba(212,175,55,0)');
+      gradient.addColorStop(0, 'rgba(14,165,233,.25)');
+      gradient.addColorStop(1, 'rgba(14,165,233,0)');
 
       const datasets = [{
         label: 'Nominal',
         data,
-        borderColor: '#D4AF37',
+        borderColor: '#0EA5E9',
         backgroundColor: gradient,
         fill: true,
         tension: 0,
         borderWidth: 2,
         pointRadius: 0,
         pointHoverRadius: 5,
-        pointHoverBackgroundColor: '#f2ca50',
+        pointHoverBackgroundColor: '#38bdf8',
         stepped: true,
       }];
 
@@ -3613,15 +3613,15 @@
       if (_calcChart) _calcChart.destroy();
 
       const g = ctx.createLinearGradient(0, 0, 0, 140);
-      g.addColorStop(0, 'rgba(212,175,55,.3)');
-      g.addColorStop(1, 'rgba(212,175,55,0)');
+      g.addColorStop(0, 'rgba(14,165,233,.3)');
+      g.addColorStop(1, 'rgba(14,165,233,0)');
 
       _calcChart = new Chart(ctx, {
         type: 'line',
         data: {
           labels,
           datasets: [
-            { data, borderColor: '#D4AF37', backgroundColor: g, fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0, label: 'Com juros compostos' },
+            { data, borderColor: '#0EA5E9', backgroundColor: g, fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0, label: 'Com juros compostos' },
             { data: dataNoComp, borderColor: 'rgba(199,198,196,.3)', fill: false, tension: 0, borderWidth: 1, pointRadius: 0, borderDash: [4, 4], label: 'Sem juros' },
           ]
         },
@@ -3669,7 +3669,7 @@
     // =========================================================
     // AI AGENT — via Edge Function 'ai-chat' (a chave da OpenRouter fica no servidor)
     // =========================================================
-    const AI_SYSTEM_PROMPT = `Você é o analista financeiro e agente de automação nativo do BDM Tracker, plataforma premium focada em investimentos BDM e ativos tradicionais.
+    const AI_SYSTEM_PROMPT = `Você é o analista financeiro e agente de automação nativo do Cripto Tracker, plataforma premium focada em criptoativos e ativos tradicionais.
 
 ## REGRAS ABSOLUTAS — NUNCA VIOLE NENHUMA
 
@@ -3721,7 +3721,7 @@ Varios:  [{"action":"edit_investment","data":{...}},{"action":"edit_investment",
 
 ### MODO 6 — Criar Categoria (JSON PURO — zero texto extra)
 Confirme nome e cor hex antes. Sugira uma cor coerente com o nome se o usuario nao especificar. Nunca use cores muito escuras (evite #000000 e similares).
-Formato: {"action":"create_category","data":{"name":"Nome da Categoria","color":"#D4AF37"}}
+Formato: {"action":"create_category","data":{"name":"Nome da Categoria","color":"#0EA5E9"}}
 
 ## CONTEXTO INJETADO
 Estado atual do app (investimentos com IDs, categorias, cotacao BDM, IPCA) fornecido abaixo. Use IDs exatos.`;
@@ -3747,11 +3747,11 @@ Estado atual do app (investimentos com IDs, categorias, cotacao BDM, IPCA) forne
       s = s.replace(/_([^_\n]+?)_/g, '<em>$1</em>');
 
       // 4. Inline code: `code`
-      s = s.replace(/`([^`\n]+)`/g, '<code style="background:rgba(255,255,255,.08);border-radius:.2em;padding:.05em .35em;font-size:11px;color:#f2ca50">$1</code>');
+      s = s.replace(/`([^`\n]+)`/g, '<code style="background:rgba(255,255,255,.08);border-radius:.2em;padding:.05em .35em;font-size:11px;color:#38bdf8">$1</code>');
 
       // 5. Bullet lines: "- item" or "* item" at line start → gold dot layout
       s = s.replace(/^[ \t]*[-*]\s+(.+)/gm,
-        '<div style="display:flex;gap:.45em;margin:.1em 0;align-items:baseline"><span style="color:#f2ca50;flex-shrink:0">·</span><span>$1</span></div>'
+        '<div style="display:flex;gap:.45em;margin:.1em 0;align-items:baseline"><span style="color:#38bdf8;flex-shrink:0">·</span><span>$1</span></div>'
       );
 
       // 6. Remaining newlines → <br>
@@ -4080,7 +4080,7 @@ Investimentos ativos (${invs.length}): ${JSON.stringify(invs)}`;
     function _showCreateCategoryCard(data) {
       const aid = uid();
       _aiPending[aid] = data;
-      const color = data.color || '#D4AF37';
+      const color = data.color || '#0EA5E9';
       const html = `<div class="ai-action-card" data-aid="${aid}">
         <div class="flex items-center gap-2 mb-3">
           <span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings:'FILL' 1">label</span>
@@ -4094,7 +4094,7 @@ Investimentos ativos (${invs.length}): ${JSON.stringify(invs)}`;
           </div>
         </div>
         <div class="flex gap-2">
-          <button onclick="confirmAICreateCategory('${aid}')" class="flex-1 py-2 rounded-xl text-[12px] font-bold transition-all" style="background:rgba(242,202,80,.12);border:1px solid rgba(242,202,80,.25);color:#f2ca50">Criar Categoria</button>
+          <button onclick="confirmAICreateCategory('${aid}')" class="flex-1 py-2 rounded-xl text-[12px] font-bold transition-all" style="background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.25);color:#38bdf8">Criar Categoria</button>
           <button onclick="cancelAIAction('${aid}')" class="px-4 py-2 rounded-xl border border-outline-variant/40 text-secondary text-[12px] hover:bg-white/5 transition-colors">Cancelar</button>
         </div>
       </div>`;
@@ -4108,7 +4108,7 @@ Investimentos ativos (${invs.length}): ${JSON.stringify(invs)}`;
       delete _aiPending[aid];
       document.querySelector(`.ai-action-card[data-aid="${aid}"]`)?.closest('.ai-msg')?.remove();
       try {
-        const cat = { id: uid(), name: data.name || 'Categoria', color: data.color || '#D4AF37' };
+        const cat = { id: uid(), name: data.name || 'Categoria', color: data.color || '#0EA5E9' };
         await dbPutCategory(cat);
         await loadAllData();
         _appendAIMsg('ai', `<div class="ai-msg-bubble"><p class="text-sm">&#10003; Categoria <strong>${_escHtml(cat.name)}</strong> criada com sucesso!</p></div>`);
@@ -4232,7 +4232,7 @@ Investimentos ativos (${invs.length}): ${JSON.stringify(invs)}`;
 
     // Mobile nav active state init
     document.querySelectorAll('.mobile-nav').forEach(b => {
-      if (b.dataset.screen === 'calendar') b.style.color = '#f2ca50';
+      if (b.dataset.screen === 'calendar') b.style.color = '#38bdf8';
     });
   </script>
 </body>
