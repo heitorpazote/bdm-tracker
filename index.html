@@ -4,6 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport" />
+  <meta name="theme-color" content="#09090b" />
   <title>Cripto Tracker — Gestão de Investimentos</title>
   <script src="https://cdn.tailwindcss.com?plugins=container-queries"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -646,19 +647,23 @@
       transform: translateY(20px) scale(0.85);
       transition: opacity 200ms ease-out, transform 200ms ease-out;
     }
+
     .fab-dial-item.fab-active {
       opacity: 1;
       transform: translateY(0) scale(1);
     }
+
     #fab-icon {
-      transition: transform 220ms cubic-bezier(.34,1.56,.64,1);
+      transition: transform 220ms cubic-bezier(.34, 1.56, .64, 1);
     }
+
     #fab-overlay {
-      background: rgba(0,0,0,0);
+      background: rgba(0, 0, 0, 0);
       transition: background 200ms ease;
     }
+
     #fab-overlay.fab-open {
-      background: rgba(0,0,0,.45);
+      background: rgba(0, 0, 0, .45);
     }
 
     /* AI Chat Screen */
@@ -841,7 +846,7 @@
       Cripto Tracker</div>
     <div class="flex items-center gap-3">
       <button onclick="openBDMModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-panel">
-        <span class="text-xs font-semibold text-secondary">BDM</span>
+        <span class="text-xs font-semibold text-secondary">Cripto</span>
         <span id="bdm-rate-mobile" class="text-sm font-bold text-primary tabular-nums">—</span>
       </button>
       <button onclick="signOut()" title="Sair"
@@ -855,21 +860,28 @@
   <div id="fab-overlay" class="md:hidden fixed inset-0 z-40" style="display:none" onclick="closeFAB()"></div>
 
   <!-- ===== FAB SPEED DIAL ===== -->
-  <div id="fab-dial" class="md:hidden fixed z-50" style="display:none;bottom:calc(5.5rem + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%)">
+  <div id="fab-dial" class="md:hidden fixed z-50"
+    style="display:none;bottom:calc(5.5rem + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%)">
     <div class="flex items-end gap-5">
       <div class="fab-dial-item flex flex-col items-center gap-2" style="transition-delay:40ms">
-        <button onclick="openAddModal();closeFAB()" class="w-14 h-14 rounded-2xl flex items-center justify-center active:scale-95 transition-transform"
+        <button onclick="openAddModal();closeFAB()"
+          class="w-14 h-14 rounded-2xl flex items-center justify-center active:scale-95 transition-transform"
           style="background:linear-gradient(135deg,#0ea5e9,#38bdf8);box-shadow:0 6px 24px rgba(14,165,233,.45)">
-          <span class="material-symbols-outlined text-[22px] text-on-primary" style="font-variation-settings:'wght' 500">add_circle</span>
+          <span class="material-symbols-outlined text-[22px] text-on-primary"
+            style="font-variation-settings:'wght' 500">add_circle</span>
         </button>
-        <span class="text-[10px] font-semibold tracking-wide whitespace-nowrap px-2.5 py-1 rounded-full" style="color:#eae1d4;background:rgba(9,9,11,.8)">Investimento</span>
+        <span class="text-[10px] font-semibold tracking-wide whitespace-nowrap px-2.5 py-1 rounded-full"
+          style="color:#eae1d4;background:rgba(9,9,11,.8)">Investimento</span>
       </div>
       <div class="fab-dial-item flex flex-col items-center gap-2" style="transition-delay:0ms">
-        <button onclick="openCategoryModal();closeFAB()" class="w-14 h-14 rounded-2xl flex items-center justify-center active:scale-95 transition-transform"
+        <button onclick="openCategoryModal();closeFAB()"
+          class="w-14 h-14 rounded-2xl flex items-center justify-center active:scale-95 transition-transform"
           style="background:rgba(56,189,248,.1);border:1.5px solid rgba(56,189,248,.4);box-shadow:0 6px 24px rgba(14,165,233,.2)">
-          <span class="material-symbols-outlined text-[22px] text-primary" style="font-variation-settings:'wght' 400">label</span>
+          <span class="material-symbols-outlined text-[22px] text-primary"
+            style="font-variation-settings:'wght' 400">label</span>
         </button>
-        <span class="text-[10px] font-semibold tracking-wide whitespace-nowrap px-2.5 py-1 rounded-full" style="color:#eae1d4;background:rgba(9,9,11,.8)">Categoria</span>
+        <span class="text-[10px] font-semibold tracking-wide whitespace-nowrap px-2.5 py-1 rounded-full"
+          style="color:#eae1d4;background:rgba(9,9,11,.8)">Categoria</span>
       </div>
     </div>
   </div>
@@ -880,7 +892,8 @@
     <div class="h-16 flex items-center w-full">
       <button onclick="navigate('calendar')" data-screen="calendar"
         class="mobile-nav flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-all">
-        <span class="material-symbols-outlined text-[20px]" style="font-variation-settings:'wght' 300">calendar_month</span>
+        <span class="material-symbols-outlined text-[20px]"
+          style="font-variation-settings:'wght' 300">calendar_month</span>
         <span class="text-[9px] font-semibold tracking-wide">CAL</span>
       </button>
       <button onclick="navigate('insights')" data-screen="insights"
@@ -894,7 +907,8 @@
         <button id="fab-btn" onclick="toggleFAB()"
           class="w-14 h-14 rounded-full flex items-center justify-center active:scale-90 transition-transform gold-glow"
           style="margin-top:-28px;background:linear-gradient(135deg,#0ea5e9,#38bdf8);box-shadow:0 4px 22px rgba(14,165,233,.55)">
-          <span id="fab-icon" class="material-symbols-outlined text-on-primary text-[26px]" style="font-variation-settings:'wght' 500">add</span>
+          <span id="fab-icon" class="material-symbols-outlined text-on-primary text-[26px]"
+            style="font-variation-settings:'wght' 500">add</span>
         </button>
       </div>
 
@@ -1166,7 +1180,7 @@
             </div>
             <div class="z-10 relative">
               <div id="kpi-patrimony" class="text-2xl font-bold text-on-surface tabular-nums">R$ 0,00</div>
-              <div id="kpi-patrimony-bdm" class="text-xs text-primary mt-1 tabular-nums font-medium">— BDM</div>
+              <div id="kpi-patrimony-bdm" class="text-xs text-primary mt-1 tabular-nums font-medium">— Cripto</div>
             </div>
           </div>
           <div class="premium-card rounded-xl p-5">
@@ -1449,7 +1463,8 @@
                   Projetado</p>
                 <div class="mb-8">
                   <span id="calc-result" class="hero-value text-primary font-bold tabular-nums">R$ 0,00</span>
-                  <div id="calc-result-bdm" class="text-base text-secondary mt-2 tabular-nums font-medium">— BDM</div>
+                  <div id="calc-result-bdm" class="text-base text-secondary mt-2 tabular-nums font-medium">— Cripto
+                  </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-6 border-t border-white/8 pt-6 mb-6">
@@ -1551,7 +1566,8 @@
               style="font-variation-settings:'FILL' 1">smart_toy</span>
           </div>
           <div class="ai-msg-bubble">
-            <p class="text-sm leading-relaxed">Sou seu analista financeiro do Cripto Tracker. Posso avaliar sua carteira,
+            <p class="text-sm leading-relaxed">Sou seu analista financeiro do Cripto Tracker. Posso avaliar sua
+              carteira,
               calcular ROI real, identificar riscos e registrar investimentos direto no calendário.<br><br>O que deseja
               analisar?</p>
           </div>
@@ -1661,7 +1677,7 @@
           class="flex items-center justify-between p-4 rounded-xl bg-surface-container border border-outline-variant/20">
           <div>
             <div class="text-sm font-medium text-on-surface">Exibir em Cripto</div>
-            <div class="text-xs text-secondary/60 mt-0.5">Mostra o lucro convertido em BDM</div>
+            <div class="text-xs text-secondary/60 mt-0.5">Mostra o lucro convertido em Cripto</div>
           </div>
           <label class="tog">
             <input type="checkbox" id="inv-show-bdm" />
@@ -1740,7 +1756,8 @@
           <span class="material-symbols-outlined text-[18px]" style="font-variation-settings:'wght' 300">close</span>
         </button>
       </div>
-      <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-2">1 Cripto = R$</label>
+      <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-2">1 Cripto =
+        R$</label>
       <input type="number" id="bdm-rate-input" class="fi text-xl font-bold tabular-nums" placeholder="0,00" min="0.01"
         step="0.01" />
       <p class="text-xs text-secondary/50 mt-2">Esta cotação será usada para converter todos os rendimentos para Cripto.
@@ -2135,7 +2152,7 @@
     const NUM = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     function fmtBRL(v) { return BRL.format(v); }
-    function fmtBDM(v) { return NUM.format(v) + ' BDM'; }
+    function fmtBDM(v) { return NUM.format(v) + ' Cripto'; }
     function toBDM(v) { return App.bdmRate > 0 ? v / App.bdmRate : null; }
 
     function dateKey(d) {
@@ -2301,7 +2318,7 @@
       await saveSettings();
       updateBDMDisplays();
       closeBDMModal();
-      toast('Cotação BDM atualizada!', 'success');
+      toast('Cotação Cripto atualizada!', 'success');
     }
 
     // =========================================================
@@ -2638,7 +2655,7 @@
     ${totalBDM !== null ? `<div class="flex items-center gap-1.5 mt-1.5">
       <span class="material-symbols-outlined text-primary text-[14px]" style="font-variation-settings:'FILL' 1">trending_up</span>
       <span class="text-sm font-bold text-primary tabular-nums">+${fmtBDM(totalBDM)}</span>
-      <span class="text-[10px] text-secondary/50 ml-1">@ ${fmtBRL(App.bdmRate)}/BDM</span>
+      <span class="text-[10px] text-secondary/50 ml-1">@ ${fmtBRL(App.bdmRate)}/Cripto</span>
     </div>` : ''}
   </div>
   <div class="text-[10px] font-semibold tracking-[.1em] uppercase text-secondary/60 mb-3">Transações (clique para expandir)</div>
@@ -3162,7 +3179,7 @@
 
       // KPIs
       document.getElementById('kpi-patrimony').textContent = fmtBRL(patrimony);
-      document.getElementById('kpi-patrimony-bdm').textContent = bdmP !== null ? fmtBDM(bdmP) : '— BDM';
+      document.getElementById('kpi-patrimony-bdm').textContent = bdmP !== null ? fmtBDM(bdmP) : '— Cripto';
       document.getElementById('kpi-monthly').textContent = fmtBRL(monthly);
 
       if (App.useIPCA) {
@@ -3587,7 +3604,7 @@
       if (lbl) lbl.textContent = `Ganho Real (s/ IPCA ${App.ipcaRate.toFixed(1)}%)`;
 
       const bdmFV = toBDM(fv);
-      document.getElementById('calc-result-bdm').textContent = bdmFV !== null ? fmtBDM(bdmFV) : '— BDM';
+      document.getElementById('calc-result-bdm').textContent = bdmFV !== null ? fmtBDM(bdmFV) : '— Cripto';
 
       // Mini chart
       renderCalcChart(amount, monthly, monthlyRate, months);
@@ -3681,7 +3698,7 @@ R5. PROIBIDO gerar JSON enquanto qualquer campo obrigatorio estiver faltando. Co
 R6. Ao gerar JSON de acao: resposta deve ser EXCLUSIVAMENTE o JSON. Zero texto antes ou depois, zero explicacao, zero "Aqui esta:".
 R7. Seja humano e acolhedor: cumprimente de volta quando o usuario cumprimentar, use tom caloroso e natural, demonstre empatia. Mantenha a objetividade nas acoes, sem enrolacao.
 R8. Para QUALQUER acao com multiplos itens (excluir 2, criar 3, editar varios): SEMPRE use array JSON [...]. NUNCA envie dois objetos JSON separados nem explique as acoes em texto.
-R9. NUNCA exponha termos tecnicos ao usuario: nada de true/false, nomes de campos em ingles, JSON visivel ou jargao de programacao. Fale SEMPRE em portugues (ptbr), salvo se o usuario pedir explicitamente outro idioma. Ao faltar dados, pergunte em linguagem natural (ex.: "Voce quer acompanhar esse investimento em BDM ou em reais?" em vez de "showInBDM: true/false").
+R9. NUNCA exponha termos tecnicos ao usuario: nada de true/false, nomes de campos em ingles, JSON visivel ou jargao de programacao. Fale SEMPRE em portugues (ptbr), salvo se o usuario pedir explicitamente outro idioma. Ao faltar dados, pergunte em linguagem natural (ex.: "Voce quer acompanhar esse investimento em Cripto ou em reais?" em vez de "showInBDM: true/false").
 
 ## CHECKLIST OBRIGATORIO — confirme TODOS antes de gerar create/edit JSON
 
@@ -3692,7 +3709,7 @@ R9. NUNCA exponha termos tecnicos ao usuario: nada de true/false, nomes de campo
 5. frequency: monthly | bimonthly | quarterly | semiannual | at_maturity | custom
 6. customFrequencyMonths (numero de meses se frequency=custom, senao null)
 7. durationMonths (inteiro >= 1)
-8. Forma de exibicao (em BDM ou em reais) — pergunte de forma natural, nunca como "true/false". SEMPRE pergunte se nao foi explicito
+8. Forma de exibicao (em Cripto ou em reais) — pergunte de forma natural, nunca como "true/false". SEMPRE pergunte se nao foi explicito
 9. categoryId (ID do contexto ou null) — SEMPRE pergunte qual categoria ou se prefere sem
 
 ## MODOS DE OPERACAO
@@ -3703,7 +3720,7 @@ Output: max 3 bullet points — melhor ativo vs IPCA + alertas de concentracao.
 Nao afirme reinvestimento automatico como fato. O lucro de cada periodo e fixo sobre o valor investido. Se relevante, diga que o reinvestimento depende da opcao "Considerar Reinvestimento" estar ligada na tela.
 
 ### MODO 2 — Educacao Financeira (TEXTO)
-Resposta tecnica e direta sobre rentabilidade, prazos, taxas, ecossistema BDM.
+Resposta tecnica e direta sobre rentabilidade, prazos, taxas, ecossistema Cripto.
 
 ### MODO 3 — Criar Investimento (JSON PURO — zero texto extra)
 Confirme os 9 campos antes. Entao gere apenas:
@@ -3724,7 +3741,7 @@ Confirme nome e cor hex antes. Sugira uma cor coerente com o nome se o usuario n
 Formato: {"action":"create_category","data":{"name":"Nome da Categoria","color":"#0EA5E9"}}
 
 ## CONTEXTO INJETADO
-Estado atual do app (investimentos com IDs, categorias, cotacao BDM, IPCA) fornecido abaixo. Use IDs exatos.`;
+Estado atual do app (investimentos com IDs, categorias, cotacao Cripto, IPCA) fornecido abaixo. Use IDs exatos.`;
 
     let _aiHistory = [];
     let _aiTyping = false;
@@ -3812,7 +3829,7 @@ Estado atual do app (investimentos com IDs, categorias, cotacao BDM, IPCA) forne
       }));
       const cats = App.categories.map(c => ({ id: c.id, name: c.name }));
       return `[ESTADO DO APP — ${new Date().toISOString().split('T')[0]}]
-Cotacao BDM: R$ ${App.bdmRate > 0 ? App.bdmRate.toFixed(2) : 'N/A'}
+Cotacao Cripto: R$ ${App.bdmRate > 0 ? App.bdmRate.toFixed(2) : 'N/A'}
 IPCA anual: ${App.ipcaRate}%
 Categorias disponiveis: ${JSON.stringify(cats)}
 Investimentos ativos (${invs.length}): ${JSON.stringify(invs)}`;
@@ -3898,7 +3915,7 @@ Investimentos ativos (${invs.length}): ${JSON.stringify(invs)}`;
           <span class="text-[11px] text-secondary/50">Início</span><span class="text-[12px] text-on-surface">${_escHtml(data.startDate || '—')}</span>
           <span class="text-[11px] text-secondary/50">Duração</span><span class="text-[12px] text-on-surface">${data.durationMonths != null ? data.durationMonths + ' meses' : '—'}</span>
           <span class="text-[11px] text-secondary/50">Categoria</span><span class="text-[12px] text-on-surface">${_escHtml(catName)}</span>
-          <span class="text-[11px] text-secondary/50">Em BDM</span><span class="text-[12px] text-on-surface">${data.showInBDM ? 'Sim' : 'Não'}</span>
+          <span class="text-[11px] text-secondary/50">Em Cripto</span><span class="text-[12px] text-on-surface">${data.showInBDM ? 'Sim' : 'Não'}</span>
         </div>
         <div class="flex gap-2">
           <button onclick="confirmAICreate('${aid}')" class="flex-1 py-2 rounded-xl bg-primary text-on-primary text-[12px] font-bold gold-glow hover:brightness-110 transition-all">Confirmar e Salvar</button>
@@ -3953,7 +3970,7 @@ Investimentos ativos (${invs.length}): ${JSON.stringify(invs)}`;
           <span class="text-[11px] text-secondary/50">Início</span><span class="text-[12px] text-on-surface">${_escHtml(data.startDate || '—')}</span>
           <span class="text-[11px] text-secondary/50">Duração</span><span class="text-[12px] text-on-surface">${data.durationMonths != null ? data.durationMonths + ' meses' : '—'}</span>
           <span class="text-[11px] text-secondary/50">Categoria</span><span class="text-[12px] text-on-surface">${_escHtml(catName)}</span>
-          <span class="text-[11px] text-secondary/50">Em BDM</span><span class="text-[12px] text-on-surface">${data.showInBDM ? 'Sim' : 'Não'}</span>
+          <span class="text-[11px] text-secondary/50">Em Cripto</span><span class="text-[12px] text-on-surface">${data.showInBDM ? 'Sim' : 'Não'}</span>
         </div>
         <div class="flex gap-2">
           <button onclick="confirmAIEdit('${aid}')" class="flex-1 py-2 rounded-xl text-[12px] font-bold transition-all" style="background:rgba(144,205,244,.12);border:1px solid rgba(144,205,244,.25);color:#90cdf4">Confirmar Edição</button>
