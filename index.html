@@ -863,8 +863,18 @@
   <div id="fab-dial" class="md:hidden fixed z-50"
     style="display:none;bottom:calc(5.5rem + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%)">
     <div class="flex items-end gap-5">
+      <div class="fab-dial-item flex flex-col items-center gap-2" style="transition-delay:80ms">
+        <button onclick="openAddModal('asset');closeFAB()"
+          class="w-14 h-14 rounded-2xl flex items-center justify-center active:scale-95 transition-transform"
+          style="background:rgba(56,189,248,.1);border:1.5px solid rgba(56,189,248,.4);box-shadow:0 6px 24px rgba(14,165,233,.2)">
+          <span class="material-symbols-outlined text-[22px] text-primary"
+            style="font-variation-settings:'wght' 400">inventory_2</span>
+        </button>
+        <span class="text-[10px] font-semibold tracking-wide whitespace-nowrap px-2.5 py-1 rounded-full"
+          style="color:#eae1d4;background:rgba(9,9,11,.8)">Ativo</span>
+      </div>
       <div class="fab-dial-item flex flex-col items-center gap-2" style="transition-delay:40ms">
-        <button onclick="openAddModal();closeFAB()"
+        <button onclick="openAddModal('periodic');closeFAB()"
           class="w-14 h-14 rounded-2xl flex items-center justify-center active:scale-95 transition-transform"
           style="background:linear-gradient(135deg,#0ea5e9,#38bdf8);box-shadow:0 6px 24px rgba(14,165,233,.45)">
           <span class="material-symbols-outlined text-[22px] text-on-primary"
@@ -967,11 +977,16 @@
       <div class="text-[11px] text-secondary/50 mt-0.5">Clique para atualizar</div>
     </button>
 
-    <!-- Add Investment button -->
-    <button onclick="openAddModal()"
-      class="mx-1 mb-2 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-primary/10 border border-primary/20 text-primary font-semibold text-sm hover:bg-primary/15 transition-all gold-glow">
+    <!-- Add Investment / Asset buttons -->
+    <button onclick="openAddModal('periodic')"
+      class="mx-1 mb-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-primary/10 border border-primary/20 text-primary font-semibold text-sm hover:bg-primary/15 transition-all gold-glow">
       <span class="material-symbols-outlined text-[18px]" style="font-variation-settings:'wght' 400">add_circle</span>
       Novo Investimento
+    </button>
+    <button onclick="openAddModal('asset')"
+      class="mx-1 mb-2 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-primary/10 border border-primary/20 text-primary font-semibold text-sm hover:bg-primary/15 transition-all">
+      <span class="material-symbols-outlined text-[18px]" style="font-variation-settings:'wght' 400">inventory_2</span>
+      Novo Ativo
     </button>
 
     <!-- User + Logout -->
@@ -1215,7 +1230,7 @@
         </div>
 
         <!-- Charts Row -->
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
+        <div class="grid grid-cols-1 lg:grid-cols-7 gap-4 mb-6">
           <!-- Donut chart -->
           <div class="premium-card rounded-xl p-5 lg:col-span-2">
             <h3 class="text-sm font-semibold text-on-surface mb-4">Distribuição da Carteira</h3>
@@ -1274,6 +1289,19 @@
             </div>
             <p class="text-[10px] text-secondary/50 mt-2">Os valores em reais já descontam o deságio de 10% que a
               plataforma cobra no saque do lucro. Valores exibidos em Cripto mostram o lucro cheio.</p>
+          </div>
+
+          <!-- Composition chart -->
+          <div id="composition-card" class="hidden premium-card rounded-xl p-5 lg:col-span-2">
+            <h3 class="text-sm font-semibold text-on-surface mb-4">Composição da Carteira</h3>
+            <div class="relative flex items-center justify-center" style="height:180px">
+              <canvas id="composition-chart"></canvas>
+              <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span class="text-[10px] text-secondary/60 font-medium uppercase tracking-wider">Total</span>
+                <span id="composition-center" class="text-sm font-bold text-on-surface mt-0.5">—</span>
+              </div>
+            </div>
+            <div id="composition-legend" class="flex flex-col gap-3 mt-4"></div>
           </div>
         </div>
 
@@ -1337,6 +1365,19 @@
                   cadastra investimentos.</p>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Ativos em Carteira -->
+        <div id="assets-section" class="hidden mt-4">
+          <div class="premium-card rounded-xl p-5">
+            <div class="flex justify-between items-start mb-4">
+              <div>
+                <h3 class="text-sm font-semibold text-on-surface">Ativos em Carteira</h3>
+                <p class="text-[10px] text-secondary/50 mt-0.5">Patrimônio sem rendimento periódico</p>
+              </div>
+            </div>
+            <div id="assets-list"></div>
           </div>
         </div>
       </div>
@@ -1611,10 +1652,23 @@
       </div>
       <form id="form-investment" onsubmit="saveInvestment(event)" class="p-6 flex flex-col gap-5">
         <input type="hidden" id="inv-edit-id" />
+        <input type="hidden" id="inv-type" value="periodic" />
+
+        <!-- Pill-tabs de tipo -->
+        <div class="flex rounded-xl overflow-hidden border border-outline-variant/30 bg-surface-container">
+          <button type="button" id="inv-tab-periodic" onclick="switchInvestmentType('periodic')"
+            class="flex-1 py-2.5 text-xs font-semibold transition-all bg-primary/10 border-r border-outline-variant/30 text-primary">
+            Com Rendimento
+          </button>
+          <button type="button" id="inv-tab-asset" onclick="switchInvestmentType('asset')"
+            class="flex-1 py-2.5 text-xs font-semibold transition-all text-secondary/60">
+            Só Valorização
+          </button>
+        </div>
 
         <div>
           <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Nome do
-            Investimento *</label>
+            Ativo *</label>
           <input type="text" id="inv-name" class="fi" placeholder="Ex: CDB Banco XYZ" required />
         </div>
 
@@ -1626,51 +1680,75 @@
           </select>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Capital
-              Investido (R$) *</label>
-            <input type="number" id="inv-principal" class="fi" placeholder="0,00" min="0.01" step="0.01" required />
+        <!-- Campos exclusivos de investimento periódico -->
+        <div id="inv-periodic-fields">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Capital
+                Investido (R$) *</label>
+              <input type="number" id="inv-principal" class="fi" placeholder="0,00" min="0.01" step="0.01" required />
+            </div>
+            <div>
+              <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Lucro por
+                Período (%) *</label>
+              <input type="number" id="inv-profit-pct" class="fi" placeholder="0,00" min="0.01" step="0.01" required />
+            </div>
           </div>
-          <div>
-            <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Lucro por
-              Período (%) *</label>
-            <input type="number" id="inv-profit-pct" class="fi" placeholder="0,00" min="0.01" step="0.01" required />
+
+          <div class="mt-5">
+            <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Data de
+              Início *</label>
+            <input type="date" id="inv-start-date" class="fi" required />
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 mt-5">
+            <div>
+              <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Frequência
+                de Lucro *</label>
+              <select id="inv-frequency" class="fi" required onchange="toggleCustomFreq(this)">
+                <option value="monthly">Mensal (1 mês)</option>
+                <option value="bimonthly">Bimestral (2 meses)</option>
+                <option value="quarterly">Trimestral (3 meses)</option>
+                <option value="semiannual">Semestral (6 meses)</option>
+                <option value="at_maturity">No Vencimento</option>
+                <option value="custom">Personalizado</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Duração
+                (meses) *</label>
+              <input type="number" id="inv-duration" class="fi" placeholder="12" min="1" step="1" required />
+            </div>
+          </div>
+
+          <div id="inv-custom-freq-wrap" class="hidden mt-5">
+            <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Período
+              Personalizado (meses) *</label>
+            <input type="number" id="inv-custom-freq-months" class="fi" placeholder="Ex: 4 (a cada 4 meses)" min="1"
+              step="1" />
+            <p class="text-[10px] text-secondary/50 mt-1">Defina o intervalo em meses entre cada pagamento de lucro.</p>
           </div>
         </div>
 
-        <div>
-          <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Data de
-            Início *</label>
-          <input type="date" id="inv-start-date" class="fi" required />
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Frequência
-              de Lucro *</label>
-            <select id="inv-frequency" class="fi" required onchange="toggleCustomFreq(this)">
-              <option value="monthly">Mensal (1 mês)</option>
-              <option value="bimonthly">Bimestral (2 meses)</option>
-              <option value="quarterly">Trimestral (3 meses)</option>
-              <option value="semiannual">Semestral (6 meses)</option>
-              <option value="at_maturity">No Vencimento</option>
-              <option value="custom">Personalizado</option>
-            </select>
+        <!-- Campos exclusivos de ativo (só valorização) -->
+        <div id="inv-asset-fields" class="hidden flex flex-col gap-5">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Valor por
+                Unidade (R$) *</label>
+              <input type="number" id="inv-unit-value" class="fi" placeholder="0,00000" min="0.00001" step="any"
+                oninput="updateAssetTotal()" />
+            </div>
+            <div>
+              <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Quantidade *</label>
+              <input type="number" id="inv-quantity" class="fi" placeholder="0" min="0.00001" step="any"
+                oninput="updateAssetTotal()" />
+            </div>
           </div>
-          <div>
-            <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Duração
-              (meses) *</label>
-            <input type="number" id="inv-duration" class="fi" placeholder="12" min="1" step="1" required />
+          <div class="flex items-center justify-between p-3 rounded-xl bg-surface-container border border-outline-variant/20">
+            <span class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70">Total</span>
+            <span id="inv-asset-total" class="text-sm font-bold text-primary tabular-nums">R$ 0,00</span>
           </div>
-        </div>
-
-        <div id="inv-custom-freq-wrap" class="hidden">
-          <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Período
-            Personalizado (meses) *</label>
-          <input type="number" id="inv-custom-freq-months" class="fi" placeholder="Ex: 4 (a cada 4 meses)" min="1"
-            step="1" />
-          <p class="text-[10px] text-secondary/50 mt-1">Defina o intervalo em meses entre cada pagamento de lucro.</p>
         </div>
 
         <div
@@ -1830,7 +1908,7 @@
       calDate: new Date(),
       selectedDate: null,
       projectionYears: 5,
-      charts: { donut: null, line: null, calc: null },
+      charts: { donut: null, line: null, calc: null, composition: null },
       editingInvestmentId: null,
       reinvestInsights: true,
       reinvestCalendar: true,
@@ -2062,6 +2140,9 @@
         durationMonths: r.duration_months,
         showInBDM: r.show_in_bdm,
         createdAt: r.created_at,
+        type: r.type || 'periodic',
+        unitValue: r.unit_value ? parseFloat(r.unit_value) : null,
+        quantity: r.quantity ? parseFloat(r.quantity) : null,
       };
     }
 
@@ -2079,6 +2160,9 @@
         duration_months: inv.durationMonths,
         show_in_bdm: inv.showInBDM,
         created_at: inv.createdAt,
+        type: inv.type || 'periodic',
+        unit_value: inv.unitValue || null,
+        quantity: inv.quantity || null,
       };
     }
 
@@ -2194,6 +2278,51 @@
         wrap.classList.add('hidden');
         document.getElementById('inv-custom-freq-months').value = '';
       }
+    }
+
+    function switchInvestmentType(type) {
+      document.getElementById('inv-type').value = type;
+      const periodic = document.getElementById('inv-periodic-fields');
+      const asset = document.getElementById('inv-asset-fields');
+      const tabP = document.getElementById('inv-tab-periodic');
+      const tabA = document.getElementById('inv-tab-asset');
+
+      if (type === 'asset') {
+        periodic.classList.add('hidden');
+        asset.classList.remove('hidden');
+        tabA.classList.add('bg-primary/10', 'text-primary');
+        tabA.classList.remove('text-secondary/60');
+        tabP.classList.remove('bg-primary/10', 'text-primary');
+        tabP.classList.add('text-secondary/60');
+        document.getElementById('inv-principal').removeAttribute('required');
+        document.getElementById('inv-profit-pct').removeAttribute('required');
+        document.getElementById('inv-start-date').removeAttribute('required');
+        document.getElementById('inv-frequency').removeAttribute('required');
+        document.getElementById('inv-duration').removeAttribute('required');
+        // Limpar valores para que o browser não dispare validação de min/step em campos ocultos
+        document.getElementById('inv-principal').value = '';
+        document.getElementById('inv-profit-pct').value = '';
+        document.getElementById('inv-start-date').value = '';
+        document.getElementById('inv-duration').value = '';
+      } else {
+        periodic.classList.remove('hidden');
+        asset.classList.add('hidden');
+        tabP.classList.add('bg-primary/10', 'text-primary');
+        tabP.classList.remove('text-secondary/60');
+        tabA.classList.remove('bg-primary/10', 'text-primary');
+        tabA.classList.add('text-secondary/60');
+        document.getElementById('inv-principal').setAttribute('required', '');
+        document.getElementById('inv-profit-pct').setAttribute('required', '');
+        document.getElementById('inv-start-date').setAttribute('required', '');
+        document.getElementById('inv-frequency').setAttribute('required', '');
+        document.getElementById('inv-duration').setAttribute('required', '');
+      }
+    }
+
+    function updateAssetTotal() {
+      const uv = parseFloat(document.getElementById('inv-unit-value').value) || 0;
+      const qty = parseFloat(document.getElementById('inv-quantity').value) || 0;
+      document.getElementById('inv-asset-total').textContent = fmtBRL(uv * qty);
     }
 
     function generateEvents(inv) {
@@ -2700,7 +2829,8 @@
         </div>
       </div>`;
       }).join('')}
-  </div>`;
+  </div>
+  ${bdmEvts.length > 0 && App.bdmRate > 0 ? `<p class="text-[10px] text-secondary/40 mt-3 pt-2 border-t border-white/5 leading-relaxed"><span class="material-symbols-outlined text-[11px] align-middle" style="font-variation-settings:'wght' 400">info</span> Valores em Cripto exibem o lucro bruto. O saque tem deságio de 10% sobre o lucro.</p>` : ''}`;
     }
 
     function toggleTxnDetails(id) {
@@ -2769,6 +2899,9 @@
     </div>`;
       }).join('');
 
+      if (bdmEvts.length > 0 && App.bdmRate > 0) {
+        html += `<p class="text-[10px] text-secondary/40 mt-3 pt-2 border-t border-white/5 leading-relaxed"><span class="material-symbols-outlined text-[11px] align-middle" style="font-variation-settings:'wght' 400">info</span> Valores em Cripto exibem o lucro bruto. O saque tem deságio de 10% sobre o lucro.</p>`;
+      }
       document.getElementById('day-modal-content').innerHTML = html;
       showModal('modal-day');
     }
@@ -2789,9 +2922,10 @@
     // =========================================================
     // INVESTMENT MODAL
     // =========================================================
-    function openAddModal() {
+    function openAddModal(type) {
       App.editingInvestmentId = null;
-      document.getElementById('modal-inv-title').textContent = 'Novo Investimento';
+      const t = type || 'periodic';
+      document.getElementById('modal-inv-title').textContent = t === 'asset' ? 'Novo Ativo' : 'Novo Investimento';
       document.getElementById('form-investment').reset();
       document.getElementById('inv-edit-id').value = '';
       document.getElementById('inv-start-date').value = new Date().toISOString().split('T')[0];
@@ -2799,6 +2933,8 @@
       document.getElementById('inv-custom-freq-wrap').classList.add('hidden');
       document.getElementById('inv-custom-freq-months').value = '';
       populateCategorySelect();
+      switchInvestmentType(t);
+      document.getElementById('inv-asset-total').textContent = 'R$ 0,00';
       showModal('modal-investment');
     }
 
@@ -2823,14 +2959,54 @@
       const errEl = document.getElementById('inv-error');
       errEl.classList.add('hidden');
 
+      const type = document.getElementById('inv-type').value || 'periodic';
       const name = document.getElementById('inv-name').value.trim();
       const categoryId = document.getElementById('inv-category').value || null;
+      const showInBDM = document.getElementById('inv-show-bdm').checked;
+      const editId = document.getElementById('inv-edit-id').value;
+
+      if (!name) { showError('Preencha o nome do ativo.'); return; }
+
+      if (type === 'asset') {
+        const unitValue = parseFloat(document.getElementById('inv-unit-value').value);
+        const quantity = parseFloat(document.getElementById('inv-quantity').value);
+        if (isNaN(unitValue) || unitValue <= 0) { showError('O valor por unidade deve ser positivo.'); return; }
+        if (isNaN(quantity) || quantity <= 0) { showError('A quantidade deve ser positiva.'); return; }
+
+        const inv = {
+          id: editId || uid(),
+          name, categoryId,
+          principal: unitValue * quantity,
+          profitPercentage: 0,
+          startDate: new Date().toISOString().slice(0, 10),
+          frequency: 'at_maturity',
+          durationMonths: 0,
+          customFrequencyMonths: null,
+          showInBDM,
+          createdAt: editId ? (App.investments.find(i => i.id === editId)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
+          type: 'asset',
+          unitValue,
+          quantity,
+        };
+        try {
+          if (editId) await deleteInvestmentEvents(editId);
+          await dbPutInvestment(inv);
+          await loadAllData();
+          renderCalendar();
+          closeInvestmentModal();
+          toast(editId ? 'Ativo atualizado!' : 'Ativo adicionado à carteira!', 'success');
+        } catch (err) {
+          showError('Erro ao salvar: ' + err.message);
+        }
+        return;
+      }
+
+      // type === 'periodic' — comportamento original
       const principal = parseFloat(document.getElementById('inv-principal').value);
       const profitPercentage = parseFloat(document.getElementById('inv-profit-pct').value);
       const startDate = document.getElementById('inv-start-date').value;
       const frequency = document.getElementById('inv-frequency').value;
       const durationMonths = parseInt(document.getElementById('inv-duration').value);
-      const showInBDM = document.getElementById('inv-show-bdm').checked;
       const customFrequencyMonths = frequency === 'custom' ? parseInt(document.getElementById('inv-custom-freq-months').value) : null;
 
       if (!name || isNaN(principal) || principal <= 0) { showError('Preencha todos os campos obrigatórios.'); return; }
@@ -2846,11 +3022,13 @@
         }
       }
 
-      const editId = document.getElementById('inv-edit-id').value;
       const inv = {
         id: editId || uid(),
         name, categoryId, principal, profitPercentage, startDate, frequency, durationMonths, showInBDM, customFrequencyMonths,
         createdAt: editId ? (App.investments.find(i => i.id === editId)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
+        type: 'periodic',
+        unitValue: null,
+        quantity: null,
       };
 
       try {
@@ -2887,7 +3065,7 @@
       App.editingInvestmentId = invId;
       const inv = App.investments.find(i => i.id === invId);
       if (!inv) return;
-      document.getElementById('modal-inv-title').textContent = 'Editar Investimento';
+      document.getElementById('modal-inv-title').textContent = inv.type === 'asset' ? 'Editar Ativo' : 'Editar Investimento';
       document.getElementById('inv-edit-id').value = inv.id;
       document.getElementById('inv-name').value = inv.name;
       document.getElementById('inv-principal').value = inv.principal;
@@ -2907,6 +3085,12 @@
       populateCategorySelect();
       document.getElementById('inv-category').value = inv.categoryId || '';
       document.getElementById('inv-error').classList.add('hidden');
+      switchInvestmentType(inv.type || 'periodic');
+      if (inv.type === 'asset') {
+        document.getElementById('inv-unit-value').value = inv.unitValue || '';
+        document.getElementById('inv-quantity').value = inv.quantity || '';
+        updateAssetTotal();
+      }
       showModal('modal-investment');
     }
 
@@ -2941,13 +3125,16 @@
       const name = document.getElementById('cat-name').value.trim();
       const color = document.getElementById('cat-color').value;
       if (!name) { toast('Digite um nome para a categoria.', 'error'); return; }
-
-      const cat = { id: uid(), name, color };
-      await dbPutCategory(cat);
-      await loadAllData();
-      renderCategoryList();
-      document.getElementById('cat-name').value = '';
-      toast('Categoria criada!', 'success');
+      try {
+        const cat = { id: uid(), name, color };
+        await dbPutCategory(cat);
+        await loadAllData();
+        renderCategoryList();
+        document.getElementById('cat-name').value = '';
+        toast('Categoria criada!', 'success');
+      } catch (err) {
+        toast('Erro ao criar categoria: ' + err.message, 'error');
+      }
     }
 
     async function deleteCategory(catId) {
@@ -2970,6 +3157,7 @@
     function getMonthlyIncomeEst() {
       let total = 0;
       for (const inv of App.investments) {
+        if (inv.type === 'asset') continue;
         if (!inv.durationMonths) continue;
         const s = BDMSchedule.computeSchedule(inv, {});
         total += (s.netPerPeriod * s.numPeriods) / inv.durationMonths; // lucro liquido medio por mes
@@ -3212,10 +3400,12 @@
 
       // Charts
       renderDonutChart();
+      renderCompositionChart();
       renderLineChart();
 
       // Rankings
       renderRankings();
+      renderAssetsSection();
 
       // Milestones
       renderMilestones();
@@ -3304,6 +3494,83 @@
       return { labels, data };
     }
 
+    function renderCompositionChart() {
+      const card = document.getElementById('composition-card');
+      const legendEl = document.getElementById('composition-legend');
+      const centerEl = document.getElementById('composition-center');
+      if (!card || !legendEl || !centerEl) return;
+
+      const totalPeriodic = App.investments
+        .filter(i => i.type !== 'asset')
+        .reduce((s, i) => s + i.principal, 0);
+      const totalAsset = App.investments
+        .filter(i => i.type === 'asset')
+        .reduce((s, i) => s + i.principal, 0);
+
+      if (totalPeriodic === 0 || totalAsset === 0) {
+        card.classList.add('hidden');
+        if (App.charts.composition) { App.charts.composition.destroy(); App.charts.composition = null; }
+        return;
+      }
+
+      card.classList.remove('hidden');
+      centerEl.textContent = fmtBRL(totalPeriodic + totalAsset);
+
+      const total = totalPeriodic + totalAsset;
+      const pctP = (totalPeriodic / total * 100).toFixed(1);
+      const pctA = (totalAsset / total * 100).toFixed(1);
+
+      legendEl.innerHTML = `
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-2.5 h-2.5 rounded-sm flex-shrink-0" style="background:#0EA5E9"></div>
+            <span class="text-xs text-secondary truncate">Recorrentes</span>
+          </div>
+          <div class="text-right ml-2">
+            <span class="text-xs font-semibold text-on-surface tabular-nums">${pctP}%</span>
+            <span class="text-[10px] text-secondary/50 tabular-nums block">${fmtBRL(totalPeriodic)}</span>
+          </div>
+        </div>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-2.5 h-2.5 rounded-sm flex-shrink-0" style="background:#F59E0B"></div>
+            <span class="text-xs text-secondary truncate">Ativos</span>
+          </div>
+          <div class="text-right ml-2">
+            <span class="text-xs font-semibold text-on-surface tabular-nums">${pctA}%</span>
+            <span class="text-[10px] text-secondary/50 tabular-nums block">${fmtBRL(totalAsset)}</span>
+          </div>
+        </div>`;
+
+      const ctx = document.getElementById('composition-chart').getContext('2d');
+      if (App.charts.composition) App.charts.composition.destroy();
+
+      App.charts.composition = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Recorrentes', 'Ativos'],
+          datasets: [{
+            data: [totalPeriodic, totalAsset],
+            backgroundColor: ['#0EA5E9', '#F59E0B'],
+            borderColor: '#09090b',
+            borderWidth: 3,
+          }]
+        },
+        options: {
+          cutout: '68%',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (c) => ` ${c.label}: ${fmtBRL(c.raw)} (${(c.raw / total * 100).toFixed(1)}%)`
+              }
+            }
+          },
+          animation: { duration: 600 },
+        }
+      });
+    }
+
     function renderLineChart() {
       const lineWrap = document.getElementById('line-wrap');
       const lineEmpty = document.getElementById('line-empty');
@@ -3387,7 +3654,10 @@
         return;
       }
 
-      const ranked = App.investments.map(inv => ({ inv, roi: getInvestmentROI(inv) })).sort((a, b) => b.roi - a.roi);
+      const ranked = App.investments
+        .filter(inv => inv.type !== 'asset')
+        .map(inv => ({ inv, roi: getInvestmentROI(inv) }))
+        .sort((a, b) => b.roi - a.roi);
       const maxROI = ranked[0]?.roi || 1;
 
       list.innerHTML = ranked.map((item, idx) => {
@@ -3397,7 +3667,10 @@
       <div class="text-[11px] font-bold ${idx === 0 ? 'text-primary' : 'text-secondary/40'} w-5 text-center tabular-nums">${idx + 1}</div>
       <div class="flex-1 min-w-0">
         <div class="flex items-center justify-between mb-1">
-          <span class="text-xs font-semibold text-on-surface truncate">${item.inv.name}</span>
+          <div class="flex flex-col min-w-0">
+            <span class="text-xs font-semibold text-on-surface truncate">${item.inv.name}</span>
+            <span class="text-[10px] text-secondary/50 tabular-nums">${fmtBRL(item.inv.principal)}</span>
+          </div>
           <span class="text-xs font-bold ${item.roi >= 0 ? 'text-primary' : 'text-error'} tabular-nums ml-2 whitespace-nowrap">+${NUM.format(item.roi)}%</span>
         </div>
         <div class="w-full bg-surface-container rounded-full h-1">
@@ -3409,6 +3682,45 @@
           <span class="material-symbols-outlined text-[14px]" style="font-variation-settings:'wght' 300">edit</span>
         </button>
         <button onclick="deleteInvestment('${item.inv.id}')" class="p-1 rounded text-secondary/50 hover:text-error transition-colors">
+          <span class="material-symbols-outlined text-[14px]" style="font-variation-settings:'wght' 300">delete</span>
+        </button>
+      </div>
+    </div>`;
+      }).join('');
+    }
+
+    function renderAssetsSection() {
+      const assets = App.investments.filter(i => i.type === 'asset');
+      const section = document.getElementById('assets-section');
+      const list = document.getElementById('assets-list');
+      if (!section || !list) return;
+
+      if (assets.length === 0) { section.classList.add('hidden'); return; }
+      section.classList.remove('hidden');
+
+      list.innerHTML = assets.map(inv => {
+        const color = getCategoryColor(inv.categoryId);
+        const total = inv.principal;
+        const bdmVal = (inv.showInBDM && App.bdmRate > 0) ? toBDM(total) : null;
+        const uv = inv.unitValue || 0;
+        const qty = inv.quantity || 0;
+        return `<div class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/3 transition-colors group">
+      <div class="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-0.5" style="background:${color}"></div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-on-surface truncate">${inv.name}</span>
+          <span class="text-xs font-bold text-primary tabular-nums ml-2 whitespace-nowrap">${fmtBRL(total)}</span>
+        </div>
+        <div class="flex items-center justify-between mt-0.5">
+          <span class="text-[10px] text-secondary/50 tabular-nums">${NUM.format(qty)} un × ${fmtBRL(uv)}</span>
+          ${bdmVal !== null ? `<span class="text-[10px] text-secondary/50 tabular-nums ml-2">${fmtBDM(bdmVal)}</span>` : ''}
+        </div>
+      </div>
+      <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button onclick="editInvestment('${inv.id}')" class="p-1 rounded text-secondary/50 hover:text-primary transition-colors">
+          <span class="material-symbols-outlined text-[14px]" style="font-variation-settings:'wght' 300">edit</span>
+        </button>
+        <button onclick="deleteInvestment('${inv.id}')" class="p-1 rounded text-secondary/50 hover:text-error transition-colors">
           <span class="material-symbols-outlined text-[14px]" style="font-variation-settings:'wght' 300">delete</span>
         </button>
       </div>
