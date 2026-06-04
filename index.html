@@ -1191,7 +1191,7 @@
       <div class="p-4 md:p-8 max-w-[1200px] mx-auto w-full">
         <div class="mb-7 flex flex-col sm:flex-row sm:items-start gap-4">
           <div class="flex-1">
-            <h1 class="text-2xl md:text-3xl font-semibold text-on-surface tracking-tight">Portfolio Insights</h1>
+            <h1 class="text-2xl md:text-3xl font-semibold text-on-surface tracking-tight flex items-center gap-2">Portfolio Insights<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Análise completa da sua carteira: patrimônio total, projeções de crescimento e rentabilidade comparada à inflação.</span></span></h1>
             <div
               class="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/10 text-primary border border-primary/20">
               <span class="material-symbols-outlined text-[14px]">info</span>
@@ -1202,7 +1202,7 @@
           </div>
           <div class="premium-card rounded-xl p-4 flex flex-col gap-3 min-w-[240px]">
             <div class="flex items-center justify-between">
-              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/60">Inflação IPCA</span>
+              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/60 flex items-center gap-1">Inflação IPCA<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Ative para considerar a inflação (IPCA) e ver o ganho real do portfólio, descontando a perda de poder de compra.</span></span></span>
               <label class="tog">
                 <input type="checkbox" id="ipca-toggle" checked onchange="toggleIPCA(this.checked)" />
                 <div class="tog-track"></div>
@@ -1218,8 +1218,7 @@
             <p id="ipca-status-label" class="text-[10px] text-secondary/50">Considerando inflação na projeção
               patrimonial</p>
             <div class="flex items-center justify-between border-t border-white/5 pt-3 mt-1">
-              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/60">Considerar
-                Reinvestimento</span>
+              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/60 flex items-center gap-1">Considerar Reinvestimento<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Com reinvestimento ativo, o lucro de cada ciclo é somado ao capital e rende juros sobre juros nos próximos períodos.</span></span></span>
               <label class="tog">
                 <input type="checkbox" id="reinvest-insights-toggle" checked
                   onchange="toggleReinvestInsights(this.checked)" />
@@ -1237,8 +1236,7 @@
               class="absolute -right-8 -top-8 w-32 h-32 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors duration-500">
             </div>
             <div class="flex justify-between items-start mb-3 z-10 relative">
-              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/70">Patrimônio
-                Investido</span>
+              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/70 flex items-center gap-1">Patrimônio Investido<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Soma do capital aplicado em todos os investimentos e ativos cadastrados. Não inclui lucros ainda não realizados.</span></span></span>
               <span class="material-symbols-outlined text-primary text-[20px]"
                 style="font-variation-settings:'wght' 300">account_balance</span>
             </div>
@@ -1249,8 +1247,7 @@
           </div>
           <div class="premium-card rounded-xl p-5">
             <div class="flex justify-between items-start mb-3">
-              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/70">Lucro Mensal
-                Est.</span>
+              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/70 flex items-center gap-1">Lucro Mensal Est.<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Estimativa do lucro líquido médio por mês gerado pelos investimentos com rendimento periódico. Já desconta o deságio de 10% no saque.</span></span></span>
               <span class="material-symbols-outlined text-secondary/60 text-[20px]"
                 style="font-variation-settings:'wght' 300">monetization_on</span>
             </div>
@@ -1259,7 +1256,7 @@
           </div>
           <div class="premium-card rounded-xl p-5">
             <div class="flex justify-between items-start mb-3">
-              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/70">Rentabilidade</span>
+              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/70 flex items-center gap-1">Rentabilidade<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Taxa de rendimento anual média da carteira (nominal). Com IPCA ativado, exibe também o ganho real descontada a inflação.</span></span></span>
               <span class="material-symbols-outlined text-secondary/60 text-[20px]"
                 style="font-variation-settings:'wght' 300">percent</span>
             </div>
