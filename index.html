@@ -768,6 +768,55 @@
         opacity: 1
       }
     }
+    /* Tooltips */
+    .has-tip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      vertical-align: middle;
+    }
+    .tip-icon {
+      color: rgba(208,197,175,0.35);
+      font-size: 13px !important;
+      cursor: help;
+      transition: color .15s;
+      line-height: 1;
+    }
+    .has-tip:hover .tip-icon { color: rgba(208,197,175,0.75); }
+    .tip-box {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #231f17;
+      border: 1px solid rgba(229,228,226,0.18);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 11px;
+      line-height: 1.55;
+      color: #d0c5af;
+      width: 220px;
+      z-index: 500;
+      pointer-events: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+      text-align: left;
+      font-weight: 400;
+      white-space: normal;
+    }
+    .tip-box::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: rgba(229,228,226,0.18);
+    }
+    @media (hover: hover) {
+      .has-tip:hover .tip-box { display: block; }
+    }
+    .has-tip.tip-open .tip-box { display: block; }
   </style>
 </head>
 
@@ -4517,9 +4566,29 @@ Investimentos ativos (${invs.length}): ${JSON.stringify(invs)}`;
     }
 
     // =========================================================
+    // TOOLTIPS (mobile tap support)
+    // =========================================================
+    function initTooltips() {
+      document.addEventListener('click', function(e) {
+        const icon = e.target.closest('.tip-icon');
+        if (icon) {
+          const parent = icon.closest('.has-tip');
+          if (!parent) return;
+          const isOpen = parent.classList.contains('tip-open');
+          document.querySelectorAll('.has-tip.tip-open').forEach(el => el.classList.remove('tip-open'));
+          if (!isOpen) parent.classList.add('tip-open');
+          e.stopPropagation();
+          return;
+        }
+        document.querySelectorAll('.has-tip.tip-open').forEach(el => el.classList.remove('tip-open'));
+      });
+    }
+
+    // =========================================================
     // INIT
     // =========================================================
     async function init() {
+      initTooltips();
       try {
         const user = await checkSession();
         if (user) {
