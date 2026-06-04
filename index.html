@@ -1704,17 +1704,16 @@
         <div class="flex rounded-xl overflow-hidden border border-outline-variant/30 bg-surface-container">
           <button type="button" id="inv-tab-periodic" onclick="switchInvestmentType('periodic')"
             class="flex-1 py-2.5 text-xs font-semibold transition-all bg-primary/10 border-r border-outline-variant/30 text-primary">
-            Com Rendimento
+            Com Rendimento<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300;font-size:11px">help_outline</span><span class="tip-box">Investimento que paga lucro periodicamente (mensal, trimestral etc.), como CDB, staking ou DeFi com rendimento fixo.</span></span>
           </button>
           <button type="button" id="inv-tab-asset" onclick="switchInvestmentType('asset')"
             class="flex-1 py-2.5 text-xs font-semibold transition-all text-secondary/60">
-            Só Valorização
+            Só Valorização<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300;font-size:11px">help_outline</span><span class="tip-box">Ativo que você segura esperando valorização de preço, sem rendimento periódico. Ex: Bitcoin spot, ações, imóveis.</span></span>
           </button>
         </div>
 
         <div>
-          <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Nome do
-            Ativo *</label>
+          <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 mb-1.5 flex items-center gap-1">Nome do Ativo *<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Identificação do investimento na sua carteira. Ex: BTC Spot, CDB Banco X, USDT DeFi.</span></span></label>
           <input type="text" id="inv-name" class="fi" placeholder="Ex: CDB Banco XYZ" required />
         </div>
 
@@ -1730,13 +1729,11 @@
         <div id="inv-periodic-fields">
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Capital
-                Investido (R$) *</label>
+              <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 mb-1.5 flex items-center gap-1">Capital Investido (R$) *<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Valor total em reais que você aplicou neste investimento. Não inclua lucros — apenas o capital inicial.</span></span></label>
               <input type="number" id="inv-principal" class="fi" placeholder="0,00" min="0.01" step="0.01" required />
             </div>
             <div>
-              <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Lucro por
-                Período (%) *</label>
+              <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 mb-1.5 flex items-center gap-1">Lucro por Período (%) *<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Percentual de rendimento a cada ciclo de pagamento. Ex: se paga 3% ao mês, insira 3. Se paga 10% a cada trimestre, insira 10 e selecione Trimestral.</span></span></label>
               <input type="number" id="inv-profit-pct" class="fi" placeholder="0,00" min="0.01" step="0.01" required />
             </div>
           </div>
@@ -1749,8 +1746,7 @@
 
           <div class="grid grid-cols-2 gap-4 mt-5">
             <div>
-              <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Frequência
-                de Lucro *</label>
+              <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 mb-1.5 flex items-center gap-1">Frequência de Lucro *<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Com que frequência este investimento paga ou acumula lucro. Selecione "No Vencimento" se o lucro só é liberado no final do prazo.</span></span></label>
               <select id="inv-frequency" class="fi" required onchange="toggleCustomFreq(this)">
                 <option value="monthly">Mensal (1 mês)</option>
                 <option value="bimonthly">Bimestral (2 meses)</option>
@@ -1761,8 +1757,7 @@
               </select>
             </div>
             <div>
-              <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Duração
-                (meses) *</label>
+              <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 mb-1.5 flex items-center gap-1">Duração (meses) *<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Por quantos meses este investimento ficará ativo. Ex: 12 para um CDB de 1 ano. Após o vencimento, o sistema para de gerar eventos no calendário.</span></span></label>
               <input type="number" id="inv-duration" class="fi" placeholder="12" min="1" step="1" required />
             </div>
           </div>
@@ -1800,7 +1795,7 @@
         <div
           class="flex items-center justify-between p-4 rounded-xl bg-surface-container border border-outline-variant/20">
           <div>
-            <div class="text-sm font-medium text-on-surface">Exibir em Cripto</div>
+            <div class="text-sm font-medium text-on-surface flex items-center gap-1">Exibir em Cripto<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Quando ativado, o lucro deste investimento será exibido convertido para a criptomoeda configurada (usando a cotação salva na barra lateral).</span></span></div>
             <div class="text-xs text-secondary/60 mt-0.5">Mostra o lucro convertido em Cripto</div>
           </div>
           <label class="tog">
