@@ -61,3 +61,7 @@ App = {
 ## Como Testar
 Abrir `index.html` no browser. Não há servidor local necessário para UI (Supabase é remoto).
 Para testar autenticado: usar credenciais reais ou configurar usuário no Supabase dashboard.
+
+## Arquivo STATE.md
+ - Ao final de cada sessão de trabalho, ATUALIZAR o arquivo "STATE.md" com as mudanças feitas, novos TODOs e decisões tomadas.
+
