@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8" />
-  <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport" />
+  <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" name="viewport" />
   <meta name="theme-color" content="#09090b" />
   <title>Cripto Tracker — Gestão de Investimentos</title>
   <script src="https://cdn.tailwindcss.com?plugins=container-queries"></script>
@@ -671,11 +671,23 @@
       display: flex;
       flex-direction: column;
       height: calc(100vh - 8rem);
+      height: calc(100dvh - 8rem);
     }
 
     @media(min-width:768px) {
       #screen-ai.active {
         height: 100vh;
+        height: 100dvh;
+      }
+    }
+
+    /* Insights mobile: constrain scroll to screen, not page body */
+    @media(max-width: 767px) {
+      #screen-insights.active {
+        height: calc(100vh - 8rem);
+        height: calc(100dvh - 8rem);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
       }
     }
 
@@ -4129,17 +4141,28 @@ Estado atual do app (investimentos com IDs, categorias, cotacao Cripto, IPCA) fo
       // 4. Inline code: `code`
       s = s.replace(/`([^`\n]+)`/g, '<code style="background:rgba(255,255,255,.08);border-radius:.2em;padding:.05em .35em;font-size:11px;color:#38bdf8">$1</code>');
 
-      // 5. Bullet lines: "- item" or "* item" at line start → gold dot layout
+      // 5. Headings: ###, ##, # at line start (before bullets, to avoid # inside bullets)
+      s = s.replace(/^### ?(.+)$/gm,
+        '<p style="font-size:.875rem;font-weight:700;color:#eae1d4;margin:.75em 0 .2em;line-height:1.4">$1</p>'
+      );
+      s = s.replace(/^## ?(.+)$/gm,
+        '<p style="font-size:.9375rem;font-weight:700;color:#eae1d4;margin:.75em 0 .2em;line-height:1.4">$1</p>'
+      );
+      s = s.replace(/^# ?(.+)$/gm,
+        '<p style="font-size:1rem;font-weight:700;color:#38bdf8;margin:.75em 0 .2em;line-height:1.4">$1</p>'
+      );
+
+      // 6. Bullet lines: "- item" or "* item" at line start → gold dot layout
       s = s.replace(/^[ \t]*[-*]\s+(.+)/gm,
         '<div style="display:flex;gap:.45em;margin:.1em 0;align-items:baseline"><span style="color:#38bdf8;flex-shrink:0">·</span><span>$1</span></div>'
       );
 
-      // 6. Remaining newlines → <br>
+      // 7. Remaining newlines → <br>
       s = s.replace(/\n/g, '<br>');
 
-      // 7. Remove <br> immediately before/after block divs to avoid double-spacing
-      s = s.replace(/<br>(<div )/g, '$1');
-      s = s.replace(/(<\/div>)<br>/g, '$1');
+      // 8. Remove <br> immediately before/after block elements to avoid double-spacing
+      s = s.replace(/<br>(<div |<p )/g, '$1');
+      s = s.replace(/(<\/div>|<\/p>)<br>/g, '$1');
 
       return s;
     }
