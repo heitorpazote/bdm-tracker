@@ -687,6 +687,7 @@
         height: calc(100vh - 8rem);
         height: calc(100dvh - 8rem);
         overflow-y: auto;
+        overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
       }
     }
@@ -780,6 +781,32 @@
         opacity: 1
       }
     }
+    /* STT Recording */
+    @keyframes stt-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .3; transform: scale(.75); }
+    }
+    .stt-dot { animation: stt-pulse .9s ease-in-out infinite; }
+
+    @keyframes stt-spin {
+      to { transform: rotate(360deg); }
+    }
+    .stt-spin { animation: stt-spin .8s linear infinite; display: inline-block; }
+
+    #ai-mic-btn { transition: border-color .2s, background .2s, color .2s, transform .1s; }
+    #ai-mic-btn:active { transform: scale(.94); }
+    #ai-mic-btn.stt-rec {
+      border-color: rgba(248,113,113,.6);
+      background: rgba(248,113,113,.12);
+      color: #f87171;
+    }
+    #ai-mic-btn.stt-loading {
+      border-color: rgba(56,189,248,.4);
+      background: rgba(56,189,248,.08);
+      color: #38bdf8;
+      cursor: default;
+    }
+
     /* Tooltips */
     .has-tip {
       position: relative;
@@ -1274,7 +1301,7 @@
           </div>
           <div class="premium-card rounded-xl p-5">
             <div class="flex justify-between items-start mb-3">
-              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/70 flex items-center gap-1">Rentabilidade<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Taxa de rendimento anual média da carteira (nominal). Com IPCA ativado, exibe também o ganho real descontada a inflação.</span></span></span>
+              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/70 flex items-center gap-1">Rentabilidade<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Taxa nominal anual (APR) — média mensal ponderada pelo capital × 12. Reflete o rendimento fixo sobre o principal investido, sem presumir reinvestimento dos lucros. Com IPCA ativado, exibe também o ganho real descontada a inflação.</span></span></span>
               <span class="material-symbols-outlined text-secondary/60 text-[20px]"
                 style="font-variation-settings:'wght' 300">percent</span>
             </div>
@@ -1646,24 +1673,31 @@
           Analisar Carteira
         </button>
         <button
-          onclick="aiAskQuickAction('Qual dos meus investimentos possui o melhor ROI real considerando o IPCA atual?')"
+          onclick="aiAskQuickAction('Analise todos os meus investimentos e ativos da carteira. Qual deles gera melhor rendimento real (descontado IPCA)? Inclua periódicos e ativos de valorização na análise.')"
           class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-outline-variant/40 text-secondary/70 text-[11px] font-medium hover:bg-white/5 transition-colors">
           <span class="material-symbols-outlined text-[14px]"
             style="font-variation-settings:'wght' 300">trending_up</span>
-          Melhor ROI
+          Melhor Rendimento
         </button>
         <button
-          onclick="aiAskQuickAction('Há concentração de risco excessiva na minha carteira? O que devo diversificar?')"
+          onclick="aiAskQuickAction('Analise a concentração da minha carteira por categoria e por tipo (periódicos vs ativos de valorização). Há concentração excessiva em algum ativo ou categoria? O que devo rebalancear?')"
           class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-outline-variant/40 text-secondary/70 text-[11px] font-medium hover:bg-white/5 transition-colors">
-          <span class="material-symbols-outlined text-[14px]" style="font-variation-settings:'wght' 300">shield</span>
-          Risco
+          <span class="material-symbols-outlined text-[14px]" style="font-variation-settings:'wght' 300">balance</span>
+          Rebalancear
         </button>
         <button
-          onclick="aiAskQuickAction('Me ajude a marcar um novo investimento no sistema. Pergunte os dados necessários.')"
+          onclick="aiAskQuickAction('Quero cadastrar um novo investimento periódico. Colete todos os dados necessários em uma única mensagem.')"
           class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-outline-variant/40 text-secondary/70 text-[11px] font-medium hover:bg-white/5 transition-colors">
           <span class="material-symbols-outlined text-[14px]"
-            style="font-variation-settings:'wght' 300">add_circle</span>
-          Novo Aporte
+            style="font-variation-settings:'wght' 300">savings</span>
+          Novo Investimento
+        </button>
+        <button
+          onclick="aiAskQuickAction('Quero cadastrar um novo ativo (cripto, ação, fundo ou outro ativo de valorização). Colete todos os dados necessários em uma única mensagem.')"
+          class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-outline-variant/40 text-secondary/70 text-[11px] font-medium hover:bg-white/5 transition-colors">
+          <span class="material-symbols-outlined text-[14px]"
+            style="font-variation-settings:'wght' 300">currency_bitcoin</span>
+          Novo Ativo
         </button>
       </div>
 
@@ -1675,28 +1709,60 @@
               style="font-variation-settings:'FILL' 1">smart_toy</span>
           </div>
           <div class="ai-msg-bubble">
-            <p class="text-sm leading-relaxed">Sou seu analista financeiro do Cripto Tracker. Posso avaliar sua
-              carteira,
-              calcular ROI real, identificar riscos e registrar investimentos direto no calendário.<br><br>O que deseja
-              analisar?</p>
+            <p class="text-sm leading-relaxed">Sou seu analista financeiro do Cripto Tracker. Posso avaliar sua carteira, calcular rendimento real (pós-IPCA), identificar concentração de risco e cadastrar investimentos periódicos e ativos direto na plataforma.<br><br>O que deseja analisar ou registrar?</p>
           </div>
         </div>
       </div>
 
       <!-- Input -->
-      <div class="px-4 md:px-8 py-4 border-t border-white/8 flex-shrink-0">
-        <div class="flex gap-2.5 items-end">
+      <div class="px-4 md:px-8 py-3 border-t border-white/8 flex-shrink-0">
+
+        <!-- Barra de gravação (oculta por padrão) -->
+        <div id="ai-stt-bar" class="hidden items-center gap-2 mb-2.5 px-0.5">
+          <span class="stt-dot w-2 h-2 rounded-full bg-red-400 flex-shrink-0"></span>
+          <span id="ai-stt-time" class="text-[11px] font-semibold text-red-400 tabular-nums flex-shrink-0">0:00</span>
+          <div class="flex-1 h-1 bg-surface-container-highest rounded-full overflow-hidden mx-1">
+            <div id="ai-stt-progress" class="h-full rounded-full transition-all duration-1000" style="width:0%;background:#f87171"></div>
+          </div>
+          <span class="text-[10px] text-secondary/40 flex-shrink-0">30s</span>
+          <!-- Botão cancelar (aparece na barra no desktop) -->
+          <button id="ai-stt-cancel-btn" class="hidden flex-shrink-0 text-[10px] text-secondary/40 hover:text-on-surface transition-colors px-1" onclick="sttStop(false)">cancelar</button>
+        </div>
+
+        <!-- Row: mic + textarea + (stop btn desktop) + send -->
+        <div class="flex gap-2 items-end">
+          <!-- Botão microfone -->
+          <button id="ai-mic-btn"
+            class="w-11 h-11 flex-shrink-0 rounded-xl border border-outline-variant/40 flex items-center justify-center text-secondary/55 hover:text-on-surface hover:bg-white/5 touch-none select-none"
+            aria-label="Gravar áudio">
+            <span class="material-symbols-outlined text-[20px]" id="ai-mic-icon" style="font-variation-settings:'wght' 300;'FILL' 0">mic</span>
+          </button>
+
+          <!-- Textarea -->
           <textarea id="ai-input" class="fi flex-1 resize-none min-h-[44px] max-h-32 py-2.5 text-sm leading-relaxed"
             rows="1" placeholder="Pergunte sobre seus investimentos ou descreva um novo aporte..."
             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIMessage()}"
             oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,128)+'px'"></textarea>
+
+          <!-- Botão stop/enviar áudio — só aparece no desktop durante gravação -->
+          <button id="ai-stt-stop-btn"
+            class="hidden w-11 h-11 flex-shrink-0 rounded-xl border border-red-400/40 bg-red-400/10 items-center justify-center text-red-400 hover:bg-red-400/20 transition-all"
+            onclick="sttStop(true)" title="Parar e transcrever">
+            <span class="material-symbols-outlined text-[20px]" style="font-variation-settings:'wght' 400;'FILL' 1">stop_circle</span>
+          </button>
+
+          <!-- Botão enviar mensagem -->
           <button onclick="sendAIMessage()" id="ai-send-btn"
             class="w-11 h-11 flex-shrink-0 rounded-xl bg-primary flex items-center justify-center text-on-primary gold-glow hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
             <span class="material-symbols-outlined text-[18px]" style="font-variation-settings:'wght' 400">send</span>
           </button>
         </div>
-        <p class="text-[10px] text-secondary/25 mt-2 text-center">Dados da carteira são enviados ao modelo · Enter para
-          enviar · Shift+Enter para nova linha</p>
+
+        <p id="ai-input-hint" class="text-[10px] text-secondary/25 mt-2 text-center">
+          Dados da carteira são enviados ao modelo
+          <span class="hidden md:inline"> · Enter para enviar · Clique <span class="material-symbols-outlined text-[10px]" style="vertical-align:middle;font-variation-settings:'wght' 300">mic</span> para gravar, depois <span class="material-symbols-outlined text-[10px]" style="vertical-align:middle;font-variation-settings:'wght' 400">stop_circle</span> para transcrever</span>
+          <span class="md:hidden"> · Segure <span class="material-symbols-outlined text-[10px]" style="vertical-align:middle;font-variation-settings:'wght' 300">mic</span> para gravar</span>
+        </p>
       </div>
 
     </div>
@@ -2424,6 +2490,9 @@
     // =========================================================
     function navigate(screen) {
       App.currentScreen = screen;
+      // Reset AI screen inline height (set by keyboard handler) when leaving AI
+      const prevAI = document.getElementById('screen-ai');
+      if (prevAI && screen !== 'ai') { prevAI.style.height = ''; prevAI.style.top = ''; }
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       document.getElementById('screen-' + screen).classList.add('active');
 
@@ -2747,8 +2816,10 @@
       for (const dk of keys) {
         const evts = grouped[dk];
         const d = new Date(dk + 'T12:00:00');
-        const total = evts.reduce((s, e) => s + eventTotalBRL(e), 0);
+        const total = evts.reduce((s, e) => s + e.amount + (e.principalReturn || 0), 0);
+        const netTotal = evts.reduce((s, e) => s + eventTotalBRL(e), 0);
         const bdmEvtsAg = evts.filter(e => { const inv = App.investments.find(i => i.id === e.investmentId); return inv && inv.showInBDM; });
+        const hasBDMAg = bdmEvtsAg.length > 0;
         const bdmTotalAg = bdmEvtsAg.reduce((s, e) => s + e.amount + (e.principalReturn || 0), 0);
         const bdmV = App.bdmRate > 0 && bdmEvtsAg.length > 0 ? toBDM(bdmTotalAg) : null;
         const today = dateKey(new Date()) === dk;
@@ -2761,13 +2832,16 @@
         </div>
         <div class="text-right">
           <div class="text-sm font-bold text-primary">${fmtBRL(total)}</div>
+          ${hasBDMAg ? `<div class="text-[10px] text-secondary/50">líq. ${fmtBRL(netTotal)}</div>` : ''}
           ${bdmV !== null ? `<div class="text-[11px] text-secondary/60">${fmtBDM(bdmV)}</div>` : ''}
         </div>
       </div>
       ${evts.map(e => {
           const inv = App.investments.find(i => i.id === e.investmentId);
           const color = getInvestmentColor(e.investmentId);
-          const totalEvt = eventTotalBRL(e);
+          const grossEvtAg = e.amount + (e.principalReturn || 0);
+          const netEvtAg = eventTotalBRL(e);
+          const isBDMEvtAg = !!(inv && inv.showInBDM);
           const bdmE = (inv && inv.showInBDM && App.bdmRate > 0) ? toBDM(e.amount + (e.principalReturn || 0)) : null;
           const reinvAg = (App.reinvestCalendar && e.isLastPayment && inv) ? BDMSchedule.computeSchedule(inv, { reinvest: true }).totalReinvest : null;
           return `<div class="flex items-center justify-between py-2 border-t border-white/5">
@@ -2778,12 +2852,13 @@
                 <span class="text-xs text-on-surface font-medium">${inv ? inv.name : '—'}</span>
                 ${e.isLastPayment ? '<span class="text-[9px] text-error bg-error/10 px-1.5 py-0.5 rounded-full font-semibold">ÚLTIMO</span>' : ''}
               </div>
-              ${e.isLastPayment && e.principalReturn > 0 ? `<div class="text-[10px] text-secondary/50 mt-0.5">Lucro: ${fmtBRL(profitBRLevt(e))} · Capital: ${fmtBRL(e.principalReturn)}</div>` : ''}
+              ${e.isLastPayment && e.principalReturn > 0 ? `<div class="text-[10px] text-secondary/50 mt-0.5">Lucro: ${fmtBRL(e.amount)}${isBDMEvtAg ? ` · líq. ${fmtBRL(profitBRLevt(e))}` : ''} · Capital: ${fmtBRL(e.principalReturn)}</div>` : ''}
               ${reinvAg !== null ? `<div class="text-[10px] text-primary font-semibold mt-0.5">Com reinvestimento: ${fmtBRL(reinvAg)}</div>` : ''}
             </div>
           </div>
           <div class="text-right flex-shrink-0">
-            <span class="text-xs font-bold text-primary">${fmtBRL(totalEvt)}</span>
+            <span class="text-xs font-bold text-primary">${fmtBRL(grossEvtAg)}</span>
+            ${isBDMEvtAg ? `<div class="text-[10px] text-secondary/55 tabular-nums">líq. ${fmtBRL(netEvtAg)}</div>` : ''}
             ${bdmE !== null ? `<div class="text-[10px] text-secondary/60">${fmtBDM(bdmE)}</div>` : ''}
           </div>
         </div>`;
@@ -2830,9 +2905,12 @@
       }
 
       const totalProfit = evts.reduce((s, e) => s + profitBRLevt(e), 0);
+      const totalGrossProfit = evts.reduce((s, e) => s + e.amount, 0);
       const totalPrincipalReturn = evts.reduce((s, e) => s + (e.principalReturn || 0), 0);
       const totalReceived = totalProfit + totalPrincipalReturn;
+      const totalGross = totalGrossProfit + totalPrincipalReturn;
       const bdmEvts = evts.filter(e => { const inv = App.investments.find(i => i.id === e.investmentId); return inv && inv.showInBDM; });
+      const hasBDMEvts = bdmEvts.length > 0;
       const bdmAmt = bdmEvts.reduce((s, e) => s + e.amount, 0);
       const totalBDM = App.bdmRate > 0 && bdmEvts.length > 0 ? toBDM(bdmAmt) : null;
 
@@ -2842,8 +2920,12 @@
   </div>
   <div class="bg-surface-container/50 rounded-xl p-4 mb-5 border border-outline-variant/10">
     <div class="text-[10px] font-semibold tracking-wider uppercase text-secondary/60 mb-1">Recebimento do Dia</div>
-    <div class="text-2xl font-bold text-on-surface tabular-nums">${fmtBRL(totalReceived)}</div>
-    ${totalPrincipalReturn > 0 ? `<div class="text-[10px] text-secondary/50 mt-1">Lucro: ${fmtBRL(totalProfit)} + Capital: ${fmtBRL(totalPrincipalReturn)}</div>` : ''}
+    <div class="text-2xl font-bold text-on-surface tabular-nums">${fmtBRL(totalGross)}</div>
+    ${hasBDMEvts ? `<div class="flex items-center gap-1.5 mt-1.5">
+      <span class="text-[10px] text-secondary/50">líquido (−10%):</span>
+      <span class="text-[12px] font-semibold text-secondary/70 tabular-nums">${fmtBRL(totalReceived)}</span>
+    </div>` : ''}
+    ${totalPrincipalReturn > 0 ? `<div class="text-[10px] text-secondary/50 mt-1">Lucro: ${fmtBRL(totalGrossProfit)} + Capital: ${fmtBRL(totalPrincipalReturn)}</div>` : ''}
     ${totalBDM !== null ? `<div class="flex items-center gap-1.5 mt-1.5">
       <span class="material-symbols-outlined text-primary text-[14px]" style="font-variation-settings:'FILL' 1">trending_up</span>
       <span class="text-sm font-bold text-primary tabular-nums">+${fmtBDM(totalBDM)}</span>
@@ -2856,7 +2938,9 @@
         const inv = App.investments.find(i => i.id === e.investmentId);
         const color = getInvestmentColor(e.investmentId);
         const bdmE = (inv && inv.showInBDM && App.bdmRate > 0) ? toBDM(e.amount + (e.principalReturn || 0)) : null;
-        const totalEvt = eventTotalBRL(e);
+        const grossEvt = e.amount + (e.principalReturn || 0);
+        const netEvt = eventTotalBRL(e);
+        const isBDMEvt = !!(inv && inv.showInBDM);
         const sched = (App.reinvestCalendar && e.isLastPayment && inv) ? BDMSchedule.computeSchedule(inv, { reinvest: true }) : null;
         const reinvBdm = (sched && inv.showInBDM && App.bdmRate > 0) ? ` (${fmtBDM(toBDM(sched.totalReinvest))})` : '';
         const freqLabel = { monthly: 'Mensal', bimonthly: 'Bimestral', quarterly: 'Trimestral', semiannual: 'Semestral', at_maturity: 'No Vencimento', custom: 'Personalizado' };
@@ -2873,7 +2957,8 @@
           </div>
           <div class="flex items-center gap-1.5">
             <div class="text-right">
-              <div class="text-xs font-bold text-primary tabular-nums">+${fmtBRL(totalEvt)}</div>
+              <div class="text-xs font-bold text-primary tabular-nums">+${fmtBRL(grossEvt)}</div>
+              ${isBDMEvt ? `<div class="text-[10px] text-secondary/55 tabular-nums">líq. ${fmtBRL(netEvt)}</div>` : ''}
               ${bdmE !== null ? `<div class="text-[10px] text-secondary/60 tabular-nums">${fmtBDM(bdmE)}</div>` : ''}
             </div>
             <span class="material-symbols-outlined text-[16px] text-secondary/30" id="chev-dp-${e.id}">expand_more</span>
@@ -2886,8 +2971,8 @@
             <div><span class="text-secondary/50">Frequência:</span> <span class="font-semibold text-on-surface">${freqLabel[inv.frequency] || inv.frequency}${inv.frequency === 'custom' ? ' (' + inv.customFrequencyMonths + 'm)' : ''}</span></div>
             <div><span class="text-secondary/50">Duração:</span> <span class="font-semibold text-on-surface">${inv.durationMonths} meses</span></div>
             <div><span class="text-secondary/50">Início:</span> <span class="font-semibold text-on-surface">${new Date(inv.startDate + 'T12:00:00').toLocaleDateString('pt-BR')}</span></div>
-            ${e.isLastPayment ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-white/8"><span class="text-secondary/50">Recebimento:</span> <span class="font-bold text-on-surface">Lucro ${fmtBRL(profitBRLevt(e))} + Capital ${fmtBRL(e.principalReturn || 0)} = ${fmtBRL(totalEvt)}</span></div>` : ''}
-            ${sched ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-primary/20"><span class="text-secondary/50">Com reinvestimento no vencimento (-10% de saque):</span> <span class="font-bold text-primary">${fmtBRL(sched.totalReinvest)}${reinvBdm}</span></div>` : ''}
+            ${e.isLastPayment ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-white/8"><span class="text-secondary/50">Recebimento:</span> <span class="font-bold text-on-surface">Lucro ${fmtBRL(e.amount)}${isBDMEvt ? ` (líq. ${fmtBRL(profitBRLevt(e))})` : ''} + Capital ${fmtBRL(e.principalReturn || 0)}</span></div>` : ''}
+            ${sched ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-primary/20"><span class="text-secondary/50">Com reinvestimento no vencimento:</span> <span class="font-bold text-primary">${fmtBRL(sched.totalReinvest)}${reinvBdm}</span></div>` : ''}
           </div>` : '<p class="text-[10px] text-secondary/40 mt-2">Investimento não encontrado.</p>'}
         </div>
       </div>`;
@@ -2910,16 +2995,20 @@
       const d = new Date(dk + 'T12:00:00');
       document.getElementById('day-modal-title').textContent = d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
       const totalProfit = evts.reduce((s, e) => s + profitBRLevt(e), 0);
+      const totalGrossProfitM = evts.reduce((s, e) => s + e.amount, 0);
       const totalPrincipalReturn = evts.reduce((s, e) => s + (e.principalReturn || 0), 0);
       const totalReceived = totalProfit + totalPrincipalReturn;
+      const totalGrossM = totalGrossProfitM + totalPrincipalReturn;
       const bdmEvts = evts.filter(e => { const inv = App.investments.find(i => i.id === e.investmentId); return inv && inv.showInBDM; });
+      const hasBDMEvtsM = bdmEvts.length > 0;
       const bdmAmt = bdmEvts.reduce((s, e) => s + e.amount, 0);
       const totalBDM = App.bdmRate > 0 && bdmEvts.length > 0 ? toBDM(bdmAmt) : null;
 
       let html = `<div class="bg-surface-container/50 rounded-xl p-4 mb-4 border border-outline-variant/10">
     <div class="text-[10px] font-semibold tracking-wider uppercase text-secondary/60 mb-1">Recebimento do Dia</div>
-    <div class="text-2xl font-bold text-on-surface tabular-nums">${fmtBRL(totalReceived)}</div>
-    ${totalPrincipalReturn > 0 ? `<div class="text-xs text-secondary/50 mt-0.5">Lucro ${fmtBRL(totalProfit)} + Capital ${fmtBRL(totalPrincipalReturn)}</div>` : ''}
+    <div class="text-2xl font-bold text-on-surface tabular-nums">${fmtBRL(totalGrossM)}</div>
+    ${hasBDMEvtsM ? `<div class="flex items-center gap-1.5 mt-1"><span class="text-[10px] text-secondary/50">líquido (−10%):</span><span class="text-[12px] font-semibold text-secondary/70 tabular-nums">${fmtBRL(totalReceived)}</span></div>` : ''}
+    ${totalPrincipalReturn > 0 ? `<div class="text-xs text-secondary/50 mt-0.5">Lucro ${fmtBRL(totalGrossProfitM)} + Capital ${fmtBRL(totalPrincipalReturn)}</div>` : ''}
     ${totalBDM !== null ? `<div class="text-sm font-bold text-primary mt-1 tabular-nums">+${fmtBDM(totalBDM)}</div>` : ''}
   </div>
   <p class="text-[10px] text-secondary/40 mb-2 uppercase font-semibold tracking-wider">Transações — toque para expandir</p>`;
@@ -2928,7 +3017,9 @@
         const inv = App.investments.find(i => i.id === e.investmentId);
         const color = getInvestmentColor(e.investmentId);
         const bdmE = (inv && inv.showInBDM && App.bdmRate > 0) ? toBDM(e.amount + (e.principalReturn || 0)) : null;
-        const totalEvt = eventTotalBRL(e);
+        const grossEvtM = e.amount + (e.principalReturn || 0);
+        const netEvtM = eventTotalBRL(e);
+        const isBDMEvtM = !!(inv && inv.showInBDM);
         const sched = (App.reinvestCalendar && e.isLastPayment && inv) ? BDMSchedule.computeSchedule(inv, { reinvest: true }) : null;
         const reinvBdm = (sched && inv.showInBDM && App.bdmRate > 0) ? ` (${fmtBDM(toBDM(sched.totalReinvest))})` : '';
         const freqLabel = { monthly: 'Mensal', bimonthly: 'Bimestral', quarterly: 'Trimestral', semiannual: 'Semestral', at_maturity: 'No Vencimento', custom: 'Personalizado' };
@@ -2943,7 +3034,8 @@
         </div>
         <div class="flex items-center gap-1">
           <div class="text-right">
-            <div class="text-sm font-bold text-primary tabular-nums">+${fmtBRL(totalEvt)}</div>
+            <div class="text-sm font-bold text-primary tabular-nums">+${fmtBRL(grossEvtM)}</div>
+            ${isBDMEvtM ? `<div class="text-[10px] text-secondary/55 tabular-nums">líq. ${fmtBRL(netEvtM)}</div>` : ''}
             ${bdmE !== null ? `<div class="text-xs text-secondary/60 tabular-nums">${fmtBDM(bdmE)}</div>` : ''}
           </div>
           <span class="material-symbols-outlined text-[16px] text-secondary/30" id="chev-mob-${e.id}">expand_more</span>
@@ -2955,7 +3047,7 @@
           <div><span class="text-secondary/50">Lucro/período:</span> <span class="font-semibold text-primary">+${NUM.format(inv.profitPercentage)}%</span></div>
           <div><span class="text-secondary/50">Frequência:</span> <span class="font-semibold text-on-surface">${freqLabel[inv.frequency] || inv.frequency}</span></div>
           <div><span class="text-secondary/50">Duração:</span> <span class="font-semibold text-on-surface">${inv.durationMonths} meses</span></div>
-          ${e.isLastPayment ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-white/8"><span class="text-secondary/50">Total:</span> <span class="font-bold text-on-surface">Lucro ${fmtBRL(profitBRLevt(e))} + Capital ${fmtBRL(e.principalReturn || 0)}</span></div>` : ''}
+          ${e.isLastPayment ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-white/8"><span class="text-secondary/50">Total:</span> <span class="font-bold text-on-surface">Lucro ${fmtBRL(e.amount)}${isBDMEvtM ? ` (líq. ${fmtBRL(profitBRLevt(e))})` : ''} + Capital ${fmtBRL(e.principalReturn || 0)}</span></div>` : ''}
           ${sched ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-primary/20"><span class="text-secondary/50">Com reinvestimento no vencimento:</span> <span class="font-bold text-primary">${fmtBRL(sched.totalReinvest)}${reinvBdm}</span></div>` : ''}
         </div>` : ''}
       </div>
@@ -3235,8 +3327,9 @@
     }
 
     function getAvgAnnualYield() {
-      const r = getAvgMonthlyYield() / 100;
-      return r > 0 ? (Math.pow(1 + r, 12) - 1) * 100 : 0;
+      // Taxa nominal anual (APR): média mensal × 12, sem capitalização composta.
+      // Reflete fielmente o rendimento fixo sobre o principal, sem pressupor reinvestimento.
+      return getAvgMonthlyYield() * 12;
     }
 
     function getInvestmentROI(inv) {
@@ -3441,7 +3534,7 @@
       }
 
       document.getElementById('kpi-real-yield').textContent = NUM.format(avgAnnual) + '% a.a.';
-      document.getElementById('kpi-real-yield-label').textContent = App.useIPCA ? 'Nominal a.a.' : 'Rentabilidade a.a.';
+      document.getElementById('kpi-real-yield-label').textContent = App.useIPCA ? 'Nominal a.a. (APR)' : 'Nominal a.a. (APR)';
 
       const gainRowEl = document.getElementById('kpi-real-gain-row');
       const gainEl = document.getElementById('kpi-real-gain');
@@ -4061,44 +4154,75 @@
     // =========================================================
     // AI AGENT — via Edge Function 'ai-chat' (a chave da OpenRouter fica no servidor)
     // =========================================================
-    const AI_SYSTEM_PROMPT = `Você é o analista financeiro e agente de automação nativo do Cripto Tracker, plataforma premium focada em criptoativos e ativos tradicionais.
+    const AI_SYSTEM_PROMPT = `Você é o analista financeiro sênior e agente de automação nativo do Cripto Tracker — plataforma premium de gestão de investimentos em criptoativos, DeFi e renda fixa alternativa.
 
 ## REGRAS ABSOLUTAS — NUNCA VIOLE NENHUMA
 
 R1. PROIBIDO LaTeX ou notação com colchetes/\\frac{}. Use texto puro: G_real = (1+N)/(1+I) - 1
-R2. PROIBIDO blocos de codigo (triple backtick). Use bullet "-" e negrito **texto**.
-R3. PROIBIDO JSON para listar/descrever investimentos. Isso é SEMPRE texto em linguagem natural.
+R2. PROIBIDO blocos de codigo (triple backtick). Use bullets "-" e negrito **texto**.
+R3. PROIBIDO JSON para listar/descrever investimentos ao usuário. Isso é SEMPRE texto em linguagem natural.
 R4. PROIBIDO usar a data de hoje como startDate. Se nao informado, PERGUNTE a data de inicio.
-R5. PROIBIDO gerar JSON enquanto qualquer campo obrigatorio estiver faltando. Colete TODOS os dados ausentes em UMA UNICA mensagem — nunca campo a campo em mensagens separadas.
+R5. PROIBIDO gerar JSON enquanto qualquer campo OBRIGATORIO estiver faltando. Colete TODOS os dados ausentes em UMA UNICA mensagem — nunca campo a campo em mensagens separadas. Campos opcionais (ex.: categoryId de ativos) NAO bloqueiam a geração do JSON.
 R6. Ao gerar JSON de acao: resposta deve ser EXCLUSIVAMENTE o JSON. Zero texto antes ou depois, zero explicacao, zero "Aqui esta:".
-R7. Seja humano e acolhedor: cumprimente de volta quando o usuario cumprimentar, use tom caloroso e natural, demonstre empatia. Mantenha a objetividade nas acoes, sem enrolacao.
+R7. Seja humano, direto e confiante: cumprimente quando cumprimentado, mantenha tom profissional sem ser frio. Use termos financeiros em pt-BR, sem jargao tecnico de programacao.
 R8. Para QUALQUER acao com multiplos itens (excluir 2, criar 3, editar varios): SEMPRE use array JSON [...]. NUNCA envie dois objetos JSON separados nem explique as acoes em texto.
-R9. NUNCA exponha termos tecnicos ao usuario: nada de true/false, nomes de campos em ingles, JSON visivel ou jargao de programacao. Fale SEMPRE em portugues (ptbr), salvo se o usuario pedir explicitamente outro idioma. Ao faltar dados, pergunte em linguagem natural (ex.: "Voce quer acompanhar esse investimento em Cripto ou em reais?" em vez de "showInBDM: true/false").
+R9. NUNCA exponha termos tecnicos ao usuario: nada de true/false, nomes de campos em ingles, JSON visivel ou jargao de programacao. Fale SEMPRE em portugues (ptbr). Ao faltar dados, pergunte em linguagem natural.
+R10. USE CABECALHOS MARKDOWN (###, ##) para organizar respostas longas: agrupe por topico (ex.: "### Analise de Rentabilidade", "### Recomendacoes", "### Alertas"). Nao use cabecalhos em respostas curtas (1-3 paragrafos).
 
-## CHECKLIST OBRIGATORIO — confirme TODOS antes de gerar create/edit JSON
+## CONHECIMENTO DA PLATAFORMA
 
-1. name (string)
-2. principal (numero em R$, > 0)
-3. lucro por periodo (em %, maior que zero)
+### Tipos de investimento
+- **Periódico** (periodic): gera rendimento fixo por período sobre o principal. Campos: name, principal, profitPercentage (% por período), frequency, durationMonths, startDate, categoryId, showInBDM. Frequências: monthly, bimonthly, quarterly, semiannual, at_maturity, custom.
+- **Ativo** (asset): representa um ativo de valorização (cripto, ação, fundo). Campos: name, unitValue (valor por unidade em R$), quantity, categoryId, showInBDM. Sem rendimento periódico — acompanha valorização de preço.
+
+### Cálculos e métricas
+- **Rentabilidade exibida** = taxa nominal anual (APR): yield_mensal_medio × 12. NAO é composta. Ex.: 5% a.m. → 60% a.a. nominal.
+- **Yield real** = G_real = (1 + nominal_anual) / (1 + IPCA_anual) - 1. Positivo = supera inflação.
+- **Deságio BDM** = 10% sobre lucros em Cripto. Já descontado no cálculo dos eventos do calendário.
+- **Eventos (events)**: cada período de pagamento gera um evento no calendário. Lucro bruto por evento = principal × profitPercentage/100.
+- **ROI acumulado (Ranking)**: total de lucros pagos / principal × 100 (desde o início, nao anualizado — diferente do APR).
+- Para frequência trimestral (quarterly): yield_mensal = profitPercentage / 3. Para mensal: yield_mensal = profitPercentage.
+
+### Análise profissional
+- Compare sempre nominal vs real (pós-IPCA). 8% a.a. com IPCA 5% → ganho real ~2,86%.
+- Concentração: > 40% em um único ativo/categoria → alerta de risco.
+- Ativos (valorização): retorno vem de apreciação de preço, nao de rendimento recorrente.
+- Os lucros NAO reinvestem automaticamente — são fixos sobre o principal original.
+- Nunca cite dados de mercado externos além da cotação Cripto do contexto injetado.
+
+## CHECKLIST OBRIGATORIO — INVESTIMENTO PERIÓDICO (create/edit)
+
+1. name
+2. principal (R$, > 0)
+3. profitPercentage (% por período, > 0)
 4. startDate (YYYY-MM-DD) — NUNCA presuma a data de hoje
 5. frequency: monthly | bimonthly | quarterly | semiannual | at_maturity | custom
-6. customFrequencyMonths (numero de meses se frequency=custom, senao null)
+6. customFrequencyMonths (se frequency=custom; senao null)
 7. durationMonths (inteiro >= 1)
-8. Forma de exibicao (em Cripto ou em reais) — pergunte de forma natural, nunca como "true/false". SEMPRE pergunte se nao foi explicito
-9. categoryId (ID do contexto ou null) — SEMPRE pergunte qual categoria ou se prefere sem
+8. Exibir em Cripto ou em reais — pergunte naturalmente se nao foi dito
+9. categoryId (do contexto, ou null) — SEMPRE pergunte qual categoria
+
+## CHECKLIST OBRIGATORIO — ATIVO (create_asset)
+
+1. name
+2. unitValue (valor por unidade em R$, > 0)
+3. quantity (quantidade/cotas, > 0)
+4. Exibir em Cripto ou em reais — pergunte naturalmente se nao foi dito
+5. categoryId — OPCIONAL. Pergunte apenas se o usuario nao especificou. Se disser que nao quer categoria, use null e prossiga. NUNCA bloqueie a criacao por falta de categoria.
 
 ## MODOS DE OPERACAO
 
-### MODO 1 — Analise (TEXTO)
-ROI real: G_real = (1+N)/(1+I) - 1 (N=rendimento nominal anual, I=IPCA do contexto).
-Output: max 3 bullet points — melhor ativo vs IPCA + alertas de concentracao.
-Nao afirme reinvestimento automatico como fato. O lucro de cada periodo e fixo sobre o valor investido. Se relevante, diga que o reinvestimento depende da opcao "Considerar Reinvestimento" estar ligada na tela.
+### MODO 1 — Análise (TEXTO)
+ROI real: G_real = (1+N)/(1+I) - 1 (N=APR anual do contexto, I=IPCA anual).
+Use ### para separar seções quando houver múltiplos tópicos.
+Nao afirme reinvestimento automático. Mencione o toggle "Considerar Reinvestimento" quando relevante.
 
-### MODO 2 — Educacao Financeira (TEXTO)
-Resposta tecnica e direta sobre rentabilidade, prazos, taxas, ecossistema Cripto.
+### MODO 2 — Educação Financeira (TEXTO)
+Resposta técnica, assertiva e direta. Para projeções ("quanto vira em 2 anos?"), calcule com os dados reais do contexto.
+Use ### para organizar se a resposta tiver mais de 4 itens ou tópicos distintos.
 
-### MODO 3 — Criar Investimento (JSON PURO — zero texto extra)
-Confirme os 9 campos antes. Entao gere apenas:
+### MODO 3 — Criar Investimento Periódico (JSON PURO — zero texto extra)
+Confirme os 9 campos do checklist periódico antes. Entao gere apenas:
 1 investimento: {"action":"create_investment","data":{"name":"...","categoryId":null,"principal":1000,"profitPercentage":5.0,"startDate":"YYYY-MM-DD","frequency":"monthly","customFrequencyMonths":null,"durationMonths":12,"showInBDM":false}}
 Varios: [{"action":"create_investment","data":{...}},{"action":"create_investment","data":{...}}]
 
@@ -4106,17 +4230,23 @@ Varios: [{"action":"create_investment","data":{...}},{"action":"create_investmen
 1 item:  {"action":"delete_investment","data":{"id":"id-exato-do-contexto","name":"nome"}}
 Varios:  [{"action":"delete_investment","data":{"id":"id1","name":"nome1"}},{"action":"delete_investment","data":{"id":"id2","name":"nome2"}}]
 
-### MODO 5 — Editar (JSON PURO)
+### MODO 5 — Editar Investimento Periódico (JSON PURO)
 Confirme todos os campos. ID do contexto:
 1 item:  {"action":"edit_investment","data":{"id":"id-exato","name":"...","categoryId":null,"principal":0,"profitPercentage":0,"startDate":"YYYY-MM-DD","frequency":"monthly","customFrequencyMonths":null,"durationMonths":12,"showInBDM":false}}
 Varios:  [{"action":"edit_investment","data":{...}},{"action":"edit_investment","data":{...}}]
 
 ### MODO 6 — Criar Categoria (JSON PURO — zero texto extra)
-Confirme nome e cor hex antes. Sugira uma cor coerente com o nome se o usuario nao especificar. Nunca use cores muito escuras (evite #000000 e similares).
+Confirme nome e cor hex antes. Sugira cor coerente. Evite cores muito escuras (evite #000000 e similares).
 Formato: {"action":"create_category","data":{"name":"Nome da Categoria","color":"#0EA5E9"}}
 
+### MODO 7 — Criar Ativo de Valorização (JSON PURO — zero texto extra)
+Ativos representam posições em cripto, ações, fundos ou qualquer ativo sem rendimento periódico.
+Confirme os campos 1-4 do checklist de ativo (name, unitValue, quantity, showInBDM). categoryId é OPCIONAL — use null se o usuario nao especificou ou nao quis categoria. NUNCA espere a categoria para gerar o JSON.
+1 ativo: {"action":"create_asset","data":{"name":"...","categoryId":null,"unitValue":1000.00,"quantity":1.5,"showInBDM":false}}
+Varios: [{"action":"create_asset","data":{...}},{"action":"create_asset","data":{...}}]
+
 ## CONTEXTO INJETADO
-Estado atual do app (investimentos com IDs, categorias, cotacao Cripto, IPCA) fornecido abaixo. Use IDs exatos.`;
+Estado atual do app (investimentos, ativos, categorias, cotação Cripto, IPCA) fornecido abaixo. Use IDs exatos.`;
 
     let _aiHistory = [];
     let _aiTyping = false;
@@ -4208,9 +4338,15 @@ Estado atual do app (investimentos com IDs, categorias, cotacao Cripto, IPCA) fo
     }
 
     function _buildContext() {
-      const invs = App.investments.map(i => ({
-        id: i.id, name: i.name, principal: i.principal, profitPercentage: i.profitPercentage,
-        frequency: i.frequency, durationMonths: i.durationMonths, startDate: i.startDate,
+      const periodicos = App.investments.filter(i => i.type !== 'asset').map(i => ({
+        id: i.id, name: i.name, type: 'periodic', principal: i.principal,
+        profitPercentage: i.profitPercentage, frequency: i.frequency,
+        durationMonths: i.durationMonths, startDate: i.startDate,
+        showInBDM: i.showInBDM, categoryId: i.categoryId,
+      }));
+      const ativos = App.investments.filter(i => i.type === 'asset').map(i => ({
+        id: i.id, name: i.name, type: 'asset', principal: i.principal,
+        unitValue: i.unitValue, quantity: i.quantity,
         showInBDM: i.showInBDM, categoryId: i.categoryId,
       }));
       const cats = App.categories.map(c => ({ id: c.id, name: c.name }));
@@ -4218,7 +4354,8 @@ Estado atual do app (investimentos com IDs, categorias, cotacao Cripto, IPCA) fo
 Cotacao Cripto: R$ ${App.bdmRate > 0 ? App.bdmRate.toFixed(2) : 'N/A'}
 IPCA anual: ${App.ipcaRate}%
 Categorias disponiveis: ${JSON.stringify(cats)}
-Investimentos ativos (${invs.length}): ${JSON.stringify(invs)}`;
+Investimentos periodicos (${periodicos.length}): ${JSON.stringify(periodicos)}
+Ativos de valorizacao (${ativos.length}): ${JSON.stringify(ativos)}`;
     }
 
     // Walk text char-by-char from startIdx to find the matching closing bracket.
@@ -4466,13 +4603,14 @@ Investimentos ativos (${invs.length}): ${JSON.stringify(invs)}`;
     // ---- Route actions from AI response ----
     function _handleAIActions(actions) {
       const list = Array.isArray(actions) ? actions : [actions];
-      const invActions = list.filter(a => a.action !== 'create_category');
-      if (invActions.length > 1) {
-        _appendAIMsg('ai', `<div class="ai-msg-bubble"><p class="text-sm">${invActions.length} investimentos detectados. Confirme cada um abaixo:</p></div>`);
+      const itemActions = list.filter(a => a.action !== 'create_category');
+      if (itemActions.length > 1) {
+        _appendAIMsg('ai', `<div class="ai-msg-bubble"><p class="text-sm">${itemActions.length} itens detectados. Confirme cada um abaixo:</p></div>`);
       }
       list.forEach((action, idx) => {
-        const label = invActions.length > 1 ? `Investimento ${idx + 1} de ${invActions.length}` : null;
+        const label = itemActions.length > 1 ? `Item ${idx + 1} de ${itemActions.length}` : null;
         if (action.action === 'create_investment') _showCreateCard(action.data, label);
+        else if (action.action === 'create_asset') _showCreateAssetCard(action.data, label);
         else if (action.action === 'delete_investment') _showDeleteCard(action.data);
         else if (action.action === 'edit_investment') _showEditCard(action.data);
         else if (action.action === 'create_category') _showCreateCategoryCard(action.data);
@@ -4519,6 +4657,73 @@ Investimentos ativos (${invs.length}): ${JSON.stringify(invs)}`;
       } catch (err) {
         _appendAIMsg('ai', `<div class="ai-msg-bubble"><p class="text-sm" style="color:#ffb4ab">Erro ao criar: ${_escHtml(err.message)}</p></div>`);
         toast('Erro ao criar categoria', 'error');
+      }
+    }
+
+    // ---- CREATE ASSET card ----
+    function _showCreateAssetCard(data, label) {
+      const aid = 'ai_' + uid();
+      _aiPending[aid] = data;
+      const catName = data.categoryId
+        ? (App.categories.find(c => c.id === data.categoryId)?.name || data.categoryId)
+        : 'Sem categoria';
+      const total = (parseFloat(data.unitValue) || 0) * (parseFloat(data.quantity) || 0);
+      const headerLabel = label || 'Novo Ativo Detectado';
+      const html = `<div class="ai-action-card" data-aid="${aid}">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings:'FILL' 1">currency_bitcoin</span>
+          <span class="text-[10px] font-bold tracking-[.08em] uppercase text-primary">${_escHtml(headerLabel)}</span>
+        </div>
+        <div class="grid grid-cols-2 gap-x-5 gap-y-2 mb-4">
+          <span class="text-[11px] text-secondary/50">Nome</span><span class="text-[12px] font-semibold text-on-surface">${_escHtml(data.name || '—')}</span>
+          <span class="text-[11px] text-secondary/50">Valor/unidade</span><span class="text-[12px] font-bold text-primary">${data.unitValue ? fmtBRL(data.unitValue) : '—'}</span>
+          <span class="text-[11px] text-secondary/50">Quantidade</span><span class="text-[12px] text-on-surface">${data.quantity != null ? data.quantity : '—'}</span>
+          <span class="text-[11px] text-secondary/50">Total investido</span><span class="text-[12px] font-bold text-primary">${total > 0 ? fmtBRL(total) : '—'}</span>
+          <span class="text-[11px] text-secondary/50">Categoria</span><span class="text-[12px] text-on-surface">${_escHtml(catName)}</span>
+          <span class="text-[11px] text-secondary/50">Em Cripto</span><span class="text-[12px] text-on-surface">${data.showInBDM ? 'Sim' : 'Não'}</span>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="confirmAICreateAsset('${aid}')" class="flex-1 py-2 rounded-xl bg-primary text-on-primary text-[12px] font-bold gold-glow hover:brightness-110 transition-all">Confirmar e Salvar</button>
+          <button onclick="cancelAIAction('${aid}')" class="px-4 py-2 rounded-xl border border-outline-variant/40 text-secondary text-[12px] hover:bg-white/5 transition-colors">Cancelar</button>
+        </div>
+      </div>`;
+      _appendAIMsg('ai', html);
+    }
+
+    // ---- Confirm create asset ----
+    async function confirmAICreateAsset(aid) {
+      const data = _aiPending[aid];
+      if (!data) return;
+      delete _aiPending[aid];
+      document.querySelector(`.ai-action-card[data-aid="${aid}"]`)?.closest('.ai-msg')?.remove();
+      try {
+        const unitValue = parseFloat(data.unitValue) || 0;
+        const quantity = parseFloat(data.quantity) || 0;
+        const inv = {
+          id: uid(),
+          name: data.name || 'Ativo IA',
+          categoryId: data.categoryId || null,
+          principal: unitValue * quantity,
+          profitPercentage: 0,
+          startDate: new Date().toISOString().slice(0, 10),
+          frequency: 'at_maturity',
+          durationMonths: 0,
+          customFrequencyMonths: null,
+          showInBDM: !!data.showInBDM,
+          createdAt: new Date().toISOString(),
+          type: 'asset',
+          unitValue,
+          quantity,
+        };
+        await dbPutInvestment(inv);
+        await loadAllData();
+        renderCalendar();
+        if (App.currentScreen === 'insights') renderInsights();
+        _appendAIMsg('ai', `<div class="ai-msg-bubble"><p class="text-sm">&#10003; Ativo <strong>${_escHtml(inv.name)}</strong> adicionado à carteira! Total: ${fmtBRL(inv.principal)}.</p></div>`);
+        toast(`Ativo ${inv.name} adicionado!`, 'success');
+      } catch (err) {
+        _appendAIMsg('ai', `<div class="ai-msg-bubble"><p class="text-sm" style="color:#ffb4ab">Erro ao salvar: ${_escHtml(err.message)}</p></div>`);
+        toast('Erro ao salvar ativo', 'error');
       }
     }
 
@@ -4572,7 +4777,7 @@ Investimentos ativos (${invs.length}): ${JSON.stringify(invs)}`;
 
     function aiAnalyzePortfolio() {
       const el = document.getElementById('ai-input');
-      if (el) el.value = 'Com base nos meus investimentos ativos, qual performa melhor frente ao IPCA e onde há concentração de risco?';
+      if (el) el.value = 'Analise toda a minha carteira — todos os investimentos periódicos e ativos de valorização cadastrados. Qual performa melhor frente ao IPCA? Onde há concentração de risco? Dê um diagnóstico completo.';
       sendAIMessage();
     }
 
@@ -4582,12 +4787,313 @@ Investimentos ativos (${invs.length}): ${JSON.stringify(invs)}`;
       sendAIMessage();
     }
 
+    // =========================================================
+    // STT — Speech-to-Text (Web Speech API primary, Whisper fallback)
+    // =========================================================
+    const STT_MODEL = 'openai/whisper-large-v3-turbo';
+    const STT_MAX_SECONDS = 30;
+    const _SpeechAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    let _sttRecorder = null;
+    let _sttChunks = [];
+    let _sttTimer = null;
+    let _sttElapsed = 0;
+    let _sttActive = false;
+    let _sttMimeType = 'audio/webm';
+    let _sttRecognition = null;
+
+    function _sttGetMime() {
+      const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
+      return candidates.find(m => { try { return MediaRecorder.isTypeSupported(m); } catch { return false; } }) || '';
+    }
+
+    function _sttFormatLabel(mime) {
+      if (mime.includes('ogg')) return 'ogg';
+      if (mime.includes('mp4')) return 'mp4';
+      return 'webm';
+    }
+
+    async function sttStart() {
+      if (_sttActive || _aiTyping) return;
+      if (_SpeechAPI) {
+        _sttStartSpeechAPI();
+      } else {
+        await _sttStartWhisper();
+      }
+    }
+
+    function _sttStartSpeechAPI() {
+      let _gotResult = false;
+      _sttRecognition = new _SpeechAPI();
+      _sttRecognition.lang = 'pt-BR';
+      _sttRecognition.interimResults = false;
+      _sttRecognition.maxAlternatives = 1;
+
+      _sttRecognition.onresult = (e) => {
+        _gotResult = true;
+        const text = e.results[0][0].transcript.trim();
+        const inputEl = document.getElementById('ai-input');
+        if (inputEl && text) {
+          const prev = inputEl.value.trim();
+          inputEl.value = prev ? prev + ' ' + text : text;
+          inputEl.style.height = 'auto';
+          inputEl.style.height = Math.min(inputEl.scrollHeight, 128) + 'px';
+          inputEl.focus();
+          toast('Áudio transcrito!', 'success');
+        }
+      };
+
+      _sttRecognition.onerror = (e) => {
+        if (e.error !== 'aborted' && e.error !== 'no-speech') {
+          const msgs = { 'not-allowed': 'Permissão de microfone negada.', 'network': 'Erro de rede ao transcrever.' };
+          toast(msgs[e.error] || 'Erro no microfone: ' + e.error, 'error');
+        }
+        _sttActive = false;
+        _sttSetUI('idle');
+        _sttRecognition = null;
+      };
+
+      _sttRecognition.onend = () => {
+        if (!_gotResult && _sttActive) toast('Nenhuma fala detectada.', 'info');
+        _sttActive = false;
+        _sttSetUI('idle');
+        _sttRecognition = null;
+      };
+
+      _sttActive = true;
+      _sttSetUI('recording');
+
+      try {
+        _sttRecognition.start();
+      } catch (err) {
+        _sttActive = false;
+        _sttSetUI('idle');
+        toast('Erro ao iniciar microfone: ' + err.message, 'error');
+        _sttRecognition = null;
+      }
+    }
+
+    async function _sttStartWhisper() {
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      } catch {
+        toast('Permissão de microfone negada.', 'error');
+        return;
+      }
+
+      _sttMimeType = _sttGetMime();
+      if (!_sttMimeType) {
+        stream.getTracks().forEach(t => t.stop());
+        toast('Gravação de áudio não suportada neste navegador.', 'error');
+        return;
+      }
+
+      _sttActive = true;
+      _sttChunks = [];
+      _sttElapsed = 0;
+      _sttSetUI('recording');
+
+      try {
+        _sttRecorder = new MediaRecorder(stream, { mimeType: _sttMimeType });
+      } catch {
+        _sttRecorder = new MediaRecorder(stream);
+        _sttMimeType = _sttRecorder.mimeType || 'audio/webm';
+      }
+
+      _sttRecorder.ondataavailable = e => { if (e.data.size > 0) _sttChunks.push(e.data); };
+      _sttRecorder.onstop = () => {
+        stream.getTracks().forEach(t => t.stop());
+        if (_sttChunks.length > 0) {
+          const blob = new Blob(_sttChunks, { type: _sttMimeType });
+          _sttTranscribe(blob);
+        }
+      };
+
+      _sttRecorder.start(200);
+
+      _sttTimer = setInterval(() => {
+        _sttElapsed++;
+        const mins = Math.floor(_sttElapsed / 60);
+        const secs = String(_sttElapsed % 60).padStart(2, '0');
+        const timeEl = document.getElementById('ai-stt-time');
+        const progEl = document.getElementById('ai-stt-progress');
+        if (timeEl) timeEl.textContent = `${mins}:${secs}`;
+        if (progEl) progEl.style.width = Math.min(100, (_sttElapsed / STT_MAX_SECONDS) * 100) + '%';
+        if (_sttElapsed >= STT_MAX_SECONDS) sttStop(true);
+      }, 1000);
+    }
+
+    function sttStop(transcribe = true) {
+      if (!_sttActive) return;
+
+      // Web Speech API path
+      if (_sttRecognition) {
+        if (transcribe) {
+          _sttRecognition.stop(); // fires onresult + onend which reset state
+        } else {
+          _sttActive = false;
+          _sttSetUI('idle');
+          _sttRecognition.abort();
+          _sttRecognition = null;
+        }
+        return;
+      }
+
+      // MediaRecorder / Whisper path
+      _sttActive = false;
+      clearInterval(_sttTimer);
+      _sttTimer = null;
+
+      if (_sttRecorder && _sttRecorder.state !== 'inactive') {
+        if (!transcribe) {
+          _sttRecorder.ondataavailable = () => {};
+          _sttRecorder.onstop = () => { _sttRecorder.stream?.getTracks().forEach(t => t.stop()); };
+          _sttChunks = [];
+        }
+        _sttRecorder.stop();
+      }
+
+      if (!transcribe) _sttSetUI('idle');
+    }
+
+    async function _sttTranscribe(blob) {
+      _sttSetUI('loading');
+
+      try {
+        // Blob → base64 (chunk-safe for large arrays)
+        const buf = await blob.arrayBuffer();
+        const bytes = new Uint8Array(buf);
+        let binary = '';
+        for (let i = 0; i < bytes.length; i += 8192) {
+          binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+        }
+        const base64 = btoa(binary);
+        const format = _sttFormatLabel(_sttMimeType);
+
+        const { data, error } = await sb.functions.invoke('ai-stt', {
+          body: { audio: base64, format, model: STT_MODEL }
+        });
+
+        if (error) throw new Error(error.message || 'Erro na Edge Function.');
+        if (data?.error) {
+          const em = typeof data.error === 'string' ? data.error : (data.error?.message || JSON.stringify(data.error));
+          throw new Error(em);
+        }
+
+        const text = (data?.choices?.[0]?.message?.content || '').trim();
+
+        if (!text) {
+          toast('Nenhuma fala detectada.', 'info');
+        } else {
+          const inputEl = document.getElementById('ai-input');
+          if (inputEl) {
+            const prev = inputEl.value.trim();
+            inputEl.value = prev ? prev + ' ' + text : text;
+            inputEl.style.height = 'auto';
+            inputEl.style.height = Math.min(inputEl.scrollHeight, 128) + 'px';
+            inputEl.focus();
+          }
+          toast('Áudio transcrito!', 'success');
+        }
+      } catch (err) {
+        toast('Erro na transcrição: ' + err.message, 'error');
+      } finally {
+        _sttSetUI('idle');
+      }
+    }
+
+    function _sttSetUI(state) {
+      const micBtn = document.getElementById('ai-mic-btn');
+      const micIcon = document.getElementById('ai-mic-icon');
+      const bar = document.getElementById('ai-stt-bar');
+      const stopBtn = document.getElementById('ai-stt-stop-btn');
+      const cancelBtn = document.getElementById('ai-stt-cancel-btn');
+      const sendBtn = document.getElementById('ai-send-btn');
+
+      // Reset classes
+      micBtn?.classList.remove('stt-rec', 'stt-loading');
+
+      if (state === 'recording') {
+        micBtn?.classList.add('stt-rec');
+        if (micIcon) { micIcon.textContent = 'mic'; micIcon.style.fontVariationSettings = "'FILL' 1,'wght' 700"; }
+        bar?.classList.remove('hidden'); bar?.classList.add('flex');
+        // Show stop btn only on pointer-fine (desktop/mouse)
+        if (window.matchMedia('(pointer:fine)').matches) {
+          stopBtn?.classList.remove('hidden'); stopBtn?.classList.add('flex');
+          cancelBtn?.classList.remove('hidden');
+        }
+        if (micBtn) micBtn.disabled = false;
+        if (sendBtn) sendBtn.disabled = true;
+      } else if (state === 'loading') {
+        micBtn?.classList.add('stt-loading');
+        if (micIcon) { micIcon.classList.add('stt-spin'); micIcon.textContent = 'progress_activity'; }
+        bar?.classList.add('hidden'); bar?.classList.remove('flex');
+        stopBtn?.classList.add('hidden'); stopBtn?.classList.remove('flex');
+        cancelBtn?.classList.add('hidden');
+        if (micBtn) micBtn.disabled = true;
+        if (sendBtn) sendBtn.disabled = false;
+      } else { // idle
+        if (micIcon) { micIcon.classList.remove('stt-spin'); micIcon.textContent = 'mic'; micIcon.style.fontVariationSettings = "'FILL' 0,'wght' 300"; }
+        bar?.classList.add('hidden'); bar?.classList.remove('flex');
+        stopBtn?.classList.add('hidden'); stopBtn?.classList.remove('flex');
+        cancelBtn?.classList.add('hidden');
+        if (micBtn) micBtn.disabled = false;
+        if (sendBtn) sendBtn.disabled = false;
+        const progEl = document.getElementById('ai-stt-progress');
+        if (progEl) progEl.style.width = '0%';
+        const timeEl = document.getElementById('ai-stt-time');
+        if (timeEl) timeEl.textContent = '0:00';
+      }
+    }
+
+    function initSTT() {
+      const micBtn = document.getElementById('ai-mic-btn');
+      if (!micBtn) return;
+
+      // Hide mic button only if neither Web Speech API nor MediaRecorder is available
+      const hasWhisper = !!(navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined');
+      if (!_SpeechAPI && !hasWhisper) {
+        micBtn.style.display = 'none';
+        return;
+      }
+
+      const isTouch = window.matchMedia('(pointer:coarse)').matches;
+
+      if (isTouch) {
+        // Mobile: press and hold to record
+        let _holdStarted = false;
+        micBtn.addEventListener('touchstart', e => {
+          e.preventDefault();
+          _holdStarted = true;
+          sttStart();
+        }, { passive: false });
+
+        micBtn.addEventListener('touchend', e => {
+          e.preventDefault();
+          if (_holdStarted) { _holdStarted = false; sttStop(true); }
+        }, { passive: false });
+
+        micBtn.addEventListener('touchcancel', e => {
+          e.preventDefault();
+          _holdStarted = false;
+          sttStop(false);
+        }, { passive: false });
+      } else {
+        // Desktop: click to toggle
+        micBtn.addEventListener('click', () => {
+          if (_sttActive) sttStop(true);
+          else sttStart();
+        });
+      }
+    }
+
     function clearAIChat() {
       _aiHistory = [];
       Object.keys(_aiPending).forEach(k => delete _aiPending[k]);
       const c = document.getElementById('ai-messages');
       if (!c) return;
-      c.innerHTML = `<div class="ai-msg from-ai"><div class="ai-msg-avatar"><span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings:'FILL' 1">smart_toy</span></div><div class="ai-msg-bubble"><p class="text-sm leading-relaxed">Conversa reiniciada. Como posso ajudar com seus investimentos?</p></div></div>`;
+      c.innerHTML = `<div class="ai-msg from-ai"><div class="ai-msg-avatar"><span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings:'FILL' 1">smart_toy</span></div><div class="ai-msg-bubble"><p class="text-sm leading-relaxed">Conversa reiniciada. Posso analisar sua carteira, calcular rendimentos, identificar riscos e cadastrar investimentos periódicos ou ativos. Como posso ajudar?</p></div></div>`;
     }
 
     // =========================================================
@@ -4612,8 +5118,46 @@ Investimentos ativos (${invs.length}): ${JSON.stringify(invs)}`;
     // =========================================================
     // INIT
     // =========================================================
+    // Visual Viewport API: keeps AI input visible when keyboard opens on iOS/mobile
+    function initAIMobileKeyboardFix() {
+      const aiScreen = document.getElementById('screen-ai');
+      const aiInput = document.getElementById('ai-input');
+      if (!aiScreen || !aiInput) return;
+
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => {
+          if (!aiScreen.classList.contains('active')) return;
+          // Shrink the AI screen to the visual viewport height to push input above keyboard
+          const vvh = window.visualViewport.height;
+          const navH = window.innerWidth < 768 ? 64 : 0; // bottom nav height on mobile
+          aiScreen.style.height = (vvh - navH) + 'px';
+        });
+        window.visualViewport.addEventListener('scroll', () => {
+          if (!aiScreen.classList.contains('active')) return;
+          aiScreen.style.top = window.visualViewport.offsetTop + 'px';
+        });
+      }
+
+      // Fallback: scroll input into view when focused (covers cases visualViewport not available)
+      aiInput.addEventListener('focus', () => {
+        if (window.innerWidth >= 768) return;
+        setTimeout(() => {
+          aiInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 350);
+      });
+
+      // Reset height when keyboard closes
+      aiInput.addEventListener('blur', () => {
+        if (!aiScreen.classList.contains('active')) return;
+        aiScreen.style.height = '';
+        aiScreen.style.top = '';
+      });
+    }
+
     async function init() {
       initTooltips();
+      initSTT();
+      initAIMobileKeyboardFix();
       try {
         const user = await checkSession();
         if (user) {
