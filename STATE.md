@@ -1,9 +1,10 @@
 # Project State
 
 ## Last Updated
-2026-06-08
+2026-06-09
 
 ## Recent Changes
+- 2026-06-09: **3 bugs corrigidos** — (1) Duplicação de eventos: `saveInvestment` ganhou guard `_savingInvestment` com `finally` nos dois branches (asset e periódico), impedindo double-submit. (2) Exclusão mobile em Insights: botões edit/delete mudaram de `opacity-0 group-hover:opacity-100` para `opacity-100 md:opacity-0 md:group-hover:opacity-100` — sempre visíveis em mobile, hover-only no desktop. (3) Microfone IA em mobile: CSS `#screen-ai.active` agora desconta `env(safe-area-inset-bottom)` da altura, evitando que o input/mic fique atrás da bottom nav em iPhones com home indicator; JS keyboard fix atualizado para usar `bottomNav.offsetHeight` real.
 - 2026-06-08: **Calendário — clareza de deságio**: valor bruto (sem deságio) agora é o valor principal em todas as visualizações; valor líquido (−10%) exibido abaixo quando há investimento BDM. Aplica-se a: detail panel desktop, modal mobile, agenda view. `totalReinvest` no schedule.js corrigido para usar `netPerPeriod` (deságio sobre o lucro), mostrando o valor líquido real no reinvestimento.
 - 2026-06-08: **STT — Web Speech API como primário**: `_SpeechAPI` (SpeechRecognition nativo) agora é tentado primeiro; sem necessidade de backend para Chrome/Edge/Android. MediaRecorder+Whisper mantido como fallback para browsers sem suporte. Edge function `ai-stt` atualizada para retornar sempre HTTP 200 (erros no body) — elimina FunctionsHttpError opaco do Supabase client. **Ação necessária**: reimplantar `supabase/functions/ai-stt` com `npx supabase functions deploy ai-stt`.
 - 2026-06-06: **STT (Voz → Texto) no Agente IA**: botão mic adicionado; Mobile = segurar para gravar, Desktop = clique para iniciar + botão stop; 30s máx com progress bar; transcrição via Edge Function `ai-stt` + OpenRouter Gemini 2.5 Flash Lite; estados visuais: idle/recording (vermelho pulsando)/loading (spinner)

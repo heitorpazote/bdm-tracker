@@ -670,8 +670,8 @@
     #screen-ai.active {
       display: flex;
       flex-direction: column;
-      height: calc(100vh - 8rem);
-      height: calc(100dvh - 8rem);
+      height: calc(100vh - 8rem - env(safe-area-inset-bottom, 0px));
+      height: calc(100dvh - 8rem - env(safe-area-inset-bottom, 0px));
     }
 
     @media(min-width:768px) {
@@ -3109,8 +3109,10 @@
       }
     }
 
+    let _savingInvestment = false;
     async function saveInvestment(e) {
       e.preventDefault();
+      if (_savingInvestment) return;
       const errEl = document.getElementById('inv-error');
       errEl.classList.add('hidden');
 
@@ -3143,6 +3145,7 @@
           unitValue,
           quantity,
         };
+        _savingInvestment = true;
         try {
           if (editId) await deleteInvestmentEvents(editId);
           await dbPutInvestment(inv);
@@ -3152,6 +3155,8 @@
           toast(editId ? 'Ativo atualizado!' : 'Ativo adicionado à carteira!', 'success');
         } catch (err) {
           showError('Erro ao salvar: ' + err.message);
+        } finally {
+          _savingInvestment = false;
         }
         return;
       }
@@ -3186,6 +3191,7 @@
         quantity: null,
       };
 
+      _savingInvestment = true;
       try {
         if (editId) await deleteInvestmentEvents(editId);
         await dbPutInvestment(inv);
@@ -3197,6 +3203,8 @@
         toast(editId ? 'Investimento atualizado!' : `${evts.length} evento(s) gerado(s) no calendário!`, 'success');
       } catch (err) {
         showError('Erro ao salvar: ' + err.message);
+      } finally {
+        _savingInvestment = false;
       }
     }
 
@@ -3833,7 +3841,7 @@
           <div class="ranking-bar" style="width:${barPct}%;background:${color}"></div>
         </div>
       </div>
-      <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div class="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
         <button onclick="editInvestment('${item.inv.id}')" class="p-1 rounded text-secondary/50 hover:text-primary transition-colors">
           <span class="material-symbols-outlined text-[14px]" style="font-variation-settings:'wght' 300">edit</span>
         </button>
@@ -3872,7 +3880,7 @@
           ${bdmVal !== null ? `<span class="text-[10px] text-secondary/50 tabular-nums ml-2">${fmtBDM(bdmVal)}</span>` : ''}
         </div>
       </div>
-      <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div class="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
         <button onclick="editInvestment('${inv.id}')" class="p-1 rounded text-secondary/50 hover:text-primary transition-colors">
           <span class="material-symbols-outlined text-[14px]" style="font-variation-settings:'wght' 300">edit</span>
         </button>
@@ -5129,7 +5137,8 @@ Ativos de valorizacao (${ativos.length}): ${JSON.stringify(ativos)}`;
           if (!aiScreen.classList.contains('active')) return;
           // Shrink the AI screen to the visual viewport height to push input above keyboard
           const vvh = window.visualViewport.height;
-          const navH = window.innerWidth < 768 ? 64 : 0; // bottom nav height on mobile
+          const bottomNav = document.querySelector('nav.fixed.bottom-0');
+          const navH = window.innerWidth < 768 ? (bottomNav?.offsetHeight || 64) : 0;
           aiScreen.style.height = (vvh - navH) + 'px';
         });
         window.visualViewport.addEventListener('scroll', () => {
