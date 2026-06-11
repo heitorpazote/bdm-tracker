@@ -1400,6 +1400,35 @@
               plataforma cobra no saque do lucro. Valores exibidos em Cripto mostram o lucro cheio.</p>
           </div>
 
+          <!-- Monthly profit projection chart -->
+          <div class="premium-card rounded-xl p-5 lg:col-span-3">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-sm font-semibold text-on-surface flex items-center gap-1">Projeção de Lucro Mensal<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Estimativa de quanto de lucro você recebe por mês ao longo do tempo. Com reinvestimento ativo, a renda mensal cresce conforme o principal é composto. Botões 2a–30a definem o horizonte; arraste/pinça para dar zoom.</span></span></h3>
+                <span class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[9px] font-semibold tracking-wide bg-primary/10 text-primary border border-primary/20">
+                  <span class="material-symbols-outlined text-[11px]" style="font-variation-settings:'FILL' 1,'wght' 400">autorenew</span>
+                  Reinvestimento automático a cada recebimento
+                </span>
+              </div>
+              <div class="flex gap-1 text-[11px] items-center">
+                <button id="monthly-reset-zoom" onclick="resetChartZoom('monthlyProfit','monthly-reset-zoom')" class="hidden px-2 py-0.5 rounded text-amber-400 hover:bg-white/5" title="Resetar zoom">Resetar zoom</button>
+                <button onclick="setProjectionYears(2)" class="proj-btn px-2 py-0.5 rounded text-secondary/60 hover:text-secondary" data-years="2">2a</button>
+                <button onclick="setProjectionYears(5)" class="proj-btn px-2 py-0.5 rounded bg-primary/10 text-primary" data-years="5">5a</button>
+                <button onclick="setProjectionYears(10)" class="proj-btn px-2 py-0.5 rounded text-secondary/60 hover:text-secondary" data-years="10">10a</button>
+                <button onclick="setProjectionYears(20)" class="proj-btn px-2 py-0.5 rounded text-secondary/60 hover:text-secondary" data-years="20">20a</button>
+                <button onclick="setProjectionYears(30)" class="proj-btn px-2 py-0.5 rounded text-secondary/60 hover:text-secondary" data-years="30">30a</button>
+              </div>
+            </div>
+            <div id="monthly-empty" class="flex-col items-center justify-center py-10 text-secondary/40" style="display:none">
+              <span class="material-symbols-outlined text-[40px] mb-2" style="font-variation-settings:'wght' 200">bar_chart</span>
+              <p class="text-xs">Adicione investimentos para ver as projeções</p>
+            </div>
+            <div id="monthly-wrap" style="height:200px">
+              <canvas id="monthly-profit-chart"></canvas>
+            </div>
+            <p class="text-[10px] text-secondary/50 mt-2">Lucro líquido estimado por mês (já com o deságio de 10% no saque, quando aplicável). A linha tracejada desconta o IPCA.</p>
+          </div>
+
           <!-- Composition chart -->
           <div id="composition-card" class="hidden premium-card rounded-xl p-5 lg:col-span-2">
             <h3 class="text-sm font-semibold text-on-surface mb-4">Composição da Carteira</h3>
