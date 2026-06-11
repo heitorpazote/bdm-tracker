@@ -5368,6 +5368,7 @@ Ativos de valorizacao (${ativos.length}): ${JSON.stringify(ativos)}`;
       // (flex-1) encolhe. Nao manipulamos a posicao top (screen-ai e estatico — top nao
       // posiciona e causava layout defasado durante a transicao teclado-fecha).
       const applyVV = () => {
+        if (!window.visualViewport) return;
         if (!aiScreen.classList.contains('active') || window.innerWidth >= 768) return;
         const bottomNav = document.querySelector('nav.fixed.bottom-0');
         const navH = bottomNav?.offsetHeight || 64;
