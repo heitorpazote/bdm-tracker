@@ -2203,6 +2203,7 @@
       await loadAllData();
       navigate('calendar');
       renderCalendar();
+      initPullToRefresh();
       document.querySelectorAll('input[type=range]').forEach(updateSliderTrack);
       updateCalc();
       const dateEl = document.getElementById('inv-start-date');
@@ -2662,10 +2663,14 @@
       const grid = document.getElementById('month-grid');
       if (!grid || grid.dataset.lpBound) return;
       grid.dataset.lpBound = '1';
-      let timer = null, startX = 0, startY = 0;
+      let timer = null, startX = 0, startY = 0, suppressClick = false;
       const pop = document.getElementById('day-preview');
       const clear = () => { if (timer) { clearTimeout(timer); timer = null; } };
       const hide = () => { pop.classList.remove('show'); };
+      // O preview abre no touchend; suprime o clique sintetico que abriria o modal do dia.
+      grid.addEventListener('click', (e) => {
+        if (suppressClick) { e.stopImmediatePropagation(); e.preventDefault(); suppressClick = false; }
+      }, true);
       grid.addEventListener('touchstart', (ev) => {
         const cell = ev.target.closest('.cal-cell');
         if (!cell || ev.touches.length !== 1) return;
@@ -2687,6 +2692,7 @@
           pop.style.left = Math.max(8, Math.min(window.innerWidth - 248, r.left)) + 'px';
           pop.style.top = Math.max(8, r.top - 8 - pop.offsetHeight) + 'px';
           pop.classList.add('show');
+          suppressClick = true;
         }, 420);
       }, { passive: true });
       grid.addEventListener('touchmove', (ev) => {
