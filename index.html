@@ -2820,10 +2820,22 @@
     // ===== Aviso de investimentos finalizados =====
     // Um investimento periódico está "finalizado" quando tem eventos e todos já passaram
     // (último pagamento no passado). Ativos (sem eventos) nunca finalizam aqui.
-    function getFinishedInvestments() {
-      const todayStr = dateKey(new Date());
+    // Lê a lista de avisos dispensados e a poda para ids de investimentos ainda existentes
+    // (evita crescimento indefinido no localStorage após exclusões).
+    function _getDismissedFinished() {
       let dismissed = [];
       try { dismissed = JSON.parse(localStorage.getItem('bdm_dismissed_finished') || '[]'); } catch {}
+      const ids = new Set(App.investments.map(i => i.id));
+      const pruned = dismissed.filter(id => ids.has(id));
+      if (pruned.length !== dismissed.length) {
+        try { localStorage.setItem('bdm_dismissed_finished', JSON.stringify(pruned)); } catch {}
+      }
+      return pruned;
+    }
+
+    function getFinishedInvestments() {
+      const todayStr = dateKey(new Date());
+      const dismissed = _getDismissedFinished();
       return App.investments.filter(inv => {
         if (inv.type === 'asset') return false;
         if (dismissed.includes(inv.id)) return false;
@@ -2833,8 +2845,7 @@
     }
 
     function dismissFinishedNotice(invId) {
-      let dismissed = [];
-      try { dismissed = JSON.parse(localStorage.getItem('bdm_dismissed_finished') || '[]'); } catch {}
+      const dismissed = _getDismissedFinished();
       if (!dismissed.includes(invId)) dismissed.push(invId);
       try { localStorage.setItem('bdm_dismissed_finished', JSON.stringify(dismissed)); } catch {}
       renderFinishedNotice();
