@@ -3380,8 +3380,9 @@
     }
 
     // Lucro liquido nominal por mes (chave = meses a partir de agora). Fonte unica para
-    // grafico de projecao, projecao real (IPCA) e marcos. OFF: ciclo unico (patrimonio
-    // estaciona no vencimento). ON: compoe o principal no vencimento de cada ciclo.
+    // grafico de projecao, projecao real (IPCA) e marcos. OFF: lucro fixo durante a
+    // duracao original (patrimonio estaciona ao fim). ON: compoe o principal a cada
+    // recebimento (via BDMSchedule.compoundedPeriods).
     // spread=true distribui o lucro de cada periodo pelos meses do intervalo (usado nos
     // marcos, para previsao com granularidade mensal); o grafico usa spread=false (blocos).
     function buildProfitByMonth(totalMonths, reinvest, spread) {
