@@ -1263,7 +1263,7 @@
             <p id="ipca-status-label" class="text-[10px] text-secondary/50">Considerando inflação na projeção
               patrimonial</p>
             <div class="flex items-center justify-between border-t border-white/5 pt-3 mt-1">
-              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/60 flex items-center gap-1">Considerar Reinvestimento<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Com reinvestimento ativo, o lucro de cada ciclo é somado ao capital e rende juros sobre juros nos próximos períodos.</span></span></span>
+              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/60 flex items-center gap-1">Considerar Reinvestimento<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Com reinvestimento ativo, o lucro de cada recebimento é somado ao capital assim que cai e rende juros sobre juros nos próximos períodos.</span></span></span>
               <label class="tog">
                 <input type="checkbox" id="reinvest-insights-toggle" checked
                   onchange="toggleReinvestInsights(this.checked)" />
@@ -1345,12 +1345,12 @@
           <div class="premium-card rounded-xl p-5 lg:col-span-3">
             <div class="flex items-center justify-between mb-4">
               <div>
-                <h3 class="text-sm font-semibold text-on-surface flex items-center gap-1">Projeção Patrimonial<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Simulação de crescimento do patrimônio ao longo do tempo. Com reinvestimento ativo, o lucro de cada ciclo é composto. Selecione o horizonte com os botões 2a–30a.</span></span></h3>
+                <h3 class="text-sm font-semibold text-on-surface flex items-center gap-1">Projeção Patrimonial<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Simulação de crescimento do patrimônio ao longo do tempo. Com reinvestimento ativo, o lucro de cada recebimento é composto. Selecione o horizonte com os botões 2a–30a.</span></span></h3>
                 <span
                   class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[9px] font-semibold tracking-wide bg-primary/10 text-primary border border-primary/20">
                   <span class="material-symbols-outlined text-[11px]"
                     style="font-variation-settings:'FILL' 1,'wght' 400">autorenew</span>
-                  Reinvestimento automático ao vencimento
+                  Reinvestimento automático a cada recebimento
                 </span>
               </div>
               <div class="flex gap-1 text-[11px]">
@@ -1415,8 +1415,8 @@
             <!-- Milestones -->
             <div class="premium-card rounded-xl p-5">
               <div class="mb-4">
-                <h3 class="text-sm font-semibold text-on-surface flex items-center gap-1">Projeção de Marcos<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Estimativa de quando seu patrimônio atingirá R$ 1 milhão e R$ 1 bilhão, considerando reinvestimento automático ao vencimento.</span></span></h3>
-                <p class="text-[10px] text-secondary/50 mt-0.5">Taxa atual composta com reinvestimento automático</p>
+                <h3 class="text-sm font-semibold text-on-surface flex items-center gap-1">Projeção de Marcos<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Estimativa de quando seu patrimônio atingirá R$ 1 milhão e R$ 1 bilhão, considerando reinvestimento automático a cada recebimento.</span></span></h3>
+                <p class="text-[10px] text-secondary/50 mt-0.5">Taxa composta com reinvestimento a cada recebimento</p>
               </div>
               <div class="flex flex-col gap-5">
                 <div>
@@ -3457,7 +3457,7 @@
 
       // Permanent notice: reinvestment assumption (condicional ao toggle)
       if (App.reinvestInsights) {
-        insights.push({ type: 'info', icon: 'autorenew', msg: 'Com reinvestimento ligado: ao vencer, cada ativo é reaplicado com o capital mais o lucro líquido (já com o deságio de 10% do saque). Gráfico e marcos refletem esse crescimento.' });
+        insights.push({ type: 'info', icon: 'autorenew', msg: 'Com reinvestimento ligado: cada recebimento periódico é reaplicado no mesmo investimento assim que cai, compondo o principal (o deságio de 10% só incide em ativos exibidos em cripto). Gráfico e marcos refletem esse crescimento.' });
       } else {
         insights.push({ type: 'info', icon: 'info', msg: 'Sem reinvestimento: o lucro de cada período é fixo sobre o valor investido. Os valores em reais já consideram o deságio de 10% no saque do lucro.' });
       }
@@ -3961,7 +3961,7 @@
       App.reinvestInsights = checked;
       const n = document.getElementById('reinvest-notice-text');
       if (n) n.textContent = checked
-        ? 'Cálculos consideram reinvestimento no vencimento'
+        ? 'Cálculos compõem o reinvestimento a cada recebimento'
         : 'Cálculos sem reinvestimento (lucro por período, sem composição)';
       renderInsights();
     }
