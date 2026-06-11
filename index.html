@@ -5311,32 +5311,20 @@ Ativos de valorizacao (${ativos.length}): ${JSON.stringify(ativos)}`;
 
       const isTouch = window.matchMedia('(pointer:coarse)').matches;
 
+      // Mobile (APK WebView): a permissao de microfone (RECORD_AUDIO) nao e concedida ao
+      // WebView, resultando em "acesso negado". Desativado no mobile — toda a logica STT
+      // (sttStart/_sttStartSpeechAPI/_sttStartWhisper/sttStop/_sttTranscribe) e mantida
+      // intacta para reativacao futura. Desktop permanece inalterado.
       if (isTouch) {
-        // Mobile: press and hold to record
-        let _holdStarted = false;
-        micBtn.addEventListener('touchstart', e => {
-          e.preventDefault();
-          _holdStarted = true;
-          sttStart();
-        }, { passive: false });
-
-        micBtn.addEventListener('touchend', e => {
-          e.preventDefault();
-          if (_holdStarted) { _holdStarted = false; sttStop(true); }
-        }, { passive: false });
-
-        micBtn.addEventListener('touchcancel', e => {
-          e.preventDefault();
-          _holdStarted = false;
-          sttStop(false);
-        }, { passive: false });
-      } else {
-        // Desktop: click to toggle
-        micBtn.addEventListener('click', () => {
-          if (_sttActive) sttStop(true);
-          else sttStart();
-        });
+        micBtn.style.display = 'none';
+        return;
       }
+
+      // Desktop: click to toggle
+      micBtn.addEventListener('click', () => {
+        if (_sttActive) sttStop(true);
+        else sttStart();
+      });
     }
 
     function clearAIChat() {
