@@ -858,6 +858,10 @@
       .has-tip:hover .tip-box { display: block; }
     }
     .has-tip.tip-open .tip-box { display: block; }
+    @keyframes slideOutLeft { from { opacity:1; transform:translateX(0); } 50% { opacity:.4; transform:translateX(-14px);} to { opacity:1; transform:translateX(0);} }
+    @keyframes slideOutRight { from { opacity:1; transform:translateX(0); } 50% { opacity:.4; transform:translateX(14px);} to { opacity:1; transform:translateX(0);} }
+    .slide-out-left { animation: slideOutLeft .22s ease; }
+    .slide-out-right { animation: slideOutRight .22s ease; }
   </style>
 </head>
 
@@ -2609,6 +2613,35 @@
       renderCalendar();
     }
 
+    // Vibracao tatil curta (no-op onde nao suportado, ex.: iOS Safari).
+    function haptic(ms) {
+      try { if (navigator.vibrate) navigator.vibrate(ms || 8); } catch (_) {}
+    }
+
+    // Swipe horizontal na grade do calendario troca o mes/periodo.
+    function initCalendarSwipe() {
+      const grid = document.getElementById('view-month');
+      if (!grid || grid.dataset.swipeBound) return;
+      grid.dataset.swipeBound = '1';
+      let sx = 0, sy = 0, tracking = false;
+      grid.addEventListener('touchstart', (ev) => {
+        if (ev.touches.length !== 1) { tracking = false; return; }
+        sx = ev.touches[0].clientX; sy = ev.touches[0].clientY; tracking = true;
+      }, { passive: true });
+      grid.addEventListener('touchend', (ev) => {
+        if (!tracking) return;
+        tracking = false;
+        const t = ev.changedTouches[0];
+        const dir = BDMGestures.swipeDirection(t.clientX - sx, t.clientY - sy);
+        if (!dir) return;
+        haptic(8);
+        const card = document.getElementById('view-month');
+        const cls = dir === 'left' ? 'slide-out-left' : 'slide-out-right';
+        if (card) { card.classList.add(cls); setTimeout(() => card.classList.remove(cls), 220); }
+        if (dir === 'left') nextPeriod(); else prevPeriod();
+      }, { passive: true });
+    }
+
     // Lucro liquido COMPOSTO deste evento, supondo reinvestimento dos recebimentos
     // anteriores no mesmo investimento. Retorna o periodo de BDMSchedule.compoundedPeriods
     // correspondente a data do evento, ou null.
@@ -2624,6 +2657,7 @@
     }
 
     function renderCalendar() {
+      initCalendarSwipe();
       const y = App.calDate.getFullYear(), m = App.calDate.getMonth();
       const titleEl = document.getElementById('cal-title');
 
