@@ -955,6 +955,10 @@
         <span class="text-xs font-semibold text-secondary">Cripto</span>
         <span id="bdm-rate-mobile" class="text-sm font-bold text-primary tabular-nums">—</span>
       </button>
+      <button onclick="navigate('settings')" title="Configurações"
+        class="w-8 h-8 rounded-full glass-panel flex items-center justify-center text-secondary/50 hover:text-primary transition-colors">
+        <span class="material-symbols-outlined text-[17px]" style="font-variation-settings:'wght' 300">settings</span>
+      </button>
       <button onclick="signOut()" title="Sair"
         class="w-8 h-8 rounded-full glass-panel flex items-center justify-center text-secondary/50 hover:text-error transition-colors">
         <span class="material-symbols-outlined text-[17px]" style="font-variation-settings:'wght' 300">logout</span>
@@ -1073,6 +1077,10 @@
         <span class="material-symbols-outlined icon" style="font-variation-settings:'wght' 300">label</span>
         <span>Categorias</span>
       </button>
+      <button onclick="navigate('settings')" class="nav-btn" id="nav-settings">
+        <span class="material-symbols-outlined icon" style="font-variation-settings:'wght' 300">settings</span>
+        <span>Configurações</span>
+      </button>
     </nav>
 
     <!-- Attribution -->
@@ -1152,15 +1160,6 @@
               <button onclick="setView('day')" id="btn-day"
                 class="cal-view-btn px-3 py-1.5 rounded-md text-[11px] font-semibold tracking-wide text-secondary transition-all">AGENDA</button>
             </div>
-            <label class="flex items-center gap-2 self-start sm:self-auto premium-card rounded-lg px-3 py-1.5">
-              <span class="text-[11px] font-semibold tracking-wide uppercase text-secondary/70">Reinvestimento</span>
-              <span class="tog">
-                <input type="checkbox" id="reinvest-calendar-toggle" checked
-                  onchange="toggleReinvestCalendar(this.checked)" />
-                <span class="tog-track"></span>
-                <span class="tog-thumb"></span>
-              </span>
-            </label>
           </div>
 
           <!-- Period Total Banner (Mês/Ano views) -->
@@ -1261,33 +1260,6 @@
                 compõem o reinvestimento a cada recebimento</span>
             </div>
             <p class="text-sm text-secondary mt-1">Analytics avançado e projeções patrimoniais</p>
-          </div>
-          <div class="premium-card rounded-xl p-4 flex flex-col gap-3 min-w-[240px]">
-            <div class="flex items-center justify-between">
-              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/60 flex items-center gap-1">Inflação IPCA<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Ative para considerar a inflação (IPCA) e ver o ganho real do portfólio, descontando a perda de poder de compra.</span></span></span>
-              <label class="tog">
-                <input type="checkbox" id="ipca-toggle" checked onchange="toggleIPCA(this.checked)" />
-                <div class="tog-track"></div>
-                <div class="tog-thumb"></div>
-              </label>
-            </div>
-            <div id="ipca-input-row" class="flex items-center gap-2">
-              <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 whitespace-nowrap">Taxa
-                a.a. (%)</label>
-              <input type="number" id="ipca-input" value="5.0" min="0" max="100" step="0.1"
-                class="fi flex-1 text-center" oninput="updateIPCA(this.value)" />
-            </div>
-            <p id="ipca-status-label" class="text-[10px] text-secondary/50">Considerando inflação na projeção
-              patrimonial</p>
-            <div class="flex items-center justify-between border-t border-white/5 pt-3 mt-1">
-              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/60 flex items-center gap-1">Considerar Reinvestimento<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Com reinvestimento ativo, o lucro de cada recebimento é somado ao capital assim que cai e rende juros sobre juros nos próximos períodos.</span></span></span>
-              <label class="tog">
-                <input type="checkbox" id="reinvest-insights-toggle" checked
-                  onchange="toggleReinvestInsights(this.checked)" />
-                <div class="tog-track"></div>
-                <div class="tog-thumb"></div>
-              </label>
-            </div>
           </div>
         </div>
 
@@ -1814,6 +1786,59 @@
 
     </div>
 
+    <!-- ============================================================
+       SCREEN: CONFIGURAÇÕES
+       ============================================================ -->
+    <div id="screen-settings" class="screen">
+      <div class="p-4 md:p-8 max-w-2xl mx-auto">
+        <div class="mb-6">
+          <h1 class="text-2xl md:text-3xl font-semibold text-on-surface tracking-tight flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary" style="font-variation-settings:'wght' 400">settings</span>
+            Configurações
+          </h1>
+          <p class="text-sm text-secondary mt-1">Ajuste como o sistema calcula e exibe seus rendimentos.</p>
+        </div>
+
+        <!-- Cálculos -->
+        <div class="premium-card rounded-xl p-5 mb-4">
+          <h3 class="text-sm font-semibold text-on-surface mb-1">Cálculos</h3>
+          <div class="flex items-center justify-between border-t border-white/5 pt-4 mt-3">
+            <div class="min-w-0 pr-4">
+              <div class="text-sm font-medium text-on-surface">Considerar Reinvestimento</div>
+              <p class="text-[11px] text-secondary/60 mt-0.5">Com reinvestimento ativo, o lucro de cada recebimento é somado ao capital assim que cai e rende juros sobre juros. Afeta Calendário e Insights.</p>
+            </div>
+            <label class="tog flex-shrink-0">
+              <input type="checkbox" id="reinvest-global-toggle" checked onchange="setReinvest(this.checked)" />
+              <div class="tog-track"></div>
+              <div class="tog-thumb"></div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Inflação (IPCA) -->
+        <div class="premium-card rounded-xl p-5 mb-4">
+          <h3 class="text-sm font-semibold text-on-surface mb-1">Inflação (IPCA)</h3>
+          <div class="flex items-center justify-between border-t border-white/5 pt-4 mt-3">
+            <div class="min-w-0 pr-4">
+              <div class="text-sm font-medium text-on-surface">Considerar IPCA</div>
+              <p class="text-[11px] text-secondary/60 mt-0.5">Desconta a inflação para mostrar o ganho real do portfólio.</p>
+            </div>
+            <label class="tog flex-shrink-0">
+              <input type="checkbox" id="ipca-toggle" checked onchange="toggleIPCA(this.checked)" />
+              <div class="tog-track"></div>
+              <div class="tog-thumb"></div>
+            </label>
+          </div>
+          <div id="ipca-input-row" class="flex items-center gap-2 mt-4">
+            <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 whitespace-nowrap">Taxa a.a. (%)</label>
+            <input type="number" id="ipca-input" value="5.0" min="0" max="100" step="0.1"
+              class="fi flex-1 text-center" oninput="updateIPCA(this.value)" />
+          </div>
+          <p id="ipca-status-label" class="text-[10px] text-secondary/50 mt-2">Considerando inflação na projeção patrimonial</p>
+        </div>
+      </div>
+    </div>
+
   </main><!-- end main -->
 
   <div id="ptr" class="glass-modal rounded-full p-2"><div class="ptr-spin"></div></div>
@@ -2304,6 +2329,11 @@
         const togEl = document.getElementById('ipca-toggle');
         if (togEl) togEl.checked = App.useIPCA;
       }
+      // Reinvestimento (unificado) persiste em localStorage; default = ligado.
+      const rv = localStorage.getItem('bdm_reinvest');
+      if (rv !== null) { App.reinvestInsights = App.reinvestCalendar = (rv === '1'); }
+      syncReinvestUI();
+      syncIpcaUI();
       updateBDMDisplays();
     }
 
@@ -2561,6 +2591,7 @@
 
       if (screen === 'insights') renderInsights();
       if (screen === 'calendar') renderCalendar();
+      if (screen === 'settings') renderSettings();
       closeFAB();
     }
 
@@ -3789,12 +3820,7 @@
       renderDynamicInsights();
 
       // Sync IPCA UI
-      const togEl = document.getElementById('ipca-toggle');
-      if (togEl) togEl.checked = App.useIPCA;
-      const statusEl = document.getElementById('ipca-status-label');
-      if (statusEl) statusEl.textContent = App.useIPCA
-        ? 'Considerando inflação na projeção patrimonial'
-        : 'IPCA desativado — projeção sem correção inflacionária';
+      syncIpcaUI();
     }
 
     function renderDonutChart() {
@@ -4304,31 +4330,57 @@
     </div>`).join('');
     }
 
-    // IPCA update
+    // ===== Configurações: IPCA + Reinvestimento (fonte única) =====
+    // Reflete o estado do IPCA nos controles (na tela de Configurações). Nao sobrescreve
+    // o campo de taxa enquanto o usuario digita nele.
+    function syncIpcaUI() {
+      const togEl = document.getElementById('ipca-toggle');
+      if (togEl) togEl.checked = App.useIPCA;
+      const inEl = document.getElementById('ipca-input');
+      if (inEl && document.activeElement !== inEl) inEl.value = App.ipcaRate;
+      const statusEl = document.getElementById('ipca-status-label');
+      if (statusEl) statusEl.textContent = App.useIPCA
+        ? 'Considerando inflação na projeção patrimonial'
+        : 'IPCA desativado — projeção sem correção inflacionária';
+    }
+
     function updateIPCA(val) {
       App.ipcaRate = parseFloat(val) || 5.0;
       saveSettings();
+      syncIpcaUI();
       if (App.currentScreen === 'insights') renderInsights();
     }
 
     function toggleIPCA(checked) {
       App.useIPCA = checked;
       saveSettings();
+      syncIpcaUI();
       if (App.currentScreen === 'insights') renderInsights();
     }
 
-    function toggleReinvestInsights(checked) {
-      App.reinvestInsights = checked;
+    // Toggle global de reinvestimento: controla Calendário e Insights ao mesmo tempo.
+    // Persistido em localStorage (a tabela settings do Supabase nao tem essa coluna).
+    function syncReinvestUI() {
+      const t = document.getElementById('reinvest-global-toggle');
+      if (t) t.checked = App.reinvestInsights;
       const n = document.getElementById('reinvest-notice-text');
-      if (n) n.textContent = checked
+      if (n) n.textContent = App.reinvestInsights
         ? 'Cálculos compõem o reinvestimento a cada recebimento'
         : 'Cálculos sem reinvestimento (lucro por período, sem composição)';
-      renderInsights();
     }
 
-    function toggleReinvestCalendar(checked) {
+    function setReinvest(checked) {
+      App.reinvestInsights = checked;
       App.reinvestCalendar = checked;
+      try { localStorage.setItem('bdm_reinvest', checked ? '1' : '0'); } catch {}
+      syncReinvestUI();
       renderCalendar();
+      if (App.currentScreen === 'insights') renderInsights();
+    }
+
+    function renderSettings() {
+      syncReinvestUI();
+      syncIpcaUI();
     }
 
     // =========================================================
