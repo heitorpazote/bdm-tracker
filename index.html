@@ -2704,8 +2704,9 @@
       const ptr = document.getElementById('ptr');
       const scroller = document.scrollingElement || document.documentElement;
       let sy = 0, dy = 0, active = false, refreshing = false;
+      const modalOpen = () => Array.from(document.querySelectorAll('[id^="modal-"]')).some(m => m.style.display === 'flex');
       window.addEventListener('touchstart', (ev) => {
-        if (refreshing || ev.touches.length !== 1 || scroller.scrollTop > 0) { active = false; return; }
+        if (refreshing || ev.touches.length !== 1 || scroller.scrollTop > 0 || modalOpen()) { active = false; return; }
         sy = ev.touches[0].clientY; dy = 0; active = true;
       }, { passive: true });
       window.addEventListener('touchmove', (ev) => {
