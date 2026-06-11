@@ -1131,6 +1131,8 @@
       <div class="flex h-full">
         <!-- Calendar Column -->
         <div class="flex-1 p-4 md:p-8 min-w-0">
+          <!-- Aviso de investimentos finalizados -->
+          <div id="finished-notice" class="hidden"></div>
           <!-- Header -->
           <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
             <div class="flex items-center gap-3 flex-1">
@@ -2815,8 +2817,64 @@
       return periods[idx - 1] || null;
     }
 
+    // ===== Aviso de investimentos finalizados =====
+    // Um investimento periódico está "finalizado" quando tem eventos e todos já passaram
+    // (último pagamento no passado). Ativos (sem eventos) nunca finalizam aqui.
+    function getFinishedInvestments() {
+      const todayStr = dateKey(new Date());
+      let dismissed = [];
+      try { dismissed = JSON.parse(localStorage.getItem('bdm_dismissed_finished') || '[]'); } catch {}
+      return App.investments.filter(inv => {
+        if (inv.type === 'asset') return false;
+        if (dismissed.includes(inv.id)) return false;
+        const evts = App.events.filter(e => e.investmentId === inv.id);
+        return evts.length > 0 && evts.every(e => e.date < todayStr);
+      });
+    }
+
+    function dismissFinishedNotice(invId) {
+      let dismissed = [];
+      try { dismissed = JSON.parse(localStorage.getItem('bdm_dismissed_finished') || '[]'); } catch {}
+      if (!dismissed.includes(invId)) dismissed.push(invId);
+      try { localStorage.setItem('bdm_dismissed_finished', JSON.stringify(dismissed)); } catch {}
+      renderFinishedNotice();
+    }
+
+    function renderFinishedNotice() {
+      const el = document.getElementById('finished-notice');
+      if (!el) return;
+      const finished = getFinishedInvestments();
+      if (finished.length === 0) { el.innerHTML = ''; el.classList.add('hidden'); return; }
+      el.classList.remove('hidden');
+      const rows = finished.map(inv => {
+        const evts = App.events.filter(e => e.investmentId === inv.id);
+        const last = evts.reduce((a, b) => (a.date > b.date ? a : b));
+        const lastDate = new Date(last.date + 'T12:00:00').toLocaleDateString('pt-BR');
+        const totalProfit = evts.reduce((s, e) => s + e.amount, 0);
+        return `<div class="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-white/3">
+          <div class="min-w-0">
+            <div class="text-xs font-semibold text-on-surface truncate">${_escHtml(inv.name)}</div>
+            <div class="text-[10px] text-secondary/50 tabular-nums">Finalizado em ${lastDate} · Lucro total ${fmtBRL(totalProfit)}</div>
+          </div>
+          <div class="flex gap-1.5 flex-shrink-0">
+            <button onclick="dismissFinishedNotice('${inv.id}')" class="px-2.5 py-1 rounded-lg text-[11px] text-secondary/70 hover:bg-white/5 transition-colors">Dispensar</button>
+            <button onclick="deleteInvestment('${inv.id}')" class="px-2.5 py-1 rounded-lg text-[11px] text-error border border-error/30 hover:bg-error/10 transition-colors">Excluir</button>
+          </div>
+        </div>`;
+      }).join('');
+      el.innerHTML = `<div class="premium-card rounded-xl p-4 mb-5 border border-amber-500/30 bg-amber-500/5">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="material-symbols-outlined text-[18px] text-amber-400" style="font-variation-settings:'FILL' 1">flag</span>
+          <h3 class="text-sm font-semibold text-on-surface">Investimento${finished.length > 1 ? 's' : ''} finalizado${finished.length > 1 ? 's' : ''}</h3>
+        </div>
+        <p class="text-[11px] text-secondary/70 mb-3">Chegou ao fim do prazo. Você pode excluir do sistema ou dispensar este aviso.</p>
+        <div class="flex flex-col gap-2">${rows}</div>
+      </div>`;
+    }
+
     function renderCalendar() {
       initCalendarSwipe();
+      renderFinishedNotice();
       const y = App.calDate.getFullYear(), m = App.calDate.getMonth();
       const titleEl = document.getElementById('cal-title');
 
