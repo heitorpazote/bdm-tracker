@@ -4523,23 +4523,71 @@ Estado atual do app (investimentos, ativos, categorias, cotação Cripto, IPCA) 
     }
 
     function _buildContext() {
-      const periodicos = App.investments.filter(i => i.type !== 'asset').map(i => ({
-        id: i.id, name: i.name, type: 'periodic', principal: i.principal,
-        profitPercentage: i.profitPercentage, frequency: i.frequency,
-        durationMonths: i.durationMonths, startDate: i.startDate,
-        showInBDM: i.showInBDM, categoryId: i.categoryId,
-      }));
+      const todayStr = new Date().toISOString().split('T')[0];
+      const fmt = (n) => (Math.round(n * 100) / 100).toFixed(2);
+
+      // Próximo pagamento e status vêm de App.events (mesma fonte do Calendário).
+      const nextPaymentFor = (id) => {
+        const future = App.events
+          .filter(e => e.investmentId === id && e.date >= todayStr)
+          .sort((a, b) => a.date.localeCompare(b.date));
+        return future[0] || null;
+      };
+      const isFinished = (id) => {
+        const evts = App.events.filter(e => e.investmentId === id);
+        return evts.length > 0 && evts.every(e => e.date < todayStr);
+      };
+
+      const periodicos = App.investments.filter(i => i.type !== 'asset').map(i => {
+        const m = BDMSchedule.buildAIInvestmentMetrics(i, { ipcaRate: App.ipcaRate });
+        const next = nextPaymentFor(i.id);
+        return {
+          id: i.id, name: i.name, principal: i.principal,
+          profitPercentage: i.profitPercentage, frequency: i.frequency,
+          durationMonths: i.durationMonths, startDate: i.startDate,
+          showInBDM: i.showInBDM, categoryId: i.categoryId,
+          status: isFinished(i.id) ? 'finalizado' : 'ativo',
+          intervaloMeses: m.interval,
+          numPeriodos: m.numPeriods,
+          lucroBrutoPorPeriodo: fmt(m.grossPerPeriod),
+          lucroLiquidoPorPeriodo: fmt(m.netPerPeriod),
+          temDesagio: m.applyDesagio,
+          totalFixoSemReinvestir: fmt(m.totalFixed),
+          totalSeReinvestir: fmt(m.totalReinvested),
+          lucroMensalMedio: fmt(m.monthlyProfit),
+          aprNominalAnualPct: fmt(m.aprPct),
+          yieldRealPosIpcaPct: fmt(m.realYieldPct),
+          proximoPagamento: next ? { data: next.date, valor: fmt(next.amount) } : null,
+        };
+      });
+
       const ativos = App.investments.filter(i => i.type === 'asset').map(i => ({
-        id: i.id, name: i.name, type: 'asset', principal: i.principal,
-        unitValue: i.unitValue, quantity: i.quantity,
+        id: i.id, name: i.name, type: 'asset',
+        valorUnitario: i.unitValue, quantidade: i.quantity,
+        valorDeMercado: fmt((i.unitValue || 0) * (i.quantity || 0)),
         showInBDM: i.showInBDM, categoryId: i.categoryId,
       }));
+
       const cats = App.categories.map(c => ({ id: c.id, name: c.name }));
-      return `[ESTADO DO APP — ${new Date().toISOString().split('T')[0]}]
+
+      // Agregados da carteira
+      const patrimonioPeriodicos = periodicos.reduce((s, p) => s + p.principal, 0);
+      const patrimonioAtivos = App.investments.filter(i => i.type === 'asset')
+        .reduce((s, i) => s + (i.unitValue || 0) * (i.quantity || 0), 0);
+      const patrimonioTotal = patrimonioPeriodicos + patrimonioAtivos;
+      const rendaMensalEstimada = periodicos
+        .filter(p => p.status === 'ativo')
+        .reduce((s, p) => s + parseFloat(p.lucroMensalMedio), 0);
+
+      return `[ESTADO DO APP — ${todayStr}]
 Cotacao Cripto: R$ ${App.bdmRate > 0 ? App.bdmRate.toFixed(2) : 'N/A'}
 IPCA anual: ${App.ipcaRate}%
+Reinvestimento (toggle Insights): ${App.reinvestInsights ? 'LIGADO' : 'DESLIGADO'}
+Patrimonio total: R$ ${fmt(patrimonioTotal)} (periodicos R$ ${fmt(patrimonioPeriodicos)} + ativos R$ ${fmt(patrimonioAtivos)})
+Renda mensal estimada (periodicos ativos): R$ ${fmt(rendaMensalEstimada)}
 Categorias disponiveis: ${JSON.stringify(cats)}
-Investimentos periodicos (${periodicos.length}): ${JSON.stringify(periodicos)}
+Investimentos periodicos (${periodicos.length}) — TODOS os numeros abaixo ja estao calculados, NAO recalcule:
+${JSON.stringify(periodicos)}
 Ativos de valorizacao (${ativos.length}): ${JSON.stringify(ativos)}`;
     }
 
