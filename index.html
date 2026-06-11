@@ -3722,6 +3722,7 @@
         b.className = `proj-btn px-2 py-0.5 rounded text-[11px] ${parseInt(b.dataset.years) === y ? 'bg-primary/10 text-primary' : 'text-secondary/60 hover:text-secondary'}`;
       });
       renderLineChart();
+      renderMonthlyProfitChart();
     }
 
     function getRealAnnualYield() {
