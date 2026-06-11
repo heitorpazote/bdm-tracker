@@ -28,14 +28,12 @@ test('ativo so em R$ (showInBDM=false): SEM desagio', () => {
   const s = computeSchedule(invBRL, { reinvest: true });
   assert.strictEqual(s.applyDesagio, false);
   assert.strictEqual(s.netPerPeriod, 280);
-  assert.strictEqual(s.totalReinvest, 1840); // 1000 + 280*3
 });
 
 test('ativo BDM (showInBDM=true): COM desagio de 10%', () => {
   const s = computeSchedule(invBDM, { reinvest: true });
   assert.strictEqual(s.applyDesagio, true);
   assert.strictEqual(s.netPerPeriod, 252); // 280 - 10%
-  assert.strictEqual(s.totalReinvest, 1756); // 1000 + 252*3
 });
 
 test('applyDesagio pode sobrescrever o padrao', () => {

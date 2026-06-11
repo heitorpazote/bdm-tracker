@@ -22,7 +22,6 @@
     var numPeriods = Math.max(1, Math.floor(inv.durationMonths / interval));
     var grossPerPeriod = inv.principal * (inv.profitPercentage / 100);
     var netPerPeriod = grossPerPeriod * (1 - (applyDesagio ? WITHDRAWAL_DESAGIO : 0));
-    var totalReinvest = inv.principal + netPerPeriod;
     return {
       interval: interval,
       numPeriods: numPeriods,
@@ -31,7 +30,6 @@
       principal: inv.principal,
       reinvest: reinvest,
       applyDesagio: applyDesagio,
-      totalReinvest: totalReinvest,
     };
   }
 

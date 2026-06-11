@@ -2608,6 +2608,20 @@
       renderCalendar();
     }
 
+    // Lucro liquido COMPOSTO deste evento, supondo reinvestimento dos recebimentos
+    // anteriores no mesmo investimento. Retorna o periodo de BDMSchedule.compoundedPeriods
+    // correspondente a data do evento, ou null.
+    function reinvestProfitForEvent(inv, e) {
+      if (!inv || !inv.startDate || !e || !e.date) return null;
+      const interval = BDMSchedule.frequencyMonths(inv.frequency, inv.durationMonths, inv.customFrequencyMonths);
+      const sd = new Date(inv.startDate + 'T12:00:00');
+      const ed = new Date(e.date + 'T12:00:00');
+      const months = (ed.getFullYear() - sd.getFullYear()) * 12 + (ed.getMonth() - sd.getMonth());
+      const idx = Math.max(1, Math.round(months / interval));
+      const periods = BDMSchedule.compoundedPeriods(inv, { reinvest: true, horizonMonths: idx * interval });
+      return periods[idx - 1] || null;
+    }
+
     function renderCalendar() {
       const y = App.calDate.getFullYear(), m = App.calDate.getMonth();
       const titleEl = document.getElementById('cal-title');
@@ -2843,7 +2857,8 @@
           const netEvtAg = eventTotalBRL(e);
           const isBDMEvtAg = !!(inv && inv.showInBDM);
           const bdmE = (inv && inv.showInBDM && App.bdmRate > 0) ? toBDM(e.amount + (e.principalReturn || 0)) : null;
-          const reinvAg = (App.reinvestCalendar && e.isLastPayment && inv) ? BDMSchedule.computeSchedule(inv, { reinvest: true }).totalReinvest : null;
+          const rpAg = (App.reinvestCalendar && inv) ? reinvestProfitForEvent(inv, e) : null;
+          const showReinvAg = !!(rpAg && rpAg.periodIndex >= 2);
           return `<div class="flex items-center justify-between py-2 border-t border-white/5">
           <div class="flex items-center gap-2 flex-1 min-w-0 mr-3">
             <div class="w-2 h-2 rounded-full flex-shrink-0" style="background:${color}"></div>
@@ -2853,7 +2868,7 @@
                 ${e.isLastPayment ? '<span class="text-[9px] text-error bg-error/10 px-1.5 py-0.5 rounded-full font-semibold">ÚLTIMO</span>' : ''}
               </div>
               ${e.isLastPayment && e.principalReturn > 0 ? `<div class="text-[10px] text-secondary/50 mt-0.5">Lucro: ${fmtBRL(e.amount)}${isBDMEvtAg ? ` · líq. ${fmtBRL(profitBRLevt(e))}` : ''} · Capital: ${fmtBRL(e.principalReturn)}</div>` : ''}
-              ${reinvAg !== null ? `<div class="text-[10px] text-primary font-semibold mt-0.5">Com reinvestimento: ${fmtBRL(reinvAg)}</div>` : ''}
+              ${showReinvAg ? `<div class="text-[10px] text-primary font-semibold mt-0.5">Se reinvestir: ${fmtBRL(rpAg.netProfit)}${inv.showInBDM ? ' (−10%)' : ''}</div>` : ''}
             </div>
           </div>
           <div class="text-right flex-shrink-0">
@@ -2941,8 +2956,9 @@
         const grossEvt = e.amount + (e.principalReturn || 0);
         const netEvt = eventTotalBRL(e);
         const isBDMEvt = !!(inv && inv.showInBDM);
-        const sched = (App.reinvestCalendar && e.isLastPayment && inv) ? BDMSchedule.computeSchedule(inv, { reinvest: true }) : null;
-        const reinvBdm = (sched && inv.showInBDM && App.bdmRate > 0) ? ` (${fmtBDM(toBDM(sched.totalReinvest))})` : '';
+        const rp = (App.reinvestCalendar && inv) ? reinvestProfitForEvent(inv, e) : null;
+        const showReinv = !!(rp && rp.periodIndex >= 2);
+        const reinvBdm = (showReinv && inv.showInBDM && App.bdmRate > 0) ? ` (${fmtBDM(toBDM(rp.netProfit))})` : '';
         const freqLabel = { monthly: 'Mensal', bimonthly: 'Bimestral', quarterly: 'Trimestral', semiannual: 'Semestral', at_maturity: 'No Vencimento', custom: 'Personalizado' };
         return `<div class="rounded-lg border ${e.isLastPayment ? 'border-error/30' : 'border-white/5'} overflow-hidden">
         <div class="txn-row flex items-center justify-between p-3" onclick="toggleTxnDetails('dp-${e.id}')">
@@ -2972,7 +2988,7 @@
             <div><span class="text-secondary/50">Duração:</span> <span class="font-semibold text-on-surface">${inv.durationMonths} meses</span></div>
             <div><span class="text-secondary/50">Início:</span> <span class="font-semibold text-on-surface">${new Date(inv.startDate + 'T12:00:00').toLocaleDateString('pt-BR')}</span></div>
             ${e.isLastPayment ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-white/8"><span class="text-secondary/50">Recebimento:</span> <span class="font-bold text-on-surface">Lucro ${fmtBRL(e.amount)}${isBDMEvt ? ` (líq. ${fmtBRL(profitBRLevt(e))})` : ''} + Capital ${fmtBRL(e.principalReturn || 0)}</span></div>` : ''}
-            ${sched ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-primary/20"><span class="text-secondary/50">Com reinvestimento no vencimento:</span> <span class="font-bold text-primary">${fmtBRL(sched.totalReinvest)}${reinvBdm}</span></div>` : ''}
+            ${showReinv ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-primary/20"><span class="text-secondary/50">Se reinvestir os recebimentos anteriores:</span> <span class="font-bold text-primary">${fmtBRL(rp.netProfit)}${reinvBdm}</span>${inv.showInBDM ? ' <span class="text-[9px] text-secondary/40">(−10% deságio)</span>' : ''}</div>` : ''}
           </div>` : '<p class="text-[10px] text-secondary/40 mt-2">Investimento não encontrado.</p>'}
         </div>
       </div>`;
@@ -3020,8 +3036,9 @@
         const grossEvtM = e.amount + (e.principalReturn || 0);
         const netEvtM = eventTotalBRL(e);
         const isBDMEvtM = !!(inv && inv.showInBDM);
-        const sched = (App.reinvestCalendar && e.isLastPayment && inv) ? BDMSchedule.computeSchedule(inv, { reinvest: true }) : null;
-        const reinvBdm = (sched && inv.showInBDM && App.bdmRate > 0) ? ` (${fmtBDM(toBDM(sched.totalReinvest))})` : '';
+        const rp = (App.reinvestCalendar && inv) ? reinvestProfitForEvent(inv, e) : null;
+        const showReinv = !!(rp && rp.periodIndex >= 2);
+        const reinvBdm = (showReinv && inv.showInBDM && App.bdmRate > 0) ? ` (${fmtBDM(toBDM(rp.netProfit))})` : '';
         const freqLabel = { monthly: 'Mensal', bimonthly: 'Bimestral', quarterly: 'Trimestral', semiannual: 'Semestral', at_maturity: 'No Vencimento', custom: 'Personalizado' };
         return `<div class="rounded-lg border ${e.isLastPayment ? 'border-error/30' : 'border-white/6'} mb-2 overflow-hidden">
       <div class="txn-row flex items-center justify-between p-3" onclick="toggleTxnDetails('mob-${e.id}')">
@@ -3048,7 +3065,7 @@
           <div><span class="text-secondary/50">Frequência:</span> <span class="font-semibold text-on-surface">${freqLabel[inv.frequency] || inv.frequency}</span></div>
           <div><span class="text-secondary/50">Duração:</span> <span class="font-semibold text-on-surface">${inv.durationMonths} meses</span></div>
           ${e.isLastPayment ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-white/8"><span class="text-secondary/50">Total:</span> <span class="font-bold text-on-surface">Lucro ${fmtBRL(e.amount)}${isBDMEvtM ? ` (líq. ${fmtBRL(profitBRLevt(e))})` : ''} + Capital ${fmtBRL(e.principalReturn || 0)}</span></div>` : ''}
-          ${sched ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-primary/20"><span class="text-secondary/50">Com reinvestimento no vencimento:</span> <span class="font-bold text-primary">${fmtBRL(sched.totalReinvest)}${reinvBdm}</span></div>` : ''}
+          ${showReinv ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-primary/20"><span class="text-secondary/50">Se reinvestir os recebimentos anteriores:</span> <span class="font-bold text-primary">${fmtBRL(rp.netProfit)}${reinvBdm}</span>${inv.showInBDM ? ' <span class="text-[9px] text-secondary/40">(−10% deságio)</span>' : ''}</div>` : ''}
         </div>` : ''}
       </div>
     </div>`;
