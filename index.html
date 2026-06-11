@@ -5363,34 +5363,32 @@ Ativos de valorizacao (${ativos.length}): ${JSON.stringify(ativos)}`;
       const aiInput = document.getElementById('ai-input');
       if (!aiScreen || !aiInput) return;
 
+      // Mantem o input acima do teclado encolhendo SO a altura do #screen-ai ao
+      // visualViewport.height. Header e input sao flex-shrink-0; apenas #ai-messages
+      // (flex-1) encolhe. Nao manipulamos a posicao top (screen-ai e estatico — top nao
+      // posiciona e causava layout defasado durante a transicao teclado-fecha).
+      const applyVV = () => {
+        if (!aiScreen.classList.contains('active') || window.innerWidth >= 768) return;
+        const bottomNav = document.querySelector('nav.fixed.bottom-0');
+        const navH = bottomNav?.offsetHeight || 64;
+        aiScreen.style.height = (window.visualViewport.height - navH) + 'px';
+      };
+      const resetVV = () => { aiScreen.style.height = ''; aiScreen.style.top = ''; };
+
       if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', () => {
-          if (!aiScreen.classList.contains('active')) return;
-          // Shrink the AI screen to the visual viewport height to push input above keyboard
-          const vvh = window.visualViewport.height;
-          const bottomNav = document.querySelector('nav.fixed.bottom-0');
-          const navH = window.innerWidth < 768 ? (bottomNav?.offsetHeight || 64) : 0;
-          aiScreen.style.height = (vvh - navH) + 'px';
-        });
-        window.visualViewport.addEventListener('scroll', () => {
-          if (!aiScreen.classList.contains('active')) return;
-          aiScreen.style.top = window.visualViewport.offsetTop + 'px';
-        });
+        window.visualViewport.addEventListener('resize', applyVV);
       }
 
-      // Fallback: scroll input into view when focused (covers cases visualViewport not available)
+      // Fallback: rolar o input para a viewport quando focado (browsers sem visualViewport)
       aiInput.addEventListener('focus', () => {
         if (window.innerWidth >= 768) return;
-        setTimeout(() => {
-          aiInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 350);
+        setTimeout(() => aiInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 350);
       });
 
-      // Reset height when keyboard closes
+      // Reset idempotente ao fechar o teclado
       aiInput.addEventListener('blur', () => {
         if (!aiScreen.classList.contains('active')) return;
-        aiScreen.style.height = '';
-        aiScreen.style.top = '';
+        resetVV();
       });
     }
 
