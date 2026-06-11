@@ -3920,6 +3920,9 @@
     // arraste (1 dedo) = pan. resetBtnId: botao "Resetar zoom" exibido quando ha zoom/pan.
     function _zoomOptions(resetBtnId) {
       const showReset = () => { document.getElementById(resetBtnId)?.classList.remove('hidden'); };
+      // drag-zoom usa eventos de MOUSE (desktop: arrastar = caixa de zoom); pan usa o
+      // recognizer de toque do Hammer (mobile: 1 dedo = mover). Por isso ambos coexistem
+      // sem conflito: no desktop o arraste vira zoom; no touch (sem mouse) o arraste vira pan.
       return {
         pan: { enabled: true, mode: 'x', onPanComplete: showReset },
         zoom: {
@@ -3946,6 +3949,7 @@
       if (App.investments.length === 0) {
         lineWrap.style.display = 'none';
         lineEmpty.style.display = 'flex';
+        document.getElementById('line-reset-zoom')?.classList.add('hidden');
         return;
       }
       lineWrap.style.display = '';
