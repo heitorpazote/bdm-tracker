@@ -4367,7 +4367,7 @@ R11. USE OS NUMEROS JA CALCULADOS do CONTEXTO INJETADO (lucroLiquidoPorPeriodo, 
 
 ### Tipos de investimento
 - **Periódico** (periodic): gera rendimento fixo por período sobre o principal. Campos: name, principal, profitPercentage (% por período), frequency, durationMonths, startDate, categoryId, showInBDM. Frequências: monthly, bimonthly, quarterly, semiannual, at_maturity, custom.
-- **Ativo** (asset): representa um ativo de valorização (cripto, ação, fundo). Campos: name, unitValue (valor por unidade em R$), quantity, categoryId, showInBDM. Sem rendimento periódico — acompanha valorização de preço.
+- **Ativo** (asset): representa um ativo de valorização (cripto, ação, fundo). Campos: name, unitValue (valor por unidade em R$), quantity, categoryId, showInBDM. No contexto vem tambem valorDeMercado (unitValue × quantity) ja calculado. Sem rendimento periódico — acompanha valorização de preço.
 
 ### Cálculos e métricas
 - **Rentabilidade (APR)** = use aprNominalAnualPct ja calculado no contexto (lucro mensal medio × 12, linear).
@@ -4575,7 +4575,7 @@ Estado atual do app (investimentos, ativos, categorias, cotação Cripto, IPCA) 
           lucroMensalMedio: fmt(m.monthlyProfit),
           aprNominalAnualPct: fmt(m.aprPct),
           yieldRealPosIpcaPct: fmt(m.realYieldPct),
-          proximoPagamento: next ? { data: next.date, valor: fmt(next.amount) } : null,
+          proximoPagamento: next ? { data: next.date, valor: fmt(profitBRLevt(next)) } : null, // liquido (mesma convencao do calendario)
         };
       });
 

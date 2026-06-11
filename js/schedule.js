@@ -93,7 +93,11 @@
     var totalReinvested = reinv.length
       ? reinv[reinv.length - 1].principalAfter - inv.principal
       : 0;
-    var monthlyProfit = sched.interval > 0 ? sched.netPerPeriod / sched.interval : 0;
+    // Lucro mensal medio = total liquido / duracao (mesma convencao de getMonthlyIncomeEst
+    // no app), para que lucroMensalMedio/APR/renda batam com a tela Insights mesmo quando
+    // durationMonths nao e multiplo exato do intervalo.
+    var totalFixed = sched.netPerPeriod * sched.numPeriods;
+    var monthlyProfit = inv.durationMonths > 0 ? totalFixed / inv.durationMonths : 0;
     var monthlyYieldPct = inv.principal > 0 ? (monthlyProfit / inv.principal) * 100 : 0;
     var aprPct = monthlyYieldPct * 12;
     var realYieldPct = ((1 + aprPct / 100) / (1 + ipca / 100) - 1) * 100;
@@ -103,7 +107,7 @@
       grossPerPeriod: sched.grossPerPeriod,
       netPerPeriod: sched.netPerPeriod,
       applyDesagio: sched.applyDesagio,
-      totalFixed: sched.netPerPeriod * sched.numPeriods,
+      totalFixed: totalFixed,
       totalReinvested: totalReinvested,
       monthlyProfit: monthlyProfit,
       monthlyYieldPct: monthlyYieldPct,

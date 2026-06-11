@@ -92,7 +92,7 @@ test('buildAIInvestmentMetrics: investimento so em R$ (sem desagio)', () => {
   assert.strictEqual(m.applyDesagio, false);
   near(m.totalFixed, 840);            // 280 * 3
   near(m.totalReinvested, 1097.152);  // principalAfter final (2097.152) - 1000
-  near(m.monthlyProfit, 70);          // 280 / 4
+  near(m.monthlyProfit, 70);          // totalFixed 840 / duracao 12
   near(m.monthlyYieldPct, 7);         // 70 / 1000 * 100
   near(m.aprPct, 84);                 // 7 * 12
   near(m.realYieldPct, 75.2380952381); // (1.84/1.05 - 1) * 100
@@ -104,7 +104,7 @@ test('buildAIInvestmentMetrics: ativo BDM (desagio 10%)', () => {
   near(m.netPerPeriod, 252);          // 280 - 10%
   near(m.totalFixed, 756);            // 252 * 3
   near(m.totalReinvested, 962.515008);// principalAfter final (1962.515008) - 1000
-  near(m.monthlyProfit, 63);          // 252 / 4
+  near(m.monthlyProfit, 63);          // totalFixed 756 / duracao 12
   near(m.aprPct, 75.6);               // 6.3 * 12
   near(m.realYieldPct, 67.2380952381);// (1.756/1.05 - 1) * 100
 });
@@ -112,4 +112,16 @@ test('buildAIInvestmentMetrics: ativo BDM (desagio 10%)', () => {
 test('buildAIInvestmentMetrics: ipcaRate ausente trata como 0', () => {
   const m = buildAIInvestmentMetrics(invBRL, {});
   near(m.realYieldPct, 84); // (1.84/1.0 - 1) * 100
+});
+
+test('buildAIInvestmentMetrics: lucro mensal usa total/duracao (duracao nao-multipla do intervalo)', () => {
+  // intervalo 4, duracao 10 -> numPeriods = floor(10/4) = 2; total fixo = 280*2 = 560.
+  // Convencao do app (getMonthlyIncomeEst): 560/10 = 56 por mes — NAO 280/4 = 70.
+  const inv = { principal: 1000, profitPercentage: 28, frequency: 'custom', customFrequencyMonths: 4, durationMonths: 10, showInBDM: false };
+  const m = buildAIInvestmentMetrics(inv, { ipcaRate: 5 });
+  assert.strictEqual(m.numPeriods, 2);
+  near(m.totalFixed, 560);
+  near(m.monthlyProfit, 56);   // 560 / 10
+  near(m.monthlyYieldPct, 5.6); // 56 / 1000 * 100
+  near(m.aprPct, 67.2);        // 5.6 * 12
 });
