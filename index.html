@@ -866,6 +866,8 @@
     @media (min-width: 640px) { .sheet-handle { display:none; } }
     .sheet-dragging { transition: none !important; }
     .glass-modal { transition: transform .25s ease; }
+    #day-preview { position:fixed; z-index:150; max-width:240px; pointer-events:none; opacity:0; transform:scale(.96); transition:opacity .12s ease, transform .12s ease; }
+    #day-preview.show { opacity:1; transform:scale(1); }
   </style>
 </head>
 
@@ -1778,6 +1780,7 @@
 
   </main><!-- end main -->
 
+  <div id="day-preview" class="glass-modal rounded-xl p-3 text-xs"></div>
 
   <!-- ===================================================================
      MODAL: ADD / EDIT INVESTMENT
@@ -2648,6 +2651,46 @@
       }, { passive: true });
     }
 
+    // Long-press num dia abre um preview rapido dos eventos sem navegacao.
+    function initDayLongPress() {
+      const grid = document.getElementById('month-grid');
+      if (!grid || grid.dataset.lpBound) return;
+      grid.dataset.lpBound = '1';
+      let timer = null, startX = 0, startY = 0;
+      const pop = document.getElementById('day-preview');
+      const clear = () => { if (timer) { clearTimeout(timer); timer = null; } };
+      const hide = () => { pop.classList.remove('show'); };
+      grid.addEventListener('touchstart', (ev) => {
+        const cell = ev.target.closest('.cal-cell');
+        if (!cell || ev.touches.length !== 1) return;
+        const m = cell.getAttribute('onclick') && cell.getAttribute('onclick').match(/'(\d{4}-\d{2}-\d{2})'/);
+        if (!m) return;
+        const dk = m[1];
+        startX = ev.touches[0].clientX; startY = ev.touches[0].clientY;
+        timer = setTimeout(() => {
+          const evts = App.events.filter(e => e.date === dk);
+          if (evts.length === 0) return;
+          haptic(14);
+          const d = new Date(dk + 'T12:00:00');
+          const rows = evts.map(e => {
+            const inv = App.investments.find(i => i.id === e.investmentId);
+            return `<div class="flex justify-between gap-3"><span class="text-secondary/70">${inv ? inv.name : '—'}</span><span class="font-bold text-primary tabular-nums">+${fmtBRL(e.amount + (e.principalReturn || 0))}</span></div>`;
+          }).join('');
+          pop.innerHTML = `<div class="font-semibold text-on-surface mb-1.5">${d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}</div>${rows}`;
+          const r = cell.getBoundingClientRect();
+          pop.style.left = Math.max(8, Math.min(window.innerWidth - 248, r.left)) + 'px';
+          pop.style.top = Math.max(8, r.top - 8 - pop.offsetHeight) + 'px';
+          pop.classList.add('show');
+        }, 420);
+      }, { passive: true });
+      grid.addEventListener('touchmove', (ev) => {
+        if (!timer) return;
+        const t = ev.touches[0];
+        if (Math.abs(t.clientX - startX) > BDMGestures.TAP_MAX || Math.abs(t.clientY - startY) > BDMGestures.TAP_MAX) clear();
+      }, { passive: true });
+      grid.addEventListener('touchend', () => { clear(); setTimeout(hide, 1400); }, { passive: true });
+    }
+
     // Lucro liquido COMPOSTO deste evento, supondo reinvestimento dos recebimentos
     // anteriores no mesmo investimento. Retorna o periodo de BDMSchedule.compoundedPeriods
     // correspondente a data do evento, ou null.
@@ -2766,6 +2809,7 @@
       }
 
       grid.innerHTML = html;
+      initDayLongPress();
     }
 
     function buildCell(dk, dayNum, otherMonth, eMap, today) {
