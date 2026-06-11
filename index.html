@@ -2498,6 +2498,7 @@
     // NAVIGATION
     // =========================================================
     function navigate(screen) {
+      haptic(5);
       App.currentScreen = screen;
       // Reset AI screen inline height (set by keyboard handler) when leaving AI
       const prevAI = document.getElementById('screen-ai');
@@ -2595,6 +2596,7 @@
     // CALENDAR
     // =========================================================
     function setView(v) {
+      haptic(5);
       App.calView = v;
       document.querySelectorAll('.cal-view').forEach(el => el.classList.add('hidden'));
       document.getElementById('view-' + v).classList.remove('hidden');
@@ -3249,6 +3251,7 @@
           await loadAllData();
           renderCalendar();
           closeInvestmentModal();
+          haptic(12);
           toast(editId ? 'Ativo atualizado!' : 'Ativo adicionado à carteira!', 'success');
         } catch (err) {
           showError('Erro ao salvar: ' + err.message);
@@ -3297,6 +3300,7 @@
         await loadAllData();
         renderCalendar();
         closeInvestmentModal();
+        haptic(12);
         toast(editId ? 'Investimento atualizado!' : `${evts.length} evento(s) gerado(s) no calendário!`, 'success');
       } catch (err) {
         showError('Erro ao salvar: ' + err.message);
