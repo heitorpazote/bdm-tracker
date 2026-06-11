@@ -862,6 +862,10 @@
     @keyframes slideOutRight { from { opacity:1; transform:translateX(0); } 50% { opacity:.4; transform:translateX(14px);} to { opacity:1; transform:translateX(0);} }
     .slide-out-left { animation: slideOutLeft .22s ease; }
     .slide-out-right { animation: slideOutRight .22s ease; }
+    .sheet-handle { width:36px; height:4px; border-radius:9999px; background:rgba(255,255,255,.25); margin:8px auto 4px; }
+    @media (min-width: 640px) { .sheet-handle { display:none; } }
+    .sheet-dragging { transition: none !important; }
+    .glass-modal { transition: transform .25s ease; }
   </style>
 </head>
 
@@ -3120,10 +3124,51 @@
     function showModal(id) {
       const el = document.getElementById(id);
       el.style.display = 'flex';
+      haptic(6);
+      if (window.innerWidth < 640) initBottomSheet(el);
     }
     function hideModal(id) {
       const el = document.getElementById(id);
       el.style.display = 'none';
+      const panel = el.querySelector('.glass-modal');
+      if (panel) panel.style.transform = '';
+    }
+
+    // No mobile: arrastar o painel para baixo fecha o modal. Adiciona uma alca visual.
+    function initBottomSheet(overlay) {
+      const panel = overlay.querySelector('.glass-modal');
+      if (!panel) return;
+      if (!panel.querySelector('.sheet-handle')) {
+        const h = document.createElement('div');
+        h.className = 'sheet-handle';
+        panel.insertBefore(h, panel.firstChild);
+      }
+      if (panel.dataset.sheetBound) return;
+      panel.dataset.sheetBound = '1';
+      let sy = 0, dy = 0, dragging = false;
+      panel.addEventListener('touchstart', (ev) => {
+        if (ev.touches.length !== 1 || panel.scrollTop > 0) { dragging = false; return; }
+        sy = ev.touches[0].clientY; dy = 0; dragging = true;
+        panel.classList.add('sheet-dragging');
+      }, { passive: true });
+      panel.addEventListener('touchmove', (ev) => {
+        if (!dragging) return;
+        dy = ev.touches[0].clientY - sy;
+        if (dy > 0) panel.style.transform = `translateY(${dy}px)`;
+      }, { passive: true });
+      panel.addEventListener('touchend', () => {
+        if (!dragging) return;
+        dragging = false;
+        panel.classList.remove('sheet-dragging');
+        if (dy > 110) {
+          haptic(10);
+          panel.style.transform = `translateY(100%)`;
+          const ov = panel.closest('[id^="modal-"]') || overlay;
+          setTimeout(() => { ov.style.display = 'none'; panel.style.transform = ''; }, 220);
+        } else {
+          panel.style.transform = '';
+        }
+      }, { passive: true });
     }
 
     // =========================================================
