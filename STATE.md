@@ -1,9 +1,11 @@
 # Project State
 
 ## Last Updated
-2026-06-09
+2026-06-11
 
 ## Recent Changes
+- 2026-06-11: **Reinvestimento periódico (composição a cada recebimento)** — antes o reinvestimento só compunha no vencimento; agora cada recebimento periódico é reaplicado no mesmo investimento assim que cai, compondo o principal (juros sobre juros). Nova função pura `BDMSchedule.compoundedPeriods(inv, {reinvest, horizonMonths, applyDesagio?})` em `js/schedule.js` é a **fonte única** consumida por Calendário e Insights. Deságio de 10% incide por período **apenas** em ativos `showInBDM`. Calendário: cada evento mantém o valor fixo real e ganha a linha "Se reinvestir os recebimentos anteriores" (valor composto) a partir do 2º período, nas 3 views (agenda, detail panel, day modal) via helper `reinvestProfitForEvent`. Insights: `buildProfitByMonth` reescrita para delegar a `compoundedPeriods` (gráfico de projeção, IPCA, marcos). Textos/tooltips atualizados de "no vencimento" → "a cada recebimento". **Removido** `totalReinvest` de `computeSchedule` (artefato do modelo antigo, agora sem uso) e suas 2 asserções obsoletas nos testes. Testes: `tests/schedule.test.js` cobre `compoundedPeriods` (11 testes, todos verdes).
+- 2026-06-11: **UX mobile tátil** — (1) **swipe horizontal** na grade troca o mês (`initCalendarSwipe`, usa `BDMGestures.swipeDirection` com direction-lock + animação slide); (2) **modais bottom-sheet** arrastáveis no mobile (<640px): alça visual + arrastar p/ baixo >110px fecha (`initBottomSheet` em `showModal`); (3) **feedback háptico** `haptic()` (navigator.vibrate, no-op onde não suportado) em swipe, abrir/fechar modal, troca de view, navegação e salvar; (4) **long-press** num dia abre popover de preview dos eventos sem navegar (`initDayLongPress`, `#day-preview`); (5) **pull-to-refresh** no topo re-sincroniza o Supabase (`initPullToRefresh`, `#ptr`). Novo módulo puro `js/gestures.js` (`BDMGestures`: `swipeDirection`, `dominantAxis`, `isTap`) com testes em `tests/gestures.test.js` (3 testes). Desktop inalterado (gestos guardados por viewport/touch).
 - 2026-06-09: **3 bugs corrigidos** — (1) Duplicação de eventos: `saveInvestment` ganhou guard `_savingInvestment` com `finally` nos dois branches (asset e periódico), impedindo double-submit. (2) Exclusão mobile em Insights: botões edit/delete mudaram de `opacity-0 group-hover:opacity-100` para `opacity-100 md:opacity-0 md:group-hover:opacity-100` — sempre visíveis em mobile, hover-only no desktop. (3) Microfone IA em mobile: CSS `#screen-ai.active` agora desconta `env(safe-area-inset-bottom)` da altura, evitando que o input/mic fique atrás da bottom nav em iPhones com home indicator; JS keyboard fix atualizado para usar `bottomNav.offsetHeight` real.
 - 2026-06-08: **Calendário — clareza de deságio**: valor bruto (sem deságio) agora é o valor principal em todas as visualizações; valor líquido (−10%) exibido abaixo quando há investimento BDM. Aplica-se a: detail panel desktop, modal mobile, agenda view. `totalReinvest` no schedule.js corrigido para usar `netPerPeriod` (deságio sobre o lucro), mostrando o valor líquido real no reinvestimento.
 - 2026-06-08: **STT — Web Speech API como primário**: `_SpeechAPI` (SpeechRecognition nativo) agora é tentado primeiro; sem necessidade de backend para Chrome/Edge/Android. MediaRecorder+Whisper mantido como fallback para browsers sem suporte. Edge function `ai-stt` atualizada para retornar sempre HTTP 200 (erros no body) — elimina FunctionsHttpError opaco do Supabase client. **Ação necessária**: reimplantar `supabase/functions/ai-stt` com `npx supabase functions deploy ai-stt`.
@@ -27,8 +29,8 @@
 ## Screen Status
 | Tela | Status | Observações |
 |---|---|---|
-| Calendário | stable | Sem alterações recentes |
-| Insights | stable | Rentabilidade corrigida (APR linear); scroll horizontal fixado no mobile |
+| Calendário | stable | Reinvestimento composto por recebimento (linha "Se reinvestir"); swipe de mês, long-press preview, modais bottom-sheet, pull-to-refresh no mobile |
+| Insights | stable | Projeção/marcos usam composição a cada recebimento (`compoundedPeriods`); rentabilidade APR linear; scroll horizontal fixado no mobile |
 | Calculadora | stable | Sem alterações recentes |
 | Agente IA | stable | Cadastro de ativos; system prompt enriquecido; chips atualizados; teclado mobile via Visual Viewport API |
 
@@ -49,6 +51,11 @@
 - Modal: sem bloqueio frontend para categoria em ativos (categoryId = null é permitido). Se houver erro de DB, verificar constraint `category_id NOT NULL` na tabela `investments` do Supabase
 
 ## Design Decisions
+- **Reinvestimento compõe a cada recebimento (não no vencimento)**: modela melhor a realidade — o usuário recebe o lucro periódico e o reaplica imediatamente, em vez de esperar o prazo acabar. `compoundedPeriods` cresce o principal a cada período continuamente pelo horizonte (a fronteira de vencimento deixa de ter efeito especial, pois o capital já cresce a cada pagamento = renovação implícita).
+- **Deságio só em ativos `showInBDM`**: o deságio de 10% é taxa de SAQUE do BDM; reaplicar o lucro não é sacar, então só incide quando o ativo é exibido/sacado em cripto. A UI sempre sinaliza o "(−10% deságio)" quando aplica.
+- **Calendário mostra base + linha "se reinvestir"**: o evento mantém o valor fixo real (o que de fato cai no mês); o valor composto aparece como linha secundária projetada, evitando confundir "recebido" com "reinvestido". Aparece a partir do 2º período (no 1º não há ganho de composição).
+- **Fonte única `compoundedPeriods`**: Calendário e Insights consomem a mesma função pura → os números nunca divergem. Matemática isolada em `js/schedule.js`, testável em Node.
+- **Gestos mobile em módulo puro + wiring no index.html**: `js/gestures.js` (`BDMGestures`) tem só matemática de detecção (testável); o DOM/touch fica no index.html. Listeners idempotentes via `dataset.*Bound`; `{passive:true}` para não travar scroll; gestos só no mobile (viewport/touch), desktop intacto.
 - **Rentabilidade APR vs APY**: mudou para APR (linear) pois os investimentos pagam lucro fixo sobre principal sem capitalização automática. APR é mais fiel à realidade e evita inflação percebida dos números.
 - **create_asset no Agente**: ativo não gera eventos no calendário (durationMonths=0), apenas registro de patrimônio. confirmAICreateAsset não chama generateEvents/dbPutEvents.
 - **Visual Viewport API**: abordagem mais robusta para iOS (onde `interactive-widget=resizes-content` não funciona). Height do screen-ai é ajustado dinamicamente; resetado no blur e no navigate.

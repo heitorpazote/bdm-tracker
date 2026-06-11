@@ -10,6 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/schedule.js"></script>
+  <script src="js/gestures.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
     rel="stylesheet" />
@@ -857,6 +858,20 @@
       .has-tip:hover .tip-box { display: block; }
     }
     .has-tip.tip-open .tip-box { display: block; }
+    @keyframes slideOutLeft { from { opacity:1; transform:translateX(0); } 50% { opacity:.4; transform:translateX(-14px);} to { opacity:1; transform:translateX(0);} }
+    @keyframes slideOutRight { from { opacity:1; transform:translateX(0); } 50% { opacity:.4; transform:translateX(14px);} to { opacity:1; transform:translateX(0);} }
+    .slide-out-left { animation: slideOutLeft .22s ease; }
+    .slide-out-right { animation: slideOutRight .22s ease; }
+    .sheet-handle { width:36px; height:4px; border-radius:9999px; background:rgba(255,255,255,.25); margin:8px auto 4px; }
+    @media (min-width: 640px) { .sheet-handle { display:none; } }
+    .sheet-dragging { transition: none !important; }
+    .glass-modal { transition: transform .25s ease; }
+    #day-preview { position:fixed; z-index:150; max-width:240px; pointer-events:none; opacity:0; transform:scale(.96); transition:opacity .12s ease, transform .12s ease; }
+    #day-preview.show { opacity:1; transform:scale(1); }
+    #ptr { position:fixed; top:0; left:50%; transform:translate(-50%, -48px); z-index:140; transition:transform .18s ease; }
+    #ptr .ptr-spin { width:28px; height:28px; border-radius:9999px; border:2px solid rgba(255,255,255,.2); border-top-color:#0EA5E9; }
+    #ptr.spin .ptr-spin { animation: ptrSpin .7s linear infinite; }
+    @keyframes ptrSpin { to { transform: rotate(360deg); } }
   </style>
 </head>
 
@@ -1241,7 +1256,7 @@
               class="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/10 text-primary border border-primary/20">
               <span class="material-symbols-outlined text-[14px]">info</span>
               <span id="reinvest-notice-text" class="text-[10px] font-semibold uppercase tracking-wider">Cálculos
-                consideram reinvestimento no vencimento</span>
+                compõem o reinvestimento a cada recebimento</span>
             </div>
             <p class="text-sm text-secondary mt-1">Analytics avançado e projeções patrimoniais</p>
           </div>
@@ -1263,7 +1278,7 @@
             <p id="ipca-status-label" class="text-[10px] text-secondary/50">Considerando inflação na projeção
               patrimonial</p>
             <div class="flex items-center justify-between border-t border-white/5 pt-3 mt-1">
-              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/60 flex items-center gap-1">Considerar Reinvestimento<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Com reinvestimento ativo, o lucro de cada ciclo é somado ao capital e rende juros sobre juros nos próximos períodos.</span></span></span>
+              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/60 flex items-center gap-1">Considerar Reinvestimento<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Com reinvestimento ativo, o lucro de cada recebimento é somado ao capital assim que cai e rende juros sobre juros nos próximos períodos.</span></span></span>
               <label class="tog">
                 <input type="checkbox" id="reinvest-insights-toggle" checked
                   onchange="toggleReinvestInsights(this.checked)" />
@@ -1345,12 +1360,12 @@
           <div class="premium-card rounded-xl p-5 lg:col-span-3">
             <div class="flex items-center justify-between mb-4">
               <div>
-                <h3 class="text-sm font-semibold text-on-surface flex items-center gap-1">Projeção Patrimonial<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Simulação de crescimento do patrimônio ao longo do tempo. Com reinvestimento ativo, o lucro de cada ciclo é composto. Selecione o horizonte com os botões 2a–30a.</span></span></h3>
+                <h3 class="text-sm font-semibold text-on-surface flex items-center gap-1">Projeção Patrimonial<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Simulação de crescimento do patrimônio ao longo do tempo. Com reinvestimento ativo, o lucro de cada recebimento é composto. Selecione o horizonte com os botões 2a–30a.</span></span></h3>
                 <span
                   class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[9px] font-semibold tracking-wide bg-primary/10 text-primary border border-primary/20">
                   <span class="material-symbols-outlined text-[11px]"
                     style="font-variation-settings:'FILL' 1,'wght' 400">autorenew</span>
-                  Reinvestimento automático ao vencimento
+                  Reinvestimento automático a cada recebimento
                 </span>
               </div>
               <div class="flex gap-1 text-[11px]">
@@ -1415,8 +1430,8 @@
             <!-- Milestones -->
             <div class="premium-card rounded-xl p-5">
               <div class="mb-4">
-                <h3 class="text-sm font-semibold text-on-surface flex items-center gap-1">Projeção de Marcos<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Estimativa de quando seu patrimônio atingirá R$ 1 milhão e R$ 1 bilhão, considerando reinvestimento automático ao vencimento.</span></span></h3>
-                <p class="text-[10px] text-secondary/50 mt-0.5">Taxa atual composta com reinvestimento automático</p>
+                <h3 class="text-sm font-semibold text-on-surface flex items-center gap-1">Projeção de Marcos<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Estimativa de quando seu patrimônio atingirá R$ 1 milhão e R$ 1 bilhão, considerando reinvestimento automático a cada recebimento.</span></span></h3>
+                <p class="text-[10px] text-secondary/50 mt-0.5">Taxa composta com reinvestimento a cada recebimento</p>
               </div>
               <div class="flex flex-col gap-5">
                 <div>
@@ -1769,6 +1784,9 @@
 
   </main><!-- end main -->
 
+  <div id="ptr" class="glass-modal rounded-full p-2"><div class="ptr-spin"></div></div>
+
+  <div id="day-preview" class="glass-modal rounded-xl p-3 text-xs"></div>
 
   <!-- ===================================================================
      MODAL: ADD / EDIT INVESTMENT
@@ -2185,6 +2203,7 @@
       await loadAllData();
       navigate('calendar');
       renderCalendar();
+      initPullToRefresh();
       document.querySelectorAll('input[type=range]').forEach(updateSliderTrack);
       updateCalc();
       const dateEl = document.getElementById('inv-start-date');
@@ -2489,6 +2508,7 @@
     // NAVIGATION
     // =========================================================
     function navigate(screen) {
+      haptic(5);
       App.currentScreen = screen;
       // Reset AI screen inline height (set by keyboard handler) when leaving AI
       const prevAI = document.getElementById('screen-ai');
@@ -2586,6 +2606,7 @@
     // CALENDAR
     // =========================================================
     function setView(v) {
+      haptic(5);
       App.calView = v;
       document.querySelectorAll('.cal-view').forEach(el => el.classList.add('hidden'));
       document.getElementById('view-' + v).classList.remove('hidden');
@@ -2608,7 +2629,131 @@
       renderCalendar();
     }
 
+    // Vibracao tatil curta (no-op onde nao suportado, ex.: iOS Safari).
+    function haptic(ms) {
+      try { if (navigator.vibrate) navigator.vibrate(ms || 8); } catch (_) {}
+    }
+
+    // Swipe horizontal na grade do calendario troca o mes/periodo.
+    function initCalendarSwipe() {
+      const grid = document.getElementById('view-month');
+      if (!grid || grid.dataset.swipeBound) return;
+      grid.dataset.swipeBound = '1';
+      let sx = 0, sy = 0, tracking = false;
+      grid.addEventListener('touchstart', (ev) => {
+        if (ev.touches.length !== 1) { tracking = false; return; }
+        sx = ev.touches[0].clientX; sy = ev.touches[0].clientY; tracking = true;
+      }, { passive: true });
+      grid.addEventListener('touchend', (ev) => {
+        if (!tracking) return;
+        tracking = false;
+        const t = ev.changedTouches[0];
+        const dir = BDMGestures.swipeDirection(t.clientX - sx, t.clientY - sy);
+        if (!dir) return;
+        haptic(8);
+        const card = document.getElementById('view-month');
+        const cls = dir === 'left' ? 'slide-out-left' : 'slide-out-right';
+        if (card) { card.classList.add(cls); setTimeout(() => card.classList.remove(cls), 220); }
+        if (dir === 'left') nextPeriod(); else prevPeriod();
+      }, { passive: true });
+    }
+
+    // Long-press num dia abre um preview rapido dos eventos sem navegacao.
+    function initDayLongPress() {
+      const grid = document.getElementById('month-grid');
+      if (!grid || grid.dataset.lpBound) return;
+      grid.dataset.lpBound = '1';
+      let timer = null, startX = 0, startY = 0, suppressClick = false;
+      const pop = document.getElementById('day-preview');
+      const clear = () => { if (timer) { clearTimeout(timer); timer = null; } };
+      const hide = () => { pop.classList.remove('show'); };
+      // O preview abre no touchend; suprime o clique sintetico que abriria o modal do dia.
+      grid.addEventListener('click', (e) => {
+        if (suppressClick) { e.stopImmediatePropagation(); e.preventDefault(); suppressClick = false; }
+      }, true);
+      grid.addEventListener('touchstart', (ev) => {
+        const cell = ev.target.closest('.cal-cell');
+        if (!cell || ev.touches.length !== 1) return;
+        const m = cell.getAttribute('onclick') && cell.getAttribute('onclick').match(/'(\d{4}-\d{2}-\d{2})'/);
+        if (!m) return;
+        const dk = m[1];
+        startX = ev.touches[0].clientX; startY = ev.touches[0].clientY;
+        timer = setTimeout(() => {
+          const evts = App.events.filter(e => e.date === dk);
+          if (evts.length === 0) return;
+          haptic(14);
+          const d = new Date(dk + 'T12:00:00');
+          const rows = evts.map(e => {
+            const inv = App.investments.find(i => i.id === e.investmentId);
+            return `<div class="flex justify-between gap-3"><span class="text-secondary/70">${inv ? inv.name : '—'}</span><span class="font-bold text-primary tabular-nums">+${fmtBRL(e.amount + (e.principalReturn || 0))}</span></div>`;
+          }).join('');
+          pop.innerHTML = `<div class="font-semibold text-on-surface mb-1.5">${d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}</div>${rows}`;
+          const r = cell.getBoundingClientRect();
+          pop.style.left = Math.max(8, Math.min(window.innerWidth - 248, r.left)) + 'px';
+          pop.style.top = Math.max(8, r.top - 8 - pop.offsetHeight) + 'px';
+          pop.classList.add('show');
+          suppressClick = true;
+        }, 420);
+      }, { passive: true });
+      grid.addEventListener('touchmove', (ev) => {
+        if (!timer) return;
+        const t = ev.touches[0];
+        if (Math.abs(t.clientX - startX) > BDMGestures.TAP_MAX || Math.abs(t.clientY - startY) > BDMGestures.TAP_MAX) clear();
+      }, { passive: true });
+      grid.addEventListener('touchend', () => { clear(); setTimeout(hide, 1400); }, { passive: true });
+    }
+
+    // Pull-to-refresh: puxar para baixo no topo re-sincroniza o Supabase.
+    function initPullToRefresh() {
+      if (document.body.dataset.ptrBound) return;
+      document.body.dataset.ptrBound = '1';
+      const ptr = document.getElementById('ptr');
+      const scroller = document.scrollingElement || document.documentElement;
+      let sy = 0, dy = 0, active = false, refreshing = false;
+      const modalOpen = () => Array.from(document.querySelectorAll('[id^="modal-"]')).some(m => m.style.display === 'flex');
+      window.addEventListener('touchstart', (ev) => {
+        if (refreshing || ev.touches.length !== 1 || scroller.scrollTop > 0 || modalOpen()) { active = false; return; }
+        sy = ev.touches[0].clientY; dy = 0; active = true;
+      }, { passive: true });
+      window.addEventListener('touchmove', (ev) => {
+        if (!active) return;
+        dy = ev.touches[0].clientY - sy;
+        if (dy > 0) ptr.style.transform = `translate(-50%, ${Math.min(dy - 48, 56)}px)`;
+      }, { passive: true });
+      window.addEventListener('touchend', async () => {
+        if (!active) return;
+        active = false;
+        if (dy > 90) {
+          refreshing = true;
+          haptic(12);
+          ptr.classList.add('spin');
+          ptr.style.transform = 'translate(-50%, 16px)';
+          try { await loadAllData(); } catch (_) {}
+          ptr.classList.remove('spin');
+          ptr.style.transform = 'translate(-50%, -48px)';
+          refreshing = false;
+        } else {
+          ptr.style.transform = 'translate(-50%, -48px)';
+        }
+      }, { passive: true });
+    }
+
+    // Lucro liquido COMPOSTO deste evento, supondo reinvestimento dos recebimentos
+    // anteriores no mesmo investimento. Retorna o periodo de BDMSchedule.compoundedPeriods
+    // correspondente a data do evento, ou null.
+    function reinvestProfitForEvent(inv, e) {
+      if (!inv || !inv.startDate || !e || !e.date) return null;
+      const interval = BDMSchedule.frequencyMonths(inv.frequency, inv.durationMonths, inv.customFrequencyMonths);
+      const sd = new Date(inv.startDate + 'T12:00:00');
+      const ed = new Date(e.date + 'T12:00:00');
+      const months = (ed.getFullYear() - sd.getFullYear()) * 12 + (ed.getMonth() - sd.getMonth());
+      const idx = Math.max(1, Math.round(months / interval));
+      const periods = BDMSchedule.compoundedPeriods(inv, { reinvest: true, horizonMonths: idx * interval });
+      return periods[idx - 1] || null;
+    }
+
     function renderCalendar() {
+      initCalendarSwipe();
       const y = App.calDate.getFullYear(), m = App.calDate.getMonth();
       const titleEl = document.getElementById('cal-title');
 
@@ -2711,6 +2856,7 @@
       }
 
       grid.innerHTML = html;
+      initDayLongPress();
     }
 
     function buildCell(dk, dayNum, otherMonth, eMap, today) {
@@ -2843,7 +2989,8 @@
           const netEvtAg = eventTotalBRL(e);
           const isBDMEvtAg = !!(inv && inv.showInBDM);
           const bdmE = (inv && inv.showInBDM && App.bdmRate > 0) ? toBDM(e.amount + (e.principalReturn || 0)) : null;
-          const reinvAg = (App.reinvestCalendar && e.isLastPayment && inv) ? BDMSchedule.computeSchedule(inv, { reinvest: true }).totalReinvest : null;
+          const rpAg = (App.reinvestCalendar && inv) ? reinvestProfitForEvent(inv, e) : null;
+          const showReinvAg = !!(rpAg && rpAg.periodIndex >= 2);
           return `<div class="flex items-center justify-between py-2 border-t border-white/5">
           <div class="flex items-center gap-2 flex-1 min-w-0 mr-3">
             <div class="w-2 h-2 rounded-full flex-shrink-0" style="background:${color}"></div>
@@ -2853,7 +3000,7 @@
                 ${e.isLastPayment ? '<span class="text-[9px] text-error bg-error/10 px-1.5 py-0.5 rounded-full font-semibold">ÚLTIMO</span>' : ''}
               </div>
               ${e.isLastPayment && e.principalReturn > 0 ? `<div class="text-[10px] text-secondary/50 mt-0.5">Lucro: ${fmtBRL(e.amount)}${isBDMEvtAg ? ` · líq. ${fmtBRL(profitBRLevt(e))}` : ''} · Capital: ${fmtBRL(e.principalReturn)}</div>` : ''}
-              ${reinvAg !== null ? `<div class="text-[10px] text-primary font-semibold mt-0.5">Com reinvestimento: ${fmtBRL(reinvAg)}</div>` : ''}
+              ${showReinvAg ? `<div class="text-[10px] text-primary font-semibold mt-0.5">Se reinvestir: ${fmtBRL(rpAg.netProfit)}${inv.showInBDM ? ' (−10%)' : ''}</div>` : ''}
             </div>
           </div>
           <div class="text-right flex-shrink-0">
@@ -2941,8 +3088,9 @@
         const grossEvt = e.amount + (e.principalReturn || 0);
         const netEvt = eventTotalBRL(e);
         const isBDMEvt = !!(inv && inv.showInBDM);
-        const sched = (App.reinvestCalendar && e.isLastPayment && inv) ? BDMSchedule.computeSchedule(inv, { reinvest: true }) : null;
-        const reinvBdm = (sched && inv.showInBDM && App.bdmRate > 0) ? ` (${fmtBDM(toBDM(sched.totalReinvest))})` : '';
+        const rp = (App.reinvestCalendar && inv) ? reinvestProfitForEvent(inv, e) : null;
+        const showReinv = !!(rp && rp.periodIndex >= 2);
+        const reinvBdm = (showReinv && inv.showInBDM && App.bdmRate > 0) ? ` (${fmtBDM(toBDM(rp.netProfit))})` : '';
         const freqLabel = { monthly: 'Mensal', bimonthly: 'Bimestral', quarterly: 'Trimestral', semiannual: 'Semestral', at_maturity: 'No Vencimento', custom: 'Personalizado' };
         return `<div class="rounded-lg border ${e.isLastPayment ? 'border-error/30' : 'border-white/5'} overflow-hidden">
         <div class="txn-row flex items-center justify-between p-3" onclick="toggleTxnDetails('dp-${e.id}')">
@@ -2972,7 +3120,7 @@
             <div><span class="text-secondary/50">Duração:</span> <span class="font-semibold text-on-surface">${inv.durationMonths} meses</span></div>
             <div><span class="text-secondary/50">Início:</span> <span class="font-semibold text-on-surface">${new Date(inv.startDate + 'T12:00:00').toLocaleDateString('pt-BR')}</span></div>
             ${e.isLastPayment ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-white/8"><span class="text-secondary/50">Recebimento:</span> <span class="font-bold text-on-surface">Lucro ${fmtBRL(e.amount)}${isBDMEvt ? ` (líq. ${fmtBRL(profitBRLevt(e))})` : ''} + Capital ${fmtBRL(e.principalReturn || 0)}</span></div>` : ''}
-            ${sched ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-primary/20"><span class="text-secondary/50">Com reinvestimento no vencimento:</span> <span class="font-bold text-primary">${fmtBRL(sched.totalReinvest)}${reinvBdm}</span></div>` : ''}
+            ${showReinv ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-primary/20"><span class="text-secondary/50">Se reinvestir os recebimentos anteriores:</span> <span class="font-bold text-primary">${fmtBRL(rp.netProfit)}${reinvBdm}</span>${inv.showInBDM ? ' <span class="text-[9px] text-secondary/40">(−10% deságio)</span>' : ''}</div>` : ''}
           </div>` : '<p class="text-[10px] text-secondary/40 mt-2">Investimento não encontrado.</p>'}
         </div>
       </div>`;
@@ -3020,8 +3168,9 @@
         const grossEvtM = e.amount + (e.principalReturn || 0);
         const netEvtM = eventTotalBRL(e);
         const isBDMEvtM = !!(inv && inv.showInBDM);
-        const sched = (App.reinvestCalendar && e.isLastPayment && inv) ? BDMSchedule.computeSchedule(inv, { reinvest: true }) : null;
-        const reinvBdm = (sched && inv.showInBDM && App.bdmRate > 0) ? ` (${fmtBDM(toBDM(sched.totalReinvest))})` : '';
+        const rp = (App.reinvestCalendar && inv) ? reinvestProfitForEvent(inv, e) : null;
+        const showReinv = !!(rp && rp.periodIndex >= 2);
+        const reinvBdm = (showReinv && inv.showInBDM && App.bdmRate > 0) ? ` (${fmtBDM(toBDM(rp.netProfit))})` : '';
         const freqLabel = { monthly: 'Mensal', bimonthly: 'Bimestral', quarterly: 'Trimestral', semiannual: 'Semestral', at_maturity: 'No Vencimento', custom: 'Personalizado' };
         return `<div class="rounded-lg border ${e.isLastPayment ? 'border-error/30' : 'border-white/6'} mb-2 overflow-hidden">
       <div class="txn-row flex items-center justify-between p-3" onclick="toggleTxnDetails('mob-${e.id}')">
@@ -3048,7 +3197,7 @@
           <div><span class="text-secondary/50">Frequência:</span> <span class="font-semibold text-on-surface">${freqLabel[inv.frequency] || inv.frequency}</span></div>
           <div><span class="text-secondary/50">Duração:</span> <span class="font-semibold text-on-surface">${inv.durationMonths} meses</span></div>
           ${e.isLastPayment ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-white/8"><span class="text-secondary/50">Total:</span> <span class="font-bold text-on-surface">Lucro ${fmtBRL(e.amount)}${isBDMEvtM ? ` (líq. ${fmtBRL(profitBRLevt(e))})` : ''} + Capital ${fmtBRL(e.principalReturn || 0)}</span></div>` : ''}
-          ${sched ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-primary/20"><span class="text-secondary/50">Com reinvestimento no vencimento:</span> <span class="font-bold text-primary">${fmtBRL(sched.totalReinvest)}${reinvBdm}</span></div>` : ''}
+          ${showReinv ? `<div class="col-span-2 mt-1 pt-1.5 border-t border-primary/20"><span class="text-secondary/50">Se reinvestir os recebimentos anteriores:</span> <span class="font-bold text-primary">${fmtBRL(rp.netProfit)}${reinvBdm}</span>${inv.showInBDM ? ' <span class="text-[9px] text-secondary/40">(−10% deságio)</span>' : ''}</div>` : ''}
         </div>` : ''}
       </div>
     </div>`;
@@ -3068,10 +3217,51 @@
     function showModal(id) {
       const el = document.getElementById(id);
       el.style.display = 'flex';
+      haptic(6);
+      if (window.innerWidth < 640) initBottomSheet(el);
     }
     function hideModal(id) {
       const el = document.getElementById(id);
       el.style.display = 'none';
+      const panel = el.querySelector('.glass-modal');
+      if (panel) panel.style.transform = '';
+    }
+
+    // No mobile: arrastar o painel para baixo fecha o modal. Adiciona uma alca visual.
+    function initBottomSheet(overlay) {
+      const panel = overlay.querySelector('.glass-modal');
+      if (!panel) return;
+      if (!panel.querySelector('.sheet-handle')) {
+        const h = document.createElement('div');
+        h.className = 'sheet-handle';
+        panel.insertBefore(h, panel.firstChild);
+      }
+      if (panel.dataset.sheetBound) return;
+      panel.dataset.sheetBound = '1';
+      let sy = 0, dy = 0, dragging = false;
+      panel.addEventListener('touchstart', (ev) => {
+        if (ev.touches.length !== 1 || panel.scrollTop > 0) { dragging = false; return; }
+        sy = ev.touches[0].clientY; dy = 0; dragging = true;
+        panel.classList.add('sheet-dragging');
+      }, { passive: true });
+      panel.addEventListener('touchmove', (ev) => {
+        if (!dragging) return;
+        dy = ev.touches[0].clientY - sy;
+        if (dy > 0) panel.style.transform = `translateY(${dy}px)`;
+      }, { passive: true });
+      panel.addEventListener('touchend', () => {
+        if (!dragging) return;
+        dragging = false;
+        panel.classList.remove('sheet-dragging');
+        if (dy > 110) {
+          haptic(10);
+          panel.style.transform = `translateY(100%)`;
+          const ov = panel.closest('[id^="modal-"]') || overlay;
+          setTimeout(() => { ov.style.display = 'none'; panel.style.transform = ''; }, 220);
+        } else {
+          panel.style.transform = '';
+        }
+      }, { passive: true });
     }
 
     // =========================================================
@@ -3152,6 +3342,7 @@
           await loadAllData();
           renderCalendar();
           closeInvestmentModal();
+          haptic(12);
           toast(editId ? 'Ativo atualizado!' : 'Ativo adicionado à carteira!', 'success');
         } catch (err) {
           showError('Erro ao salvar: ' + err.message);
@@ -3200,6 +3391,7 @@
         await loadAllData();
         renderCalendar();
         closeInvestmentModal();
+        haptic(12);
         toast(editId ? 'Investimento atualizado!' : `${evts.length} evento(s) gerado(s) no calendário!`, 'success');
       } catch (err) {
         showError('Erro ao salvar: ' + err.message);
@@ -3363,12 +3555,12 @@
     }
 
     // Lucro liquido nominal por mes (chave = meses a partir de agora). Fonte unica para
-    // grafico de projecao, projecao real (IPCA) e marcos. OFF: ciclo unico (patrimonio
-    // estaciona no vencimento). ON: compoe o principal no vencimento de cada ciclo.
+    // grafico de projecao, projecao real (IPCA) e marcos. OFF: lucro fixo durante a
+    // duracao original (patrimonio estaciona ao fim). ON: compoe o principal a cada
+    // recebimento (via BDMSchedule.compoundedPeriods).
     // spread=true distribui o lucro de cada periodo pelos meses do intervalo (usado nos
     // marcos, para previsao com granularidade mensal); o grafico usa spread=false (blocos).
     function buildProfitByMonth(totalMonths, reinvest, spread) {
-      const DES = BDMSchedule.WITHDRAWAL_DESAGIO;
       const base = new Date(); base.setDate(1); base.setHours(0, 0, 0, 0);
       const profitByMonth = {};
       const addPeriod = (payM, interval, amount) => {
@@ -3384,31 +3576,16 @@
       };
       for (const inv of App.investments) {
         if (!inv.startDate || !inv.durationMonths) continue;
-        const sched = BDMSchedule.computeSchedule(inv, { reinvest });
-        const eff = sched.applyDesagio ? DES : 0; // desagio so para ativos BDM
         const startDate = new Date(inv.startDate + 'T12:00:00');
-        let cycleStartM = (startDate.getFullYear() - base.getFullYear()) * 12 +
+        const cycleStartM = (startDate.getFullYear() - base.getFullYear()) * 12 +
           (startDate.getMonth() - base.getMonth());
-        let principal = inv.principal;
-
-        if (!reinvest) {
-          const netPer = principal * (inv.profitPercentage / 100) * (1 - eff);
-          for (let p = 1; p <= sched.numPeriods; p++) addPeriod(cycleStartM + p * sched.interval, sched.interval, netPer);
-          continue;
-        }
-
-        // Reinvestimento: compoe o principal no vencimento de cada ciclo usando lucro liquido
-        while (cycleStartM + inv.durationMonths <= 0) {
-          const netPer = principal * (inv.profitPercentage / 100) * (1 - eff);
-          principal += netPer * sched.numPeriods;
-          cycleStartM += inv.durationMonths;
-        }
-        while (cycleStartM < totalMonths) {
-          const netPer = principal * (inv.profitPercentage / 100) * (1 - eff);
-          for (let p = 1; p <= sched.numPeriods; p++) addPeriod(cycleStartM + p * sched.interval, sched.interval, netPer);
-          principal += netPer * sched.numPeriods;
-          cycleStartM += inv.durationMonths;
-        }
+        const interval = BDMSchedule.frequencyMonths(inv.frequency, inv.durationMonths, inv.customFrequencyMonths);
+        // reinvest: compoe continuamente ate cobrir o horizonte (a partir do inicio,
+        // inclusive periodos ja passados, que so compoem o principal). Sem reinvest:
+        // lucro fixo durante a duracao original (compoundedPeriods limita a numPeriods).
+        const horizon = reinvest ? (totalMonths - cycleStartM) : inv.durationMonths;
+        const periods = BDMSchedule.compoundedPeriods(inv, { reinvest, horizonMonths: horizon });
+        for (const pr of periods) addPeriod(cycleStartM + pr.monthOffset, interval, pr.netProfit);
       }
       return profitByMonth;
     }
@@ -3456,7 +3633,7 @@
 
       // Permanent notice: reinvestment assumption (condicional ao toggle)
       if (App.reinvestInsights) {
-        insights.push({ type: 'info', icon: 'autorenew', msg: 'Com reinvestimento ligado: ao vencer, cada ativo é reaplicado com o capital mais o lucro líquido (já com o deságio de 10% do saque). Gráfico e marcos refletem esse crescimento.' });
+        insights.push({ type: 'info', icon: 'autorenew', msg: 'Com reinvestimento ligado: cada recebimento periódico é reaplicado no mesmo investimento assim que cai, compondo o principal (o deságio de 10% só incide em ativos exibidos em cripto). Gráfico e marcos refletem esse crescimento.' });
       } else {
         insights.push({ type: 'info', icon: 'info', msg: 'Sem reinvestimento: o lucro de cada período é fixo sobre o valor investido. Os valores em reais já consideram o deságio de 10% no saque do lucro.' });
       }
@@ -3960,7 +4137,7 @@
       App.reinvestInsights = checked;
       const n = document.getElementById('reinvest-notice-text');
       if (n) n.textContent = checked
-        ? 'Cálculos consideram reinvestimento no vencimento'
+        ? 'Cálculos compõem o reinvestimento a cada recebimento'
         : 'Cálculos sem reinvestimento (lucro por período, sem composição)';
       renderInsights();
     }
@@ -5177,6 +5354,7 @@ Ativos de valorizacao (${ativos.length}): ${JSON.stringify(ativos)}`;
           await loadAllData();
           navigate('calendar');
           renderCalendar();
+          initPullToRefresh();
           document.querySelectorAll('input[type=range]').forEach(updateSliderTrack);
           updateCalc();
           document.getElementById('inv-start-date').value = new Date().toISOString().split('T')[0];
