@@ -3385,7 +3385,6 @@
     // spread=true distribui o lucro de cada periodo pelos meses do intervalo (usado nos
     // marcos, para previsao com granularidade mensal); o grafico usa spread=false (blocos).
     function buildProfitByMonth(totalMonths, reinvest, spread) {
-      const DES = BDMSchedule.WITHDRAWAL_DESAGIO;
       const base = new Date(); base.setDate(1); base.setHours(0, 0, 0, 0);
       const profitByMonth = {};
       const addPeriod = (payM, interval, amount) => {
@@ -3401,31 +3400,16 @@
       };
       for (const inv of App.investments) {
         if (!inv.startDate || !inv.durationMonths) continue;
-        const sched = BDMSchedule.computeSchedule(inv, { reinvest });
-        const eff = sched.applyDesagio ? DES : 0; // desagio so para ativos BDM
         const startDate = new Date(inv.startDate + 'T12:00:00');
-        let cycleStartM = (startDate.getFullYear() - base.getFullYear()) * 12 +
+        const cycleStartM = (startDate.getFullYear() - base.getFullYear()) * 12 +
           (startDate.getMonth() - base.getMonth());
-        let principal = inv.principal;
-
-        if (!reinvest) {
-          const netPer = principal * (inv.profitPercentage / 100) * (1 - eff);
-          for (let p = 1; p <= sched.numPeriods; p++) addPeriod(cycleStartM + p * sched.interval, sched.interval, netPer);
-          continue;
-        }
-
-        // Reinvestimento: compoe o principal no vencimento de cada ciclo usando lucro liquido
-        while (cycleStartM + inv.durationMonths <= 0) {
-          const netPer = principal * (inv.profitPercentage / 100) * (1 - eff);
-          principal += netPer * sched.numPeriods;
-          cycleStartM += inv.durationMonths;
-        }
-        while (cycleStartM < totalMonths) {
-          const netPer = principal * (inv.profitPercentage / 100) * (1 - eff);
-          for (let p = 1; p <= sched.numPeriods; p++) addPeriod(cycleStartM + p * sched.interval, sched.interval, netPer);
-          principal += netPer * sched.numPeriods;
-          cycleStartM += inv.durationMonths;
-        }
+        const interval = BDMSchedule.frequencyMonths(inv.frequency, inv.durationMonths, inv.customFrequencyMonths);
+        // reinvest: compoe continuamente ate cobrir o horizonte (a partir do inicio,
+        // inclusive periodos ja passados, que so compoem o principal). Sem reinvest:
+        // lucro fixo durante a duracao original (compoundedPeriods limita a numPeriods).
+        const horizon = reinvest ? (totalMonths - cycleStartM) : inv.durationMonths;
+        const periods = BDMSchedule.compoundedPeriods(inv, { reinvest, horizonMonths: horizon });
+        for (const pr of periods) addPeriod(cycleStartM + pr.monthOffset, interval, pr.netProfit);
       }
       return profitByMonth;
     }
