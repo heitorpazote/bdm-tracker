@@ -8,6 +8,8 @@
   <title>Cripto Tracker — Gestão de Investimentos</title>
   <script src="https://cdn.tailwindcss.com?plugins=container-queries"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/schedule.js"></script>
   <script src="js/gestures.js"></script>
@@ -1368,7 +1370,8 @@
                   Reinvestimento automático a cada recebimento
                 </span>
               </div>
-              <div class="flex gap-1 text-[11px]">
+              <div class="flex gap-1 text-[11px] items-center">
+                <button id="line-reset-zoom" onclick="resetChartZoom('line','line-reset-zoom')" class="hidden px-2 py-0.5 rounded text-amber-400 hover:bg-white/5" title="Resetar zoom">Resetar zoom</button>
                 <button onclick="setProjectionYears(2)"
                   class="proj-btn px-2 py-0.5 rounded text-secondary/60 hover:text-secondary" data-years="2">2a</button>
                 <button onclick="setProjectionYears(5)" class="proj-btn px-2 py-0.5 rounded bg-primary/10 text-primary"
@@ -1395,6 +1398,35 @@
             </div>
             <p class="text-[10px] text-secondary/50 mt-2">Os valores em reais já descontam o deságio de 10% que a
               plataforma cobra no saque do lucro. Valores exibidos em Cripto mostram o lucro cheio.</p>
+          </div>
+
+          <!-- Monthly profit projection chart -->
+          <div class="premium-card rounded-xl p-5 lg:col-span-3">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-sm font-semibold text-on-surface flex items-center gap-1">Projeção de Lucro Mensal<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Estimativa de quanto de lucro você recebe por mês ao longo do tempo. Com reinvestimento ativo, a renda mensal cresce conforme o principal é composto. Botões 2a–30a definem o horizonte; arraste/pinça para dar zoom.</span></span></h3>
+                <span class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[9px] font-semibold tracking-wide bg-primary/10 text-primary border border-primary/20">
+                  <span class="material-symbols-outlined text-[11px]" style="font-variation-settings:'FILL' 1,'wght' 400">autorenew</span>
+                  Reinvestimento automático a cada recebimento
+                </span>
+              </div>
+              <div class="flex gap-1 text-[11px] items-center">
+                <button id="monthly-reset-zoom" onclick="resetChartZoom('monthlyProfit','monthly-reset-zoom')" class="hidden px-2 py-0.5 rounded text-amber-400 hover:bg-white/5" title="Resetar zoom">Resetar zoom</button>
+                <button onclick="setProjectionYears(2)" class="proj-btn px-2 py-0.5 rounded text-secondary/60 hover:text-secondary" data-years="2">2a</button>
+                <button onclick="setProjectionYears(5)" class="proj-btn px-2 py-0.5 rounded bg-primary/10 text-primary" data-years="5">5a</button>
+                <button onclick="setProjectionYears(10)" class="proj-btn px-2 py-0.5 rounded text-secondary/60 hover:text-secondary" data-years="10">10a</button>
+                <button onclick="setProjectionYears(20)" class="proj-btn px-2 py-0.5 rounded text-secondary/60 hover:text-secondary" data-years="20">20a</button>
+                <button onclick="setProjectionYears(30)" class="proj-btn px-2 py-0.5 rounded text-secondary/60 hover:text-secondary" data-years="30">30a</button>
+              </div>
+            </div>
+            <div id="monthly-empty" class="flex-col items-center justify-center py-10 text-secondary/40" style="display:none">
+              <span class="material-symbols-outlined text-[40px] mb-2" style="font-variation-settings:'wght' 200">bar_chart</span>
+              <p class="text-xs">Adicione investimentos para ver as projeções</p>
+            </div>
+            <div id="monthly-wrap" style="height:200px">
+              <canvas id="monthly-profit-chart"></canvas>
+            </div>
+            <p class="text-[10px] text-secondary/50 mt-2">Lucro líquido estimado por mês (já com o deságio de 10% no saque, quando aplicável). A linha tracejada desconta o IPCA.</p>
           </div>
 
           <!-- Composition chart -->
@@ -3690,6 +3722,7 @@
         b.className = `proj-btn px-2 py-0.5 rounded text-[11px] ${parseInt(b.dataset.years) === y ? 'bg-primary/10 text-primary' : 'text-secondary/60 hover:text-secondary'}`;
       });
       renderLineChart();
+      renderMonthlyProfitChart();
     }
 
     function getRealAnnualYield() {
@@ -3743,6 +3776,7 @@
       renderDonutChart();
       renderCompositionChart();
       renderLineChart();
+      renderMonthlyProfitChart();
 
       // Rankings
       renderRankings();
@@ -3835,6 +3869,49 @@
       return { labels, data };
     }
 
+    // Renda mensal estimada "por volta do mes i": media do lucro mensal na janela (i, i+step].
+    // Amostrar um unico mes ao pular meses (step 3/6) distorceria; a media representa a renda
+    // mensal media daquele periodo. buildProfitByMonth nao popula o mes 0 (guard mm>0), entao
+    // o ponto inicial usa os proximos meses => bate com o KPI "lucro estimado mensal".
+    function _avgMonthlyProfit(profitByMonth, i, step, totalMonths) {
+      let sum = 0, n = 0;
+      for (let j = i + 1; j <= Math.min(i + step, totalMonths); j++) { sum += (profitByMonth[j] || 0); n++; }
+      return n > 0 ? sum / n : (profitByMonth[i] || 0); // ultimo ponto: usa o proprio mes
+    }
+
+    // Lucro liquido estimado por mes (NAO acumulado). Usa buildProfitByMonth com spread=true
+    // (distribui o lucro de cada periodo pelos meses do intervalo => renda mensal suave).
+    function getMonthlyProfitData(years) {
+      const totalMonths = years * 12;
+      const step = years <= 2 ? 1 : years <= 5 ? 3 : 6;
+      const base = new Date(); base.setDate(1); base.setHours(0, 0, 0, 0);
+      const profitByMonth = buildProfitByMonth(totalMonths, App.reinvestInsights, true);
+      const labels = [], data = [];
+      for (let i = 0; i <= totalMonths; i += step) {
+        const d = new Date(base); d.setMonth(d.getMonth() + i);
+        labels.push(d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }));
+        data.push(Math.round(_avgMonthlyProfit(profitByMonth, i, step, totalMonths)));
+      }
+      return { labels, data };
+    }
+
+    // Lucro mensal deflacionado pelo IPCA (poder de compra do mes i).
+    function getMonthlyProfitDataReal(years) {
+      const totalMonths = years * 12;
+      const step = years <= 2 ? 1 : years <= 5 ? 3 : 6;
+      const base = new Date(); base.setDate(1); base.setHours(0, 0, 0, 0);
+      const ipcaMonthly = Math.pow(1 + App.ipcaRate / 100, 1 / 12) - 1;
+      const profitByMonth = buildProfitByMonth(totalMonths, App.reinvestInsights, true);
+      const labels = [], data = [];
+      for (let i = 0; i <= totalMonths; i += step) {
+        const d = new Date(base); d.setMonth(d.getMonth() + i);
+        labels.push(d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }));
+        const deflator = ipcaMonthly > 0 ? Math.pow(1 + ipcaMonthly, i) : 1;
+        data.push(Math.round(_avgMonthlyProfit(profitByMonth, i, step, totalMonths) / deflator));
+      }
+      return { labels, data };
+    }
+
     function renderCompositionChart() {
       const card = document.getElementById('composition-card');
       const legendEl = document.getElementById('composition-legend');
@@ -3912,6 +3989,33 @@
       });
     }
 
+    // Config compartilhada de zoom/pan (eixo do tempo) para os graficos de projecao.
+    // Desktop: arrastar = selecionar area de zoom; Ctrl+roda = zoom. Mobile: pinca = zoom,
+    // arraste (1 dedo) = pan. resetBtnId: botao "Resetar zoom" exibido quando ha zoom/pan.
+    function _zoomOptions(resetBtnId) {
+      const showReset = () => { document.getElementById(resetBtnId)?.classList.remove('hidden'); };
+      // drag-zoom usa eventos de MOUSE (desktop: arrastar = caixa de zoom); pan usa o
+      // recognizer de toque do Hammer (mobile: 1 dedo = mover). Por isso ambos coexistem
+      // sem conflito: no desktop o arraste vira zoom; no touch (sem mouse) o arraste vira pan.
+      return {
+        pan: { enabled: true, mode: 'x', onPanComplete: showReset },
+        zoom: {
+          wheel: { enabled: true, modifierKey: 'ctrl' },
+          pinch: { enabled: true },
+          drag: { enabled: true },
+          mode: 'x',
+          onZoomComplete: showReset,
+        },
+      };
+    }
+
+    // Reseta o zoom de um grafico (App.charts[chartKey]) e oculta seu botao de reset.
+    function resetChartZoom(chartKey, resetBtnId) {
+      const ch = App.charts[chartKey];
+      if (ch && typeof ch.resetZoom === 'function') ch.resetZoom();
+      document.getElementById(resetBtnId)?.classList.add('hidden');
+    }
+
     function renderLineChart() {
       const lineWrap = document.getElementById('line-wrap');
       const lineEmpty = document.getElementById('line-empty');
@@ -3919,6 +4023,7 @@
       if (App.investments.length === 0) {
         lineWrap.style.display = 'none';
         lineEmpty.style.display = 'flex';
+        document.getElementById('line-reset-zoom')?.classList.add('hidden');
         return;
       }
       lineWrap.style.display = '';
@@ -3974,7 +4079,8 @@
             tooltip: {
               mode: 'index', intersect: false,
               callbacks: { label: c => ` ${c.dataset.label}: ${fmtBRL(c.raw)}` }
-            }
+            },
+            zoom: _zoomOptions('line-reset-zoom'),
           },
           scales: {
             x: { grid: { color: 'rgba(229,228,226,.05)' }, ticks: { color: '#99907c', font: { size: 10 }, maxTicksLimit: 8 } },
@@ -3983,6 +4089,84 @@
           animation: { duration: 600 },
         }
       });
+      document.getElementById('line-reset-zoom')?.classList.add('hidden');
+    }
+
+    function renderMonthlyProfitChart() {
+      const wrap = document.getElementById('monthly-wrap');
+      const empty = document.getElementById('monthly-empty');
+      if (!wrap || !empty) return;
+
+      if (App.investments.length === 0) {
+        wrap.style.display = 'none';
+        empty.style.display = 'flex';
+        document.getElementById('monthly-reset-zoom')?.classList.add('hidden');
+        return;
+      }
+      wrap.style.display = '';
+      empty.style.display = 'none';
+
+      const { labels, data } = getMonthlyProfitData(_projYears);
+      const ctx = document.getElementById('monthly-profit-chart').getContext('2d');
+      if (App.charts.monthlyProfit) App.charts.monthlyProfit.destroy();
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+      gradient.addColorStop(0, 'rgba(14,165,233,.25)');
+      gradient.addColorStop(1, 'rgba(14,165,233,0)');
+
+      const datasets = [{
+        label: 'Lucro mensal',
+        data,
+        borderColor: '#0EA5E9',
+        backgroundColor: gradient,
+        fill: true,
+        tension: 0,
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: '#38bdf8',
+        stepped: true,
+      }];
+
+      if (App.useIPCA) {
+        const { data: realData } = getMonthlyProfitDataReal(_projYears);
+        datasets.push({
+          label: 'Real (- IPCA)',
+          data: realData,
+          borderColor: 'rgba(99,179,237,.7)',
+          backgroundColor: 'transparent',
+          fill: false,
+          tension: 0,
+          borderWidth: 1.5,
+          borderDash: [5, 3],
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          stepped: true,
+          pointHoverBackgroundColor: '#90cdf4',
+        });
+      }
+
+      App.charts.monthlyProfit = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: App.useIPCA, labels: { color: '#99907c', font: { size: 10 }, boxWidth: 20 } },
+            tooltip: {
+              mode: 'index', intersect: false,
+              callbacks: { label: c => ` ${c.dataset.label}: ${fmtBRL(c.raw)}` }
+            },
+            zoom: _zoomOptions('monthly-reset-zoom'),
+          },
+          scales: {
+            x: { grid: { color: 'rgba(229,228,226,.05)' }, ticks: { color: '#99907c', font: { size: 10 }, maxTicksLimit: 8 } },
+            y: { grid: { color: 'rgba(229,228,226,.05)' }, ticks: { color: '#99907c', font: { size: 10 }, callback: v => v >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : v >= 1e3 ? (v / 1e3).toFixed(0) + 'k' : v } }
+          },
+          animation: { duration: 600 },
+        }
+      });
+      document.getElementById('monthly-reset-zoom')?.classList.add('hidden');
     }
 
     function renderRankings() {
