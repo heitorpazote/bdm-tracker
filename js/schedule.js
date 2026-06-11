@@ -79,11 +79,49 @@
     return out;
   }
 
+  // Metricas derivadas de um investimento PERIODICO, prontas para injetar no contexto
+  // do agente IA (o agente NAO recalcula — apenas le). Cenarios fixo + reinvestido.
+  // opts.ipcaRate em pontos percentuais (ex.: 5 = 5% a.a.). Puro, sem DOM.
+  // aprPct e a taxa NOMINAL anual (lucro mensal medio x 12, linear/simples), NAO composta —
+  // segue a convencao do app (getAvgAnnualYield). totalReinvested = ganho liquido acumulado
+  // no cenario "reinvestir a cada recebimento" (principalAfter final - principal).
+  function buildAIInvestmentMetrics(inv, opts) {
+    opts = opts || {};
+    var ipca = (opts.ipcaRate != null) ? opts.ipcaRate : 0;
+    var sched = computeSchedule(inv, {});
+    var reinv = compoundedPeriods(inv, { reinvest: true });
+    var totalReinvested = reinv.length
+      ? reinv[reinv.length - 1].principalAfter - inv.principal
+      : 0;
+    // Lucro mensal medio = total liquido / duracao (mesma convencao de getMonthlyIncomeEst
+    // no app), para que lucroMensalMedio/APR/renda batam com a tela Insights mesmo quando
+    // durationMonths nao e multiplo exato do intervalo.
+    var totalFixed = sched.netPerPeriod * sched.numPeriods;
+    var monthlyProfit = inv.durationMonths > 0 ? totalFixed / inv.durationMonths : 0;
+    var monthlyYieldPct = inv.principal > 0 ? (monthlyProfit / inv.principal) * 100 : 0;
+    var aprPct = monthlyYieldPct * 12;
+    var realYieldPct = ((1 + aprPct / 100) / (1 + ipca / 100) - 1) * 100;
+    return {
+      interval: sched.interval,
+      numPeriods: sched.numPeriods,
+      grossPerPeriod: sched.grossPerPeriod,
+      netPerPeriod: sched.netPerPeriod,
+      applyDesagio: sched.applyDesagio,
+      totalFixed: totalFixed,
+      totalReinvested: totalReinvested,
+      monthlyProfit: monthlyProfit,
+      monthlyYieldPct: monthlyYieldPct,
+      aprPct: aprPct,
+      realYieldPct: realYieldPct,
+    };
+  }
+
   var api = {
     WITHDRAWAL_DESAGIO: WITHDRAWAL_DESAGIO,
     frequencyMonths: frequencyMonths,
     computeSchedule: computeSchedule,
     compoundedPeriods: compoundedPeriods,
+    buildAIInvestmentMetrics: buildAIInvestmentMetrics,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.BDMSchedule = api;
