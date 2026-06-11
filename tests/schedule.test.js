@@ -80,3 +80,36 @@ test('compoundedPeriods reinvest respeita horizonMonths estendido', () => {
   assert.strictEqual(ps.length, 6); // 24/4
   assert.strictEqual(ps[5].monthOffset, 24);
 });
+
+const { buildAIInvestmentMetrics } = require('../js/schedule.js');
+
+test('buildAIInvestmentMetrics: investimento so em R$ (sem desagio)', () => {
+  const m = buildAIInvestmentMetrics(invBRL, { ipcaRate: 5 });
+  assert.strictEqual(m.interval, 4);
+  assert.strictEqual(m.numPeriods, 3);
+  near(m.grossPerPeriod, 280);
+  near(m.netPerPeriod, 280);
+  assert.strictEqual(m.applyDesagio, false);
+  near(m.totalFixed, 840);            // 280 * 3
+  near(m.totalReinvested, 1097.152);  // principalAfter final (2097.152) - 1000
+  near(m.monthlyProfit, 70);          // 280 / 4
+  near(m.monthlyYieldPct, 7);         // 70 / 1000 * 100
+  near(m.aprPct, 84);                 // 7 * 12
+  near(m.realYieldPct, 75.2380952381); // (1.84/1.05 - 1) * 100
+});
+
+test('buildAIInvestmentMetrics: ativo BDM (desagio 10%)', () => {
+  const m = buildAIInvestmentMetrics(invBDM, { ipcaRate: 5 });
+  assert.strictEqual(m.applyDesagio, true);
+  near(m.netPerPeriod, 252);          // 280 - 10%
+  near(m.totalFixed, 756);            // 252 * 3
+  near(m.totalReinvested, 962.515008);// principalAfter final (1962.515008) - 1000
+  near(m.monthlyProfit, 63);          // 252 / 4
+  near(m.aprPct, 75.6);               // 6.3 * 12
+  near(m.realYieldPct, 67.2380952381);// (1.756/1.05 - 1) * 100
+});
+
+test('buildAIInvestmentMetrics: ipcaRate ausente trata como 0', () => {
+  const m = buildAIInvestmentMetrics(invBRL, {});
+  near(m.realYieldPct, 84); // (1.84/1.0 - 1) * 100
+});

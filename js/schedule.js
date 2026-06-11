@@ -79,11 +79,42 @@
     return out;
   }
 
+  // Metricas derivadas de um investimento PERIODICO, prontas para injetar no contexto
+  // do agente IA (o agente NAO recalcula — apenas le). Cenarios fixo + reinvestido.
+  // opts.ipcaRate em pontos percentuais (ex.: 5 = 5% a.a.). Puro, sem DOM.
+  function buildAIInvestmentMetrics(inv, opts) {
+    opts = opts || {};
+    var ipca = (opts.ipcaRate != null) ? opts.ipcaRate : 0;
+    var sched = computeSchedule(inv, {});
+    var reinv = compoundedPeriods(inv, { reinvest: true });
+    var totalReinvested = reinv.length
+      ? reinv[reinv.length - 1].principalAfter - inv.principal
+      : 0;
+    var monthlyProfit = sched.interval > 0 ? sched.netPerPeriod / sched.interval : 0;
+    var monthlyYieldPct = inv.principal > 0 ? (monthlyProfit / inv.principal) * 100 : 0;
+    var aprPct = monthlyYieldPct * 12;
+    var realYieldPct = ((1 + aprPct / 100) / (1 + ipca / 100) - 1) * 100;
+    return {
+      interval: sched.interval,
+      numPeriods: sched.numPeriods,
+      grossPerPeriod: sched.grossPerPeriod,
+      netPerPeriod: sched.netPerPeriod,
+      applyDesagio: sched.applyDesagio,
+      totalFixed: sched.netPerPeriod * sched.numPeriods,
+      totalReinvested: totalReinvested,
+      monthlyProfit: monthlyProfit,
+      monthlyYieldPct: monthlyYieldPct,
+      aprPct: aprPct,
+      realYieldPct: realYieldPct,
+    };
+  }
+
   var api = {
     WITHDRAWAL_DESAGIO: WITHDRAWAL_DESAGIO,
     frequencyMonths: frequencyMonths,
     computeSchedule: computeSchedule,
     compoundedPeriods: compoundedPeriods,
+    buildAIInvestmentMetrics: buildAIInvestmentMetrics,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.BDMSchedule = api;
