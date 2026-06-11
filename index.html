@@ -868,6 +868,10 @@
     .glass-modal { transition: transform .25s ease; }
     #day-preview { position:fixed; z-index:150; max-width:240px; pointer-events:none; opacity:0; transform:scale(.96); transition:opacity .12s ease, transform .12s ease; }
     #day-preview.show { opacity:1; transform:scale(1); }
+    #ptr { position:fixed; top:0; left:50%; transform:translate(-50%, -48px); z-index:140; transition:transform .18s ease; }
+    #ptr .ptr-spin { width:28px; height:28px; border-radius:9999px; border:2px solid rgba(255,255,255,.2); border-top-color:#0EA5E9; }
+    #ptr.spin .ptr-spin { animation: ptrSpin .7s linear infinite; }
+    @keyframes ptrSpin { to { transform: rotate(360deg); } }
   </style>
 </head>
 
@@ -1780,6 +1784,8 @@
 
   </main><!-- end main -->
 
+  <div id="ptr" class="glass-modal rounded-full p-2"><div class="ptr-spin"></div></div>
+
   <div id="day-preview" class="glass-modal rounded-xl p-3 text-xs"></div>
 
   <!-- ===================================================================
@@ -2689,6 +2695,40 @@
         if (Math.abs(t.clientX - startX) > BDMGestures.TAP_MAX || Math.abs(t.clientY - startY) > BDMGestures.TAP_MAX) clear();
       }, { passive: true });
       grid.addEventListener('touchend', () => { clear(); setTimeout(hide, 1400); }, { passive: true });
+    }
+
+    // Pull-to-refresh: puxar para baixo no topo re-sincroniza o Supabase.
+    function initPullToRefresh() {
+      if (document.body.dataset.ptrBound) return;
+      document.body.dataset.ptrBound = '1';
+      const ptr = document.getElementById('ptr');
+      const scroller = document.scrollingElement || document.documentElement;
+      let sy = 0, dy = 0, active = false, refreshing = false;
+      window.addEventListener('touchstart', (ev) => {
+        if (refreshing || ev.touches.length !== 1 || scroller.scrollTop > 0) { active = false; return; }
+        sy = ev.touches[0].clientY; dy = 0; active = true;
+      }, { passive: true });
+      window.addEventListener('touchmove', (ev) => {
+        if (!active) return;
+        dy = ev.touches[0].clientY - sy;
+        if (dy > 0) ptr.style.transform = `translate(-50%, ${Math.min(dy - 48, 56)}px)`;
+      }, { passive: true });
+      window.addEventListener('touchend', async () => {
+        if (!active) return;
+        active = false;
+        if (dy > 90) {
+          refreshing = true;
+          haptic(12);
+          ptr.classList.add('spin');
+          ptr.style.transform = 'translate(-50%, 16px)';
+          try { await loadAllData(); } catch (_) {}
+          ptr.classList.remove('spin');
+          ptr.style.transform = 'translate(-50%, -48px)';
+          refreshing = false;
+        } else {
+          ptr.style.transform = 'translate(-50%, -48px)';
+        }
+      }, { passive: true });
     }
 
     // Lucro liquido COMPOSTO deste evento, supondo reinvestimento dos recebimentos
@@ -5307,6 +5347,7 @@ Ativos de valorizacao (${ativos.length}): ${JSON.stringify(ativos)}`;
           await loadAllData();
           navigate('calendar');
           renderCalendar();
+          initPullToRefresh();
           document.querySelectorAll('input[type=range]').forEach(updateSliderTrack);
           updateCalc();
           document.getElementById('inv-start-date').value = new Date().toISOString().split('T')[0];
