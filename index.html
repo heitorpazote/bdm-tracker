@@ -8,6 +8,8 @@
   <title>Cripto Tracker — Gestão de Investimentos</title>
   <script src="https://cdn.tailwindcss.com?plugins=container-queries"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/schedule.js"></script>
   <script src="js/gestures.js"></script>
@@ -1368,7 +1370,8 @@
                   Reinvestimento automático a cada recebimento
                 </span>
               </div>
-              <div class="flex gap-1 text-[11px]">
+              <div class="flex gap-1 text-[11px] items-center">
+                <button id="line-reset-zoom" onclick="resetChartZoom('line','line-reset-zoom')" class="hidden px-2 py-0.5 rounded text-amber-400 hover:bg-white/5" title="Resetar zoom">Resetar zoom</button>
                 <button onclick="setProjectionYears(2)"
                   class="proj-btn px-2 py-0.5 rounded text-secondary/60 hover:text-secondary" data-years="2">2a</button>
                 <button onclick="setProjectionYears(5)" class="proj-btn px-2 py-0.5 rounded bg-primary/10 text-primary"
@@ -3912,6 +3915,30 @@
       });
     }
 
+    // Config compartilhada de zoom/pan (eixo do tempo) para os graficos de projecao.
+    // Desktop: arrastar = selecionar area de zoom; Ctrl+roda = zoom. Mobile: pinca = zoom,
+    // arraste (1 dedo) = pan. resetBtnId: botao "Resetar zoom" exibido quando ha zoom/pan.
+    function _zoomOptions(resetBtnId) {
+      const showReset = () => { document.getElementById(resetBtnId)?.classList.remove('hidden'); };
+      return {
+        pan: { enabled: true, mode: 'x', onPanComplete: showReset },
+        zoom: {
+          wheel: { enabled: true, modifierKey: 'ctrl' },
+          pinch: { enabled: true },
+          drag: { enabled: true },
+          mode: 'x',
+          onZoomComplete: showReset,
+        },
+      };
+    }
+
+    // Reseta o zoom de um grafico (App.charts[chartKey]) e oculta seu botao de reset.
+    function resetChartZoom(chartKey, resetBtnId) {
+      const ch = App.charts[chartKey];
+      if (ch && typeof ch.resetZoom === 'function') ch.resetZoom();
+      document.getElementById(resetBtnId)?.classList.add('hidden');
+    }
+
     function renderLineChart() {
       const lineWrap = document.getElementById('line-wrap');
       const lineEmpty = document.getElementById('line-empty');
@@ -3974,7 +4001,8 @@
             tooltip: {
               mode: 'index', intersect: false,
               callbacks: { label: c => ` ${c.dataset.label}: ${fmtBRL(c.raw)}` }
-            }
+            },
+            zoom: _zoomOptions('line-reset-zoom'),
           },
           scales: {
             x: { grid: { color: 'rgba(229,228,226,.05)' }, ticks: { color: '#99907c', font: { size: 10 }, maxTicksLimit: 8 } },
@@ -3983,6 +4011,7 @@
           animation: { duration: 600 },
         }
       });
+      document.getElementById('line-reset-zoom')?.classList.add('hidden');
     }
 
     function renderRankings() {
