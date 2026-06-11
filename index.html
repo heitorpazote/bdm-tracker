@@ -4523,7 +4523,9 @@ Estado atual do app (investimentos, ativos, categorias, cotação Cripto, IPCA) 
     }
 
     function _buildContext() {
-      const todayStr = new Date().toISOString().split('T')[0];
+      // Mesma convencao de data local dos eventos (dateKey) — evita off-by-one por fuso
+      // ao comparar com App.events[].date (status/proximoPagamento).
+      const todayStr = dateKey(new Date());
       const fmt = (n) => (Math.round(n * 100) / 100).toFixed(2);
 
       // Próximo pagamento e status vêm de App.events (mesma fonte do Calendário).
@@ -4538,15 +4540,20 @@ Estado atual do app (investimentos, ativos, categorias, cotação Cripto, IPCA) 
         return evts.length > 0 && evts.every(e => e.date < todayStr);
       };
 
+      // Acumula valores numericos brutos para os agregados (formata uma unica vez no fim,
+      // evitando erro de arredondamento por item e dupla iteracao sobre App.investments).
+      let rendaMensalEstimada = 0;
       const periodicos = App.investments.filter(i => i.type !== 'asset').map(i => {
         const m = BDMSchedule.buildAIInvestmentMetrics(i, { ipcaRate: App.ipcaRate });
         const next = nextPaymentFor(i.id);
+        const status = isFinished(i.id) ? 'finalizado' : 'ativo';
+        if (status === 'ativo') rendaMensalEstimada += m.monthlyProfit;
         return {
           id: i.id, name: i.name, principal: i.principal,
           profitPercentage: i.profitPercentage, frequency: i.frequency,
           durationMonths: i.durationMonths, startDate: i.startDate,
           showInBDM: i.showInBDM, categoryId: i.categoryId,
-          status: isFinished(i.id) ? 'finalizado' : 'ativo',
+          status: status,
           intervaloMeses: m.interval,
           numPeriodos: m.numPeriods,
           lucroBrutoPorPeriodo: fmt(m.grossPerPeriod),
@@ -4561,23 +4568,23 @@ Estado atual do app (investimentos, ativos, categorias, cotação Cripto, IPCA) 
         };
       });
 
-      const ativos = App.investments.filter(i => i.type === 'asset').map(i => ({
-        id: i.id, name: i.name, type: 'asset',
-        valorUnitario: i.unitValue, quantidade: i.quantity,
-        valorDeMercado: fmt((i.unitValue || 0) * (i.quantity || 0)),
-        showInBDM: i.showInBDM, categoryId: i.categoryId,
-      }));
+      let patrimonioAtivos = 0;
+      const ativos = App.investments.filter(i => i.type === 'asset').map(i => {
+        const mercado = (i.unitValue || 0) * (i.quantity || 0);
+        patrimonioAtivos += mercado;
+        return {
+          id: i.id, name: i.name, type: 'asset',
+          valorUnitario: i.unitValue, quantidade: i.quantity,
+          valorDeMercado: fmt(mercado),
+          showInBDM: i.showInBDM, categoryId: i.categoryId,
+        };
+      });
 
       const cats = App.categories.map(c => ({ id: c.id, name: c.name }));
 
       // Agregados da carteira
       const patrimonioPeriodicos = periodicos.reduce((s, p) => s + p.principal, 0);
-      const patrimonioAtivos = App.investments.filter(i => i.type === 'asset')
-        .reduce((s, i) => s + (i.unitValue || 0) * (i.quantity || 0), 0);
       const patrimonioTotal = patrimonioPeriodicos + patrimonioAtivos;
-      const rendaMensalEstimada = periodicos
-        .filter(p => p.status === 'ativo')
-        .reduce((s, p) => s + parseFloat(p.lucroMensalMedio), 0);
 
       return `[ESTADO DO APP — ${todayStr}]
 Cotacao Cripto: R$ ${App.bdmRate > 0 ? App.bdmRate.toFixed(2) : 'N/A'}
