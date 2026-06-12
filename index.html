@@ -1311,10 +1311,10 @@
           </div>
         </div>
 
-        <!-- Charts Row -->
-        <div class="grid grid-cols-1 lg:grid-cols-7 gap-4 mb-6">
+        <!-- Charts Row 1: Distribuição + Projeção Patrimonial -->
+        <div class="flex flex-col lg:flex-row gap-4 mb-4 items-stretch">
           <!-- Donut chart -->
-          <div class="premium-card rounded-xl p-5 lg:col-span-2">
+          <div class="premium-card rounded-xl p-5 lg:flex-1 lg:max-w-[360px]">
             <h3 class="text-sm font-semibold text-on-surface mb-4 flex items-center gap-1">Distribuição da Carteira<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Como o capital está dividido entre as categorias de investimento que você criou.</span></span></h3>
             <div id="donut-empty" class="flex-col items-center justify-center py-10 text-secondary/40"
               style="display:none">
@@ -1333,7 +1333,7 @@
           </div>
 
           <!-- Line chart -->
-          <div class="premium-card rounded-xl p-5 lg:col-span-3">
+          <div class="premium-card rounded-xl p-5 lg:flex-[2.2] lg:min-w-0">
             <div class="flex items-center justify-between mb-4">
               <div>
                 <h3 class="text-sm font-semibold text-on-surface flex items-center gap-1">Projeção Patrimonial<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Simulação de crescimento do patrimônio ao longo do tempo. Com reinvestimento ativo, o lucro de cada recebimento é composto. Selecione o horizonte com os botões 2a–30a.</span></span></h3>
@@ -1373,9 +1373,12 @@
             <p class="text-[10px] text-secondary/50 mt-2">Os valores em reais já descontam o deságio de 10% que a
               plataforma cobra no saque do lucro. Valores exibidos em Cripto mostram o lucro cheio.</p>
           </div>
+        </div>
 
+        <!-- Charts Row 2: Composição + Projeção de Lucro Mensal -->
+        <div class="flex flex-col lg:flex-row gap-4 mb-6 items-stretch">
           <!-- Monthly profit projection chart -->
-          <div class="premium-card rounded-xl p-5 lg:col-span-3">
+          <div class="premium-card rounded-xl p-5 lg:flex-[2.2] lg:min-w-0 lg:order-2">
             <div class="flex items-center justify-between mb-4">
               <div>
                 <h3 class="text-sm font-semibold text-on-surface flex items-center gap-1">Projeção de Lucro Mensal<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Estimativa de quanto de lucro você recebe por mês ao longo do tempo. Com reinvestimento ativo, a renda mensal cresce conforme o principal é composto. Botões 2a–30a definem o horizonte; arraste/pinça para dar zoom.</span></span></h3>
@@ -1404,7 +1407,7 @@
           </div>
 
           <!-- Composition chart -->
-          <div id="composition-card" class="hidden premium-card rounded-xl p-5 lg:col-span-2">
+          <div id="composition-card" class="hidden premium-card rounded-xl p-5 lg:flex-1 lg:max-w-[360px] lg:order-1">
             <h3 class="text-sm font-semibold text-on-surface mb-4">Composição da Carteira</h3>
             <div class="relative flex items-center justify-center" style="height:180px">
               <canvas id="composition-chart"></canvas>
@@ -3715,7 +3718,11 @@
         // reinvest: compoe continuamente ate cobrir o horizonte (a partir do inicio,
         // inclusive periodos ja passados, que so compoem o principal). Sem reinvest:
         // lucro fixo durante a duracao original (compoundedPeriods limita a numPeriods).
-        const horizon = reinvest ? (totalMonths - cycleStartM) : inv.durationMonths;
+        // +interval no reinvest: gera o periodo que pagaria logo apos o horizonte para que,
+        // com spread (renda mensal), seu rateio retroativo preencha os ultimos meses — sem
+        // isso a cauda fica "faminta" e o grafico de lucro mensal cai no fim do periodo.
+        // No acumulado (spread=false) esse periodo extra paga depois do horizonte e e ignorado.
+        const horizon = reinvest ? (totalMonths - cycleStartM + interval) : inv.durationMonths;
         const periods = BDMSchedule.compoundedPeriods(inv, { reinvest, horizonMonths: horizon });
         for (const pr of periods) addPeriod(cycleStartM + pr.monthOffset, interval, pr.netProfit);
       }
