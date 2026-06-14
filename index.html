@@ -47,7 +47,20 @@
     body {
       background-color: #09090b;
       color: #eae1d4;
-      font-family: 'Inter', sans-serif
+      font-family: 'Inter', sans-serif;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      user-select: none;
+    }
+
+    input, textarea, select {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    .ai-msg-bubble {
+      -webkit-user-select: text;
+      user-select: text;
     }
 
     ::-webkit-scrollbar {
@@ -606,6 +619,16 @@
       display: block;
     }
 
+    .auth-success {
+      background: rgba(72, 187, 120, .15);
+      border: 1px solid rgba(72, 187, 120, .3);
+      color: #9ae6b4;
+      border-radius: .75rem;
+      padding: .75rem 1rem;
+      font-size: 13px;
+      display: block;
+    }
+
     .auth-submit-btn {
       width: 100%;
       padding: .875rem;
@@ -959,7 +982,7 @@
         class="w-8 h-8 rounded-full glass-panel flex items-center justify-center text-secondary/50 hover:text-primary transition-colors">
         <span class="material-symbols-outlined text-[17px]" style="font-variation-settings:'wght' 300">settings</span>
       </button>
-      <button onclick="signOut()" title="Sair"
+      <button onclick="confirmSignOut()" title="Sair"
         class="w-8 h-8 rounded-full glass-panel flex items-center justify-center text-secondary/50 hover:text-error transition-colors">
         <span class="material-symbols-outlined text-[17px]" style="font-variation-settings:'wght' 300">logout</span>
       </button>
@@ -1113,7 +1136,7 @@
       <span class="material-symbols-outlined text-[16px] text-secondary/40"
         style="font-variation-settings:'wght' 300">person</span>
       <span id="sidebar-user-email" class="text-[11px] text-secondary/50 flex-1 truncate">—</span>
-      <button onclick="signOut()" title="Sair"
+      <button onclick="confirmSignOut()" title="Sair"
         class="text-secondary/30 hover:text-error transition-colors flex-shrink-0">
         <span class="material-symbols-outlined text-[16px]" style="font-variation-settings:'wght' 300">logout</span>
       </button>
@@ -1979,8 +2002,10 @@
         <div class="flex gap-3 pt-2">
           <button type="button" onclick="closeInvestmentModal()"
             class="flex-1 py-3 rounded-xl border border-outline-variant/40 text-secondary text-sm font-medium hover:bg-white/5 transition-colors">Cancelar</button>
-          <button type="submit"
-            class="flex-1 py-3 rounded-xl bg-primary text-on-primary text-sm font-bold gold-glow transition-all active:scale-[.98]">Salvar</button>
+          <button type="submit" id="inv-save-btn"
+            class="flex-1 py-3 rounded-xl bg-primary text-on-primary text-sm font-bold gold-glow transition-all active:scale-[.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100">
+            <span id="inv-save-label">Salvar</span>
+          </button>
         </div>
       </form>
     </div>
@@ -2163,11 +2188,18 @@
     function showAuthError(msg) {
       const el = document.getElementById('auth-error');
       el.textContent = msg;
-      el.classList.add('visible');
+      el.className = 'auth-error visible';
+    }
+
+    function showAuthSuccess(msg) {
+      const el = document.getElementById('auth-error');
+      el.textContent = msg;
+      el.className = 'auth-success';
     }
 
     function clearAuthError() {
-      document.getElementById('auth-error').classList.remove('visible');
+      const el = document.getElementById('auth-error');
+      el.className = 'auth-error';
     }
 
     function setAuthLoading(loading) {
@@ -2222,8 +2254,8 @@
       if (data.session && data.user) {
         await onAuthSuccess(data.user, remember);
       } else if (data.user && !data.session) {
-        // Email confirmation still active (fallback message)
-        throw new Error('Cadastro realizado! Verifique seu e-mail para confirmar o acesso.');
+        // Email confirmation pending — show as success, not error
+        showAuthSuccess('Cadastro realizado! Verifique seu e-mail para confirmar o acesso.');
       }
     }
 
@@ -2233,7 +2265,13 @@
       await onAuthSuccess(data.user, remember);
     }
 
+    function confirmSignOut() {
+      if (!confirm('Deseja sair da sua conta?')) return;
+      signOut();
+    }
+
     async function signOut() {
+      clearAIChat();
       await sb.auth.signOut();
       App.currentUser = null;
       App.investments = [];
@@ -3073,8 +3111,8 @@
 
     function renderAgenda() {
       const list = document.getElementById('agenda-list');
-      const now = new Date(); now.setHours(0, 0, 0, 0);
-      const future = App.events.filter(e => new Date(e.date) >= now).sort((a, b) => a.date.localeCompare(b.date));
+      const todayStr = dateKey(new Date());
+      const future = App.events.filter(e => e.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date));
 
       if (future.length === 0) {
         list.innerHTML = `<div class="text-center py-16 text-secondary/40">
@@ -3160,10 +3198,11 @@
 
       renderDetailPanel(dk);
 
-      // On mobile, open modal
+      // On mobile, open modal or show feedback
       if (window.innerWidth < 1024) {
         const evts = App.events.filter(e => e.date === dk);
         if (evts.length > 0) openDayModal(dk, evts);
+        else toast('Sem recebimentos neste dia.', 'info');
       }
     }
 
@@ -3435,6 +3474,12 @@
     }
 
     let _savingInvestment = false;
+    function _setInvSaveLoading(loading) {
+      const btn = document.getElementById('inv-save-btn');
+      const lbl = document.getElementById('inv-save-label');
+      if (btn) btn.disabled = loading;
+      if (lbl) lbl.textContent = loading ? 'Salvando...' : 'Salvar';
+    }
     async function saveInvestment(e) {
       e.preventDefault();
       if (_savingInvestment) return;
@@ -3471,6 +3516,7 @@
           quantity,
         };
         _savingInvestment = true;
+        _setInvSaveLoading(true);
         try {
           if (editId) await deleteInvestmentEvents(editId);
           await dbPutInvestment(inv);
@@ -3483,6 +3529,7 @@
           showError('Erro ao salvar: ' + err.message);
         } finally {
           _savingInvestment = false;
+          _setInvSaveLoading(false);
         }
         return;
       }
@@ -3518,6 +3565,7 @@
       };
 
       _savingInvestment = true;
+      _setInvSaveLoading(true);
       try {
         if (editId) await deleteInvestmentEvents(editId);
         await dbPutInvestment(inv);
@@ -3532,6 +3580,7 @@
         showError('Erro ao salvar: ' + err.message);
       } finally {
         _savingInvestment = false;
+        _setInvSaveLoading(false);
       }
     }
 
@@ -3636,6 +3685,7 @@
       await loadAllData();
       renderCategoryList();
       renderCalendar();
+      if (App.currentScreen === 'insights') renderInsights();
       toast('Categoria excluida.', 'info');
     }
 
@@ -3645,12 +3695,16 @@
     function getTotalPatrimony() { return App.investments.reduce((s, i) => s + i.principal, 0); }
 
     function getMonthlyIncomeEst() {
+      const todayStr = dateKey(new Date());
       let total = 0;
       for (const inv of App.investments) {
         if (inv.type === 'asset') continue;
         if (!inv.durationMonths) continue;
+        // Skip investments where every event is already in the past
+        const evts = App.events.filter(e => e.investmentId === inv.id);
+        if (evts.length > 0 && evts.every(e => e.date < todayStr)) continue;
         const s = BDMSchedule.computeSchedule(inv, {});
-        total += (s.netPerPeriod * s.numPeriods) / inv.durationMonths; // lucro liquido medio por mes
+        total += (s.netPerPeriod * s.numPeriods) / inv.durationMonths;
       }
       return total;
     }
@@ -4420,11 +4474,13 @@
         : 'IPCA desativado — projeção sem correção inflacionária';
     }
 
+    let _ipcaSaveTimer = null;
     function updateIPCA(val) {
       App.ipcaRate = parseFloat(val) || 5.0;
-      saveSettings();
       syncIpcaUI();
       if (App.currentScreen === 'insights') renderInsights();
+      clearTimeout(_ipcaSaveTimer);
+      _ipcaSaveTimer = setTimeout(saveSettings, 800);
     }
 
     function toggleIPCA(checked) {
