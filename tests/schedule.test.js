@@ -125,3 +125,46 @@ test('buildAIInvestmentMetrics: lucro mensal usa total/duracao (duracao nao-mult
   near(m.monthlyYieldPct, 5.6); // 56 / 1000 * 100
   near(m.aprPct, 67.2);        // 5.6 * 12
 });
+
+// ---- simulateCalculator (calculadora no modelo do app) ----
+const { simulateCalculator } = require('../js/schedule.js');
+
+test('simulateCalculator: sem reinvest e sem aporte = lucro linear', () => {
+  // 1000 a 10%/mês por 12 meses, sacando: 12 × 100 = 1200 de lucro
+  const s = simulateCalculator({ principal: 1000, ratePct: 10, intervalMonths: 1, totalMonths: 12, monthlyContribution: 0, reinvest: false, desagio: false });
+  assert.strictEqual(s.finalValue, 2200);
+  assert.strictEqual(s.netProfit, 1200);
+  assert.strictEqual(s.totalInvested, 1000);
+  assert.strictEqual(s.series.length, 13);
+  assert.strictEqual(s.series[0].value, 1000);
+  assert.strictEqual(s.series[12].value, 2200);
+});
+
+test('simulateCalculator: com reinvest = juros compostos por período', () => {
+  // 1000 a 10% por período de 4 meses, 12 meses = 3 períodos: 1000×1.1³ = 1331
+  const s = simulateCalculator({ principal: 1000, ratePct: 10, intervalMonths: 4, totalMonths: 12, monthlyContribution: 0, reinvest: true, desagio: false });
+  assert.ok(Math.abs(s.finalValue - 1331) < 1e-9);
+  assert.ok(Math.abs(s.netProfit - 331) < 1e-9);
+});
+
+test('simulateCalculator: deságio de 10% reduz o lucro sacado', () => {
+  // Sem reinvest: lucro líquido por período = 100 × 0.9 = 90; 12 períodos = 1080
+  const s = simulateCalculator({ principal: 1000, ratePct: 10, intervalMonths: 1, totalMonths: 12, monthlyContribution: 0, reinvest: false, desagio: true });
+  assert.ok(Math.abs(s.finalValue - 2080) < 1e-9);
+  // totalProfit permanece bruto
+  assert.ok(Math.abs(s.totalProfit - 1200) < 1e-9);
+});
+
+test('simulateCalculator: aporte mensal rende só a partir do período seguinte', () => {
+  // mês 1: lucro 10% de 1000 = 100 (sacado); depois aporte de 500 entra
+  // mês 2: lucro 10% de 1500 = 150
+  const s = simulateCalculator({ principal: 1000, ratePct: 10, intervalMonths: 1, totalMonths: 2, monthlyContribution: 500, reinvest: false, desagio: false });
+  assert.strictEqual(s.totalInvested, 2000);
+  // finalValue = principal (1000+500+500) + sacado (100+150) = 2250
+  assert.strictEqual(s.finalValue, 2250);
+});
+
+test('simulateCalculator: série patrimonial cresce mês a mês com aporte', () => {
+  const s = simulateCalculator({ principal: 1000, ratePct: 0, intervalMonths: 1, totalMonths: 3, monthlyContribution: 100, reinvest: true, desagio: false });
+  assert.deepStrictEqual(s.series.map(p => p.value), [1000, 1100, 1200, 1300]);
+});

@@ -116,12 +116,56 @@
     };
   }
 
+  // Simulador da Calculadora, no MESMO modelo do app: lucro fixo (ratePct) sobre o
+  // principal a cada intervalMonths; reinvest compoe o lucro no principal a cada
+  // recebimento (como compoundedPeriods); desagio aplica WITHDRAWAL_DESAGIO sobre o
+  // lucro (taxa de saque BDM). Aporte mensal entra no fim do mes — rende so a partir
+  // do periodo seguinte. series[m].value = visao patrimonial (principal + sacado).
+  function simulateCalculator(opts) {
+    opts = opts || {};
+    var principal = opts.principal || 0;
+    var rate = (opts.ratePct || 0) / 100;
+    var interval = Math.max(1, opts.intervalMonths || 1);
+    var totalMonths = Math.max(1, opts.totalMonths || 1);
+    var monthly = opts.monthlyContribution || 0;
+    var reinvest = !!opts.reinvest;
+    var desFactor = 1 - (opts.desagio ? WITHDRAWAL_DESAGIO : 0);
+
+    var withdrawn = 0;
+    var invested = principal;
+    var grossTotal = 0;
+    var series = [{ month: 0, value: principal }];
+
+    for (var m = 1; m <= totalMonths; m++) {
+      if (m % interval === 0) {
+        var gross = principal * rate;
+        grossTotal += gross;
+        var net = gross * desFactor;
+        if (reinvest) principal += net; else withdrawn += net;
+      }
+      principal += monthly;
+      invested += monthly;
+      series.push({ month: m, value: principal + withdrawn });
+    }
+    // O ultimo aporte do loop nao rendeu nem devia contar como "resultado":
+    // ele acabou de entrar. Mantemos no principal (patrimonio), como no app.
+    var finalValue = principal + withdrawn;
+    return {
+      finalValue: finalValue,
+      totalProfit: grossTotal,
+      netProfit: finalValue - invested,
+      totalInvested: invested,
+      series: series,
+    };
+  }
+
   var api = {
     WITHDRAWAL_DESAGIO: WITHDRAWAL_DESAGIO,
     frequencyMonths: frequencyMonths,
     computeSchedule: computeSchedule,
     compoundedPeriods: compoundedPeriods,
     buildAIInvestmentMetrics: buildAIInvestmentMetrics,
+    simulateCalculator: simulateCalculator,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.BDMSchedule = api;
