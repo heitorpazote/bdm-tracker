@@ -2486,6 +2486,7 @@
         amount: parseFloat(r.amount),
         principalReturn: parseFloat(r.principal_return || 0),
         isLastPayment: r.is_last_payment,
+        received: !!r.received,
       };
     }
 
@@ -2498,6 +2499,7 @@
         amount: ev.amount,
         principal_return: ev.principalReturn || 0,
         is_last_payment: ev.isLastPayment || false,
+        received: ev.received || false,
       };
     }
 
@@ -2524,6 +2526,11 @@
     async function dbPutEvents(evts) {
       if (evts.length === 0) return;
       const { error } = await sb.from('events').upsert(evts.map(mapEventToDB));
+      if (error) throw new Error(error.message);
+    }
+
+    async function dbPutEvent(ev) {
+      const { error } = await sb.from('events').upsert(mapEventToDB(ev));
       if (error) throw new Error(error.message);
     }
 
@@ -2676,6 +2683,14 @@
 
     async function deleteInvestmentEvents(invId) {
       await dbDeleteEventsByInvestment(invId);
+    }
+
+    // Editar um investimento apaga e regenera os eventos; sem isto as confirmacoes
+    // de recebimento se perderiam. Reaplica received nos novos eventos por data.
+    function _carryReceived(oldEvents, newEvents) {
+      const receivedByDate = new Set(oldEvents.filter(e => e.received).map(e => e.date));
+      for (const ev of newEvents) if (receivedByDate.has(ev.date)) ev.received = true;
+      return newEvents;
     }
 
     // =========================================================
@@ -3667,9 +3682,10 @@
       try {
         // Grava o investimento ANTES de mexer nos eventos: se algo falhar no meio,
         // a edicao nao se perde (salvar de novo regenera o calendario).
+        const oldEvts = editId ? App.events.filter(ev => ev.investmentId === editId) : [];
         await dbPutInvestment(inv);
         if (editId) await deleteInvestmentEvents(editId);
-        const evts = generateEvents(inv);
+        const evts = _carryReceived(oldEvts, generateEvents(inv));
         await dbPutEvents(evts);
         await loadAllData();
         renderCalendar();
@@ -5321,9 +5337,10 @@ Ativos de valorizacao (${ativos.length}): ${JSON.stringify(ativos)}`;
         };
         // Investimento primeiro, eventos depois (mesma ordem de saveInvestment):
         // falha no meio nao perde a edicao nem deixa exclusao sem gravacao.
+        const oldEvts = App.events.filter(ev => ev.investmentId === data.id);
         await dbPutInvestment(inv);
         await deleteInvestmentEvents(data.id);
-        const evts = generateEvents(inv);
+        const evts = _carryReceived(oldEvts, generateEvents(inv));
         await dbPutEvents(evts);
         await loadAllData();
         renderCalendar();
