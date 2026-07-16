@@ -13,6 +13,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/schedule.js"></script>
   <script src="js/gestures.js"></script>
+  <script src="js/exporter.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
     rel="stylesheet" />
@@ -1892,6 +1893,48 @@
           </div>
           <p id="ipca-status-label" class="text-[10px] text-secondary/50 mt-2">Considerando inflação na projeção patrimonial</p>
         </div>
+
+        <!-- Dados: exportação e backup -->
+        <div class="premium-card rounded-xl p-5 mb-4">
+          <h3 class="text-sm font-semibold text-on-surface mb-1">Dados</h3>
+          <div class="flex items-center justify-between border-t border-white/5 pt-4 mt-3 gap-3">
+            <div class="min-w-0">
+              <div class="text-sm font-medium text-on-surface">Exportar investimentos (CSV)</div>
+              <p class="text-[11px] text-secondary/60 mt-0.5">Planilha com todos os investimentos e ativos. Abre no Excel.</p>
+            </div>
+            <button type="button" onclick="exportInvestmentsCSV()"
+              class="flex-shrink-0 text-xs font-semibold text-primary bg-primary/10 border border-primary/20 rounded-lg px-3 py-2 hover:bg-primary/20 transition-colors flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[16px]">download</span>Baixar</button>
+          </div>
+          <div class="flex items-center justify-between border-t border-white/5 pt-4 mt-4 gap-3">
+            <div class="min-w-0">
+              <div class="text-sm font-medium text-on-surface">Exportar eventos (CSV)</div>
+              <p class="text-[11px] text-secondary/60 mt-0.5">Todos os recebimentos do calendário, com o status de conciliação.</p>
+            </div>
+            <button type="button" onclick="exportEventsCSV()"
+              class="flex-shrink-0 text-xs font-semibold text-primary bg-primary/10 border border-primary/20 rounded-lg px-3 py-2 hover:bg-primary/20 transition-colors flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[16px]">download</span>Baixar</button>
+          </div>
+          <div class="flex items-center justify-between border-t border-white/5 pt-4 mt-4 gap-3">
+            <div class="min-w-0">
+              <div class="text-sm font-medium text-on-surface">Backup completo (JSON)</div>
+              <p class="text-[11px] text-secondary/60 mt-0.5">Arquivo com tudo: investimentos, categorias, eventos e configurações. Guarde em local seguro.</p>
+            </div>
+            <button type="button" onclick="downloadBackup()"
+              class="flex-shrink-0 text-xs font-semibold text-primary bg-primary/10 border border-primary/20 rounded-lg px-3 py-2 hover:bg-primary/20 transition-colors flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[16px]">cloud_download</span>Baixar</button>
+          </div>
+          <div class="flex items-center justify-between border-t border-white/5 pt-4 mt-4 gap-3">
+            <div class="min-w-0">
+              <div class="text-sm font-medium text-on-surface">Restaurar backup</div>
+              <p class="text-[11px] text-secondary/60 mt-0.5"><span class="text-[#F59E0B] font-semibold">Substitui todos os dados atuais</span> pelos do arquivo de backup.</p>
+            </div>
+            <label class="flex-shrink-0 cursor-pointer text-xs font-semibold text-[#F59E0B] bg-[#F59E0B]/10 border border-[#F59E0B]/20 rounded-lg px-3 py-2 hover:bg-[#F59E0B]/20 transition-colors flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[16px]">settings_backup_restore</span>Restaurar
+              <input type="file" accept=".json,application/json" class="hidden" onchange="restoreBackupFile(this)" />
+            </label>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2572,6 +2615,103 @@
       if (!uid) return;
       const { error } = await sb.from('settings').upsert({ user_id: uid, bdm_rate: App.bdmRate, ipca_rate: App.ipcaRate, use_ipca: App.useIPCA });
       if (error) toast('Erro ao salvar configurações: ' + error.message, 'error');
+    }
+
+    // =========================================================
+    // EXPORTAÇÃO / BACKUP (tela Configurações > Dados)
+    // =========================================================
+    function _downloadFile(name, content, mime) {
+      const blob = new Blob([content], { type: mime });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    }
+
+    function exportInvestmentsCSV() {
+      _downloadFile(`bdm-investimentos-${dateKey(new Date())}.csv`,
+        BDMExporter.investmentsToCSV(App.investments, App.categories), 'text/csv;charset=utf-8');
+      toast('CSV de investimentos gerado.');
+    }
+
+    function exportEventsCSV() {
+      _downloadFile(`bdm-eventos-${dateKey(new Date())}.csv`,
+        BDMExporter.eventsToCSV(App.events, App.investments), 'text/csv;charset=utf-8');
+      toast('CSV de eventos gerado.');
+    }
+
+    function downloadBackup() {
+      const backup = BDMExporter.buildBackup({
+        investments: App.investments,
+        categories: App.categories,
+        events: App.events,
+        settings: { bdmRate: App.bdmRate, ipcaRate: App.ipcaRate, useIPCA: App.useIPCA },
+      });
+      _downloadFile(`bdm-backup-${dateKey(new Date())}.json`, JSON.stringify(backup, null, 2), 'application/json');
+      toast('Backup gerado. Guarde o arquivo em local seguro.');
+    }
+
+    async function restoreBackupFile(input) {
+      const file = input.files && input.files[0];
+      input.value = ''; // permite escolher o mesmo arquivo de novo
+      if (!file) return;
+
+      let data;
+      try { data = JSON.parse(await file.text()); }
+      catch { toast('Arquivo inválido: não é um JSON.', 'error'); return; }
+
+      const v = BDMExporter.validateBackup(data);
+      if (!v.ok) { toast(v.error, 'error'); return; }
+
+      const when = data.exportedAt ? new Date(data.exportedAt).toLocaleDateString('pt-BR') : 'data desconhecida';
+      const ok = await confirmDialog(
+        `Restaurar backup de ${when} (${data.investments.length} investimento(s), ${data.categories.length} categoria(s), ${data.events.length} evento(s))? Isso SUBSTITUI todos os dados atuais.`,
+        { title: 'Restaurar backup', confirmText: 'Substituir tudo', danger: true });
+      if (!ok) return;
+
+      const userId = getUserId();
+      if (!userId) { toast('Sessão expirada. Entre novamente.', 'error'); return; }
+      try {
+        // Apaga tudo do usuario (eventos primeiro, por dependerem de investments)...
+        let r = await sb.from('events').delete().eq('user_id', userId);
+        if (r.error) throw new Error(r.error.message);
+        r = await sb.from('investments').delete().eq('user_id', userId);
+        if (r.error) throw new Error(r.error.message);
+        r = await sb.from('categories').delete().eq('user_id', userId);
+        if (r.error) throw new Error(r.error.message);
+        // ...e insere na ordem inversa, com user_id remapeado para o usuario atual.
+        if (data.categories.length) {
+          r = await sb.from('categories').insert(data.categories.map(c => ({ id: c.id, name: c.name, color: c.color, user_id: userId })));
+          if (r.error) throw new Error(r.error.message);
+        }
+        if (data.investments.length) {
+          r = await sb.from('investments').insert(data.investments.map(mapInvestmentToDB));
+          if (r.error) throw new Error(r.error.message);
+        }
+        if (data.events.length) {
+          r = await sb.from('events').insert(data.events.map(mapEventToDB));
+          if (r.error) throw new Error(r.error.message);
+        }
+        if (data.settings && typeof data.settings === 'object') {
+          if (typeof data.settings.bdmRate === 'number') App.bdmRate = data.settings.bdmRate;
+          if (typeof data.settings.ipcaRate === 'number') App.ipcaRate = data.settings.ipcaRate;
+          if (typeof data.settings.useIPCA === 'boolean') App.useIPCA = data.settings.useIPCA;
+          await saveSettings();
+        }
+        await loadAllData();
+        renderCalendar();
+        if (App.currentScreen === 'insights') renderInsights();
+        haptic(12);
+        toast('Backup restaurado com sucesso!');
+      } catch (err) {
+        // A restauracao substitui tudo; em caso de falha parcial, restaurar de novo resolve.
+        toast('Erro ao restaurar: ' + err.message + ' — tente restaurar o arquivo novamente.', 'error');
+        await loadAllData();
+        renderCalendar();
+      }
     }
 
     // =========================================================
