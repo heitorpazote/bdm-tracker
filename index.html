@@ -1357,7 +1357,7 @@
 
           <!-- Line chart -->
           <div class="premium-card rounded-xl p-5 lg:flex-[2.2] lg:min-w-0">
-            <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center justify-between mb-4 flex-wrap gap-y-2">
               <div>
                 <h3 class="text-sm font-semibold text-on-surface flex items-center gap-1">Projeção Patrimonial<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Simulação de crescimento do patrimônio ao longo do tempo. Com reinvestimento ativo, o lucro de cada recebimento é composto. Selecione o horizonte com os botões 2a–30a.</span></span></h3>
                 <span
@@ -1367,7 +1367,7 @@
                   Reinvestimento automático a cada recebimento
                 </span>
               </div>
-              <div class="flex gap-1 text-[11px] items-center">
+              <div class="flex gap-1 text-[11px] items-center flex-wrap">
                 <button id="line-reset-zoom" onclick="resetChartZoom('line','line-reset-zoom')" class="hidden px-2 py-0.5 rounded text-amber-400 hover:bg-white/5" title="Resetar zoom">Resetar zoom</button>
                 <button onclick="setProjectionYears(2)"
                   class="proj-btn px-2 py-0.5 rounded text-secondary/60 hover:text-secondary" data-years="2">2a</button>
@@ -1402,7 +1402,7 @@
         <div class="flex flex-col lg:flex-row gap-4 mb-6 items-stretch">
           <!-- Monthly profit projection chart -->
           <div class="premium-card rounded-xl p-5 lg:flex-[2.2] lg:min-w-0 lg:order-2">
-            <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center justify-between mb-4 flex-wrap gap-y-2">
               <div>
                 <h3 class="text-sm font-semibold text-on-surface flex items-center gap-1">Projeção de Lucro Mensal<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Estimativa de quanto de lucro você recebe por mês ao longo do tempo. Com reinvestimento ativo, a renda mensal cresce conforme o principal é composto. Botões 2a–30a definem o horizonte; arraste/pinça para dar zoom.</span></span></h3>
                 <span class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[9px] font-semibold tracking-wide bg-primary/10 text-primary border border-primary/20">
@@ -1410,7 +1410,7 @@
                   Reinvestimento automático a cada recebimento
                 </span>
               </div>
-              <div class="flex gap-1 text-[11px] items-center">
+              <div class="flex gap-1 text-[11px] items-center flex-wrap">
                 <button id="monthly-reset-zoom" onclick="resetChartZoom('monthlyProfit','monthly-reset-zoom')" class="hidden px-2 py-0.5 rounded text-amber-400 hover:bg-white/5" title="Resetar zoom">Resetar zoom</button>
                 <button onclick="setProjectionYears(2)" class="proj-btn px-2 py-0.5 rounded text-secondary/60 hover:text-secondary" data-years="2">2a</button>
                 <button onclick="setProjectionYears(5)" class="proj-btn px-2 py-0.5 rounded bg-primary/10 text-primary" data-years="5">5a</button>
@@ -2160,7 +2160,6 @@
       calView: 'month',
       calDate: new Date(),
       selectedDate: null,
-      projectionYears: 5,
       charts: { donut: null, line: null, calc: null, composition: null },
       editingInvestmentId: null,
       reinvestInsights: true,
@@ -2326,7 +2325,7 @@
       document.querySelectorAll('input[type=range]').forEach(updateSliderTrack);
       updateCalc();
       const dateEl = document.getElementById('inv-start-date');
-      if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+      if (dateEl) dateEl.value = dateKey(new Date());
     }
 
     function translateAuthError(msg) {
@@ -2337,6 +2336,32 @@
       if (msg.includes('Unable to validate email address')) return 'E-mail invalido.';
       if (msg.includes('rate limit')) return 'Muitas tentativas. Aguarde um momento e tente novamente.';
       return msg;
+    }
+
+    // Canal entre abas (BroadcastChannel): permite a uma aba NOVA detectar que outra aba
+    // do app esta logada. Sem isso, no modo "nao lembrar" abrir uma 2a aba derrubava a
+    // sessao global (signOut) inclusive da 1a aba.
+    let _tabChannel = null;
+    function _initTabChannel() {
+      if (typeof BroadcastChannel === 'undefined' || _tabChannel) return;
+      try {
+        _tabChannel = new BroadcastChannel('bdm_tabs');
+        _tabChannel.onmessage = (e) => {
+          if (e.data === 'ping' && App.currentUser) _tabChannel.postMessage('alive');
+        };
+      } catch { }
+    }
+    function _pingOtherTabs(timeoutMs = 300) {
+      return new Promise(resolve => {
+        if (typeof BroadcastChannel === 'undefined') return resolve(false);
+        let ch;
+        try { ch = new BroadcastChannel('bdm_tabs'); } catch { return resolve(false); }
+        const timer = setTimeout(() => { ch.close(); resolve(false); }, timeoutMs);
+        ch.onmessage = (e) => {
+          if (e.data === 'alive') { clearTimeout(timer); ch.close(); resolve(true); }
+        };
+        ch.postMessage('ping');
+      });
     }
 
     async function checkSession() {
@@ -2352,6 +2377,12 @@
       if (remember === '0') {
         const tabActive = sessionStorage.getItem('bdm_tab_active');
         if (!tabActive) {
+          // Outra aba do app aberta e logada? Entao NAO e um "fechou e reabriu":
+          // adota a sessao nesta aba em vez de deslogar todas.
+          if (await _pingOtherTabs()) {
+            sessionStorage.setItem('bdm_tab_active', '1');
+            return user;
+          }
           await sb.auth.signOut();
           localStorage.removeItem('bdm_remember');
           return null;
@@ -2376,6 +2407,15 @@
         sb.from('events').select('*').eq('user_id', uid),
         sb.from('settings').select('*').eq('user_id', uid).maybeSingle(),
       ]);
+
+      // Falha de rede/servidor: preserva o estado local e avisa. Sem este guard, uma
+      // query com erro zerava App.investments e a carteira aparecia vazia sem aviso.
+      const loadErr = invRes.error || catRes.error || evtRes.error || setRes.error;
+      if (loadErr) {
+        toast('Erro ao sincronizar com o servidor. Verifique sua conexão.', 'error');
+        console.error('loadAllData:', loadErr);
+        return;
+      }
 
       App.investments = (invRes.data || []).map(mapInvestmentFromDB);
       App.categories = catRes.data || [];
@@ -2495,7 +2535,8 @@
     async function saveSettings() {
       const uid = getUserId();
       if (!uid) return;
-      await sb.from('settings').upsert({ user_id: uid, bdm_rate: App.bdmRate, ipca_rate: App.ipcaRate, use_ipca: App.useIPCA });
+      const { error } = await sb.from('settings').upsert({ user_id: uid, bdm_rate: App.bdmRate, ipca_rate: App.ipcaRate, use_ipca: App.useIPCA });
+      if (error) toast('Erro ao salvar configurações: ' + error.message, 'error');
     }
 
     // =========================================================
@@ -2520,8 +2561,14 @@
     }
 
     function addMonths(d, n) {
+      // Clampa o dia ao ultimo dia do mes alvo: setMonth puro estoura o mes quando o dia
+      // nao existe (31/01 + 1 mes virava 03/03, pulando fevereiro inteiro no calendario).
       const r = new Date(d);
+      const day = r.getDate();
+      r.setDate(1);
       r.setMonth(r.getMonth() + n);
+      const last = new Date(r.getFullYear(), r.getMonth() + 1, 0).getDate();
+      r.setDate(Math.min(day, last));
       return r;
     }
 
@@ -2552,6 +2599,15 @@
       }
     }
 
+    // Campos do modo inativo ficam DISABLED (saem da validação do browser, que bloquearia
+    // o submit por campos ocultos inválidos) em vez de apagados — alternar de aba e voltar
+    // preserva o que o usuário digitou.
+    const _periodicFieldIds = ['inv-principal', 'inv-profit-pct', 'inv-start-date', 'inv-frequency', 'inv-duration', 'inv-custom-freq-months'];
+    const _assetFieldIds = ['inv-unit-value', 'inv-quantity'];
+    function _setFieldsDisabled(ids, disabled) {
+      ids.forEach(id => { const el = document.getElementById(id); if (el) el.disabled = disabled; });
+    }
+
     function switchInvestmentType(type) {
       document.getElementById('inv-type').value = type;
       const periodic = document.getElementById('inv-periodic-fields');
@@ -2566,16 +2622,8 @@
         tabA.classList.remove('text-secondary/60');
         tabP.classList.remove('bg-primary/10', 'text-primary');
         tabP.classList.add('text-secondary/60');
-        document.getElementById('inv-principal').removeAttribute('required');
-        document.getElementById('inv-profit-pct').removeAttribute('required');
-        document.getElementById('inv-start-date').removeAttribute('required');
-        document.getElementById('inv-frequency').removeAttribute('required');
-        document.getElementById('inv-duration').removeAttribute('required');
-        // Limpar valores para que o browser não dispare validação de min/step em campos ocultos
-        document.getElementById('inv-principal').value = '';
-        document.getElementById('inv-profit-pct').value = '';
-        document.getElementById('inv-start-date').value = '';
-        document.getElementById('inv-duration').value = '';
+        _setFieldsDisabled(_periodicFieldIds, true);
+        _setFieldsDisabled(_assetFieldIds, false);
       } else {
         periodic.classList.remove('hidden');
         asset.classList.add('hidden');
@@ -2583,11 +2631,8 @@
         tabP.classList.remove('text-secondary/60');
         tabA.classList.remove('bg-primary/10', 'text-primary');
         tabA.classList.add('text-secondary/60');
-        document.getElementById('inv-principal').setAttribute('required', '');
-        document.getElementById('inv-profit-pct').setAttribute('required', '');
-        document.getElementById('inv-start-date').setAttribute('required', '');
-        document.getElementById('inv-frequency').setAttribute('required', '');
-        document.getElementById('inv-duration').setAttribute('required', '');
+        _setFieldsDisabled(_periodicFieldIds, false);
+        _setFieldsDisabled(_assetFieldIds, true);
       }
     }
 
@@ -2603,11 +2648,15 @@
       const end = addMonths(start, inv.durationMonths);
       const interval = frequencyMonths(inv.frequency, inv.durationMonths, inv.customFrequencyMonths);
 
-      let cur = addMonths(start, interval);
       const profitAmt = inv.principal * (inv.profitPercentage / 100); // bruto, fixo por periodo
 
+      // Datas ancoradas na data de inicio (k x intervalo), nao encadeadas evento a evento:
+      // evita drift quando o dia sofre clamp de fim de mes (inicio dia 31 -> fev 28 -> mar 31).
+      let k = 1;
+      let cur = addMonths(start, interval);
       while (cur <= end) {
-        const isLast = addMonths(cur, interval) > end || dateKey(cur) === dateKey(end);
+        const next = addMonths(start, (k + 1) * interval);
+        const isLast = next > end || dateKey(cur) === dateKey(end);
 
         events.push({
           id: uid(),
@@ -2619,7 +2668,8 @@
         });
 
         if (isLast) break;
-        cur = addMonths(cur, interval);
+        k++;
+        cur = next;
       }
       return events;
     }
@@ -2810,7 +2860,7 @@
           const d = new Date(dk + 'T12:00:00');
           const rows = evts.map(e => {
             const inv = App.investments.find(i => i.id === e.investmentId);
-            return `<div class="flex justify-between gap-3"><span class="text-secondary/70">${inv ? inv.name : '—'}</span><span class="font-bold text-primary tabular-nums">+${fmtBRL(e.amount + (e.principalReturn || 0))}</span></div>`;
+            return `<div class="flex justify-between gap-3"><span class="text-secondary/70">${inv ? _escHtml(inv.name) : '—'}</span><span class="font-bold text-primary tabular-nums">+${fmtBRL(e.amount + (e.principalReturn || 0))}</span></div>`;
           }).join('');
           pop.innerHTML = `<div class="font-semibold text-on-surface mb-1.5">${d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}</div>${rows}`;
           const r = cell.getBoundingClientRect();
@@ -3188,7 +3238,7 @@
             <div class="w-2 h-2 rounded-full flex-shrink-0" style="background:${color}"></div>
             <div class="min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-xs text-on-surface font-medium">${inv ? inv.name : '—'}</span>
+                <span class="text-xs text-on-surface font-medium">${inv ? _escHtml(inv.name) : '—'}</span>
                 ${e.isLastPayment ? '<span class="text-[9px] text-error bg-error/10 px-1.5 py-0.5 rounded-full font-semibold">ÚLTIMO</span>' : ''}
               </div>
               ${e.isLastPayment && e.principalReturn > 0 ? `<div class="text-[10px] text-secondary/50 mt-0.5">Lucro: ${fmtBRL(e.amount)}${isBDMEvtAg ? ` · líq. ${fmtBRL(profitBRLevt(e))}` : ''} · Capital: ${fmtBRL(e.principalReturn)}</div>` : ''}
@@ -3292,7 +3342,7 @@
               <span class="material-symbols-outlined text-[14px]" style="color:${color};font-variation-settings:'wght' 300">${e.isLastPayment ? 'payments' : 'arrow_downward'}</span>
             </div>
             <div>
-              <div class="text-xs font-semibold text-on-surface">${inv ? inv.name : '—'}</div>
+              <div class="text-xs font-semibold text-on-surface">${inv ? _escHtml(inv.name) : '—'}</div>
               ${e.isLastPayment ? '<div class="text-[10px] text-error font-semibold">Vencimento — devolvido</div>' : ''}
             </div>
           </div>
@@ -3370,7 +3420,7 @@
         <div class="flex items-center gap-2">
           <div class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:${color}"></div>
           <div>
-            <div class="text-sm font-semibold text-on-surface">${inv ? inv.name : '—'}</div>
+            <div class="text-sm font-semibold text-on-surface">${inv ? _escHtml(inv.name) : '—'}</div>
             ${e.isLastPayment ? '<div class="text-xs text-error font-semibold">Vencimento</div>' : ''}
           </div>
         </div>
@@ -3424,6 +3474,9 @@
     // mobile/in-app (retorna falsy sem exibir dialogo). Retorna Promise<boolean>.
     let _confirmResolve = null;
     function confirmDialog(message, opts = {}) {
+      // Se ja houver uma confirmacao pendente, resolve-a como cancelada antes de
+      // reutilizar o modal (senao a Promise anterior ficaria pendente para sempre).
+      if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
       const { title = 'Confirmar', confirmText = 'Confirmar', cancelText = 'Cancelar', danger = false } = opts;
       document.getElementById('confirm-title').textContent = title;
       document.getElementById('confirm-message').textContent = message;
@@ -3489,7 +3542,7 @@
       document.getElementById('modal-inv-title').textContent = t === 'asset' ? 'Novo Ativo' : 'Novo Investimento';
       document.getElementById('form-investment').reset();
       document.getElementById('inv-edit-id').value = '';
-      document.getElementById('inv-start-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('inv-start-date').value = dateKey(new Date());
       document.getElementById('inv-error').classList.add('hidden');
       document.getElementById('inv-custom-freq-wrap').classList.add('hidden');
       document.getElementById('inv-custom-freq-months').value = '';
@@ -3507,7 +3560,7 @@
       const sel = document.getElementById('inv-category');
       sel.innerHTML = '<option value="">— Sem Categoria —</option>';
       for (const cat of App.categories) {
-        sel.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
+        sel.innerHTML += `<option value="${_escHtml(cat.id)}">${_escHtml(cat.name)}</option>`;
       }
       if (App.editingInvestmentId) {
         const inv = App.investments.find(i => i.id === App.editingInvestmentId);
@@ -3547,7 +3600,7 @@
           name, categoryId,
           principal: unitValue * quantity,
           profitPercentage: 0,
-          startDate: new Date().toISOString().slice(0, 10),
+          startDate: dateKey(new Date()),
           frequency: 'at_maturity',
           durationMonths: 0,
           customFrequencyMonths: null,
@@ -3560,8 +3613,11 @@
         _savingInvestment = true;
         _setInvSaveLoading(true);
         try {
-          if (editId) await deleteInvestmentEvents(editId);
+          // Grava o investimento ANTES de mexer nos eventos: se algo falhar no meio,
+          // a edicao do usuario nao se perde (pior caso: eventos antigos ficam e o
+          // erro e exibido — salvar de novo resolve).
           await dbPutInvestment(inv);
+          if (editId) await deleteInvestmentEvents(editId);
           await loadAllData();
           renderCalendar();
           closeInvestmentModal();
@@ -3609,8 +3665,10 @@
       _savingInvestment = true;
       _setInvSaveLoading(true);
       try {
-        if (editId) await deleteInvestmentEvents(editId);
+        // Grava o investimento ANTES de mexer nos eventos: se algo falhar no meio,
+        // a edicao nao se perde (salvar de novo regenera o calendario).
         await dbPutInvestment(inv);
+        if (editId) await deleteInvestmentEvents(editId);
         const evts = generateEvents(inv);
         await dbPutEvents(evts);
         await loadAllData();
@@ -3634,12 +3692,16 @@
 
     async function deleteInvestment(invId) {
       if (!await confirmDialog('Tem certeza que deseja excluir este investimento e todos os seus eventos?', { title: 'Excluir investimento', confirmText: 'Excluir', danger: true })) return;
-      await deleteInvestmentEvents(invId);
-      await dbDeleteInvestment(invId);
-      await loadAllData();
-      renderCalendar();
-      if (App.currentScreen === 'insights') renderInsights();
-      toast('Investimento excluido.', 'info');
+      try {
+        await deleteInvestmentEvents(invId);
+        await dbDeleteInvestment(invId);
+        await loadAllData();
+        renderCalendar();
+        if (App.currentScreen === 'insights') renderInsights();
+        toast('Investimento excluido.', 'info');
+      } catch (err) {
+        toast('Erro ao excluir: ' + err.message, 'error');
+      }
     }
 
     function editInvestment(invId) {
@@ -3694,8 +3756,8 @@
       }
       el.innerHTML = App.categories.map(cat => `
     <div class="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 transition-colors">
-      <div class="w-5 h-5 rounded flex-shrink-0 border border-white/20" style="background:${cat.color}"></div>
-      <span class="text-sm text-on-surface flex-1">${cat.name}</span>
+      <div class="w-5 h-5 rounded flex-shrink-0 border border-white/20" style="background:${_escHtml(cat.color)}"></div>
+      <span class="text-sm text-on-surface flex-1">${_escHtml(cat.name)}</span>
       <button onclick="deleteCategory('${cat.id}')" class="text-secondary/40 hover:text-error transition-colors">
         <span class="material-symbols-outlined text-[16px]" style="font-variation-settings:'wght' 300">delete</span>
       </button>
@@ -3720,15 +3782,19 @@
 
     async function deleteCategory(catId) {
       if (!await confirmDialog('Excluir esta categoria? Os investimentos associados ficarão sem categoria.', { title: 'Excluir categoria', confirmText: 'Excluir', danger: true })) return;
-      await dbDeleteCategory(catId);
-      // Update investments that use this category
-      const affected = App.investments.filter(i => i.categoryId === catId);
-      for (const inv of affected) { inv.categoryId = null; await dbPutInvestment(inv); }
-      await loadAllData();
-      renderCategoryList();
-      renderCalendar();
-      if (App.currentScreen === 'insights') renderInsights();
-      toast('Categoria excluida.', 'info');
+      try {
+        await dbDeleteCategory(catId);
+        // Update investments that use this category
+        const affected = App.investments.filter(i => i.categoryId === catId);
+        for (const inv of affected) { inv.categoryId = null; await dbPutInvestment(inv); }
+        await loadAllData();
+        renderCategoryList();
+        renderCalendar();
+        if (App.currentScreen === 'insights') renderInsights();
+        toast('Categoria excluida.', 'info');
+      } catch (err) {
+        toast('Erro ao excluir categoria: ' + err.message, 'error');
+      }
     }
 
     // =========================================================
@@ -3769,16 +3835,17 @@
       return inv.principal > 0 ? (totalProfit / inv.principal) * 100 : 0;
     }
 
-    function calculateMilestone(target) {
+    // Mesma simulacao do grafico: acumula o lucro liquido mes a mes ate cruzar o alvo.
+    // Sem reinvestimento o patrimonio estaciona no vencimento (pode ser inatingivel).
+    // profitByMonth vem de fora (renderMilestones) para a simulacao de 100 anos rodar
+    // UMA vez e ser compartilhada pelos dois marcos (1M e 1B).
+    const MILESTONE_HORIZON = 1200; // 100 anos
+    function calculateMilestone(target, profitByMonth) {
       const val = getTotalPatrimony();
       if (val >= target) return 0;
-      if (val <= 0) return null;
-      // Mesma simulacao do grafico: acumula o lucro liquido mes a mes ate cruzar o alvo.
-      // Sem reinvestimento o patrimonio estaciona no vencimento (pode ser inatingivel).
-      const HORIZON = 1200; // 100 anos
-      const profitByMonth = buildProfitByMonth(HORIZON, App.reinvestInsights, true);
+      if (val <= 0 || !profitByMonth) return null;
       let cumulative = 0;
-      for (let mth = 1; mth <= HORIZON; mth++) {
+      for (let mth = 1; mth <= MILESTONE_HORIZON; mth++) {
         cumulative += (profitByMonth[mth] || 0);
         if (val + cumulative >= target) return mth;
       }
@@ -3888,9 +3955,12 @@
         }
       }
 
-      // Upcoming maturities
+      // Upcoming maturities — comparacao por string local (dateKey), nunca new Date(e.date):
+      // ISO parseia como UTC midnight e excluia vencimentos de "hoje" em fusos negativos.
+      const todayK = dateKey(new Date());
       const thirtyDays = new Date(); thirtyDays.setDate(thirtyDays.getDate() + 30);
-      const expiring = App.events.filter(e => e.isLastPayment && new Date(e.date) >= new Date() && new Date(e.date) <= thirtyDays);
+      const limitK = dateKey(thirtyDays);
+      const expiring = App.events.filter(e => e.isLastPayment && e.date >= todayK && e.date <= limitK);
       if (expiring.length > 0) {
         insights.push({ type: 'warn', icon: 'schedule', msg: `${expiring.length} investimento(s) vencem nos próximos 30 dias. Planeje o reinvestimento.` });
       }
@@ -4033,7 +4103,7 @@
         `<div class="flex items-center justify-between gap-2">
       <div class="flex items-center gap-2">
         <div class="w-2.5 h-2.5 rounded-sm flex-shrink-0" style="background:${d.color}"></div>
-        <span class="text-xs text-secondary truncate max-w-[120px]">${d.label}</span>
+        <span class="text-xs text-secondary truncate max-w-[120px]">${_escHtml(d.label)}</span>
       </div>
       <span class="text-xs font-semibold text-on-surface tabular-nums whitespace-nowrap">${NUM.format(d.pct)}%</span>
     </div>`).join('');
@@ -4391,7 +4461,7 @@
       <div class="flex-1 min-w-0">
         <div class="flex items-center justify-between mb-1">
           <div class="flex flex-col min-w-0">
-            <span class="text-xs font-semibold text-on-surface truncate">${item.inv.name}</span>
+            <span class="text-xs font-semibold text-on-surface truncate">${_escHtml(item.inv.name)}</span>
             <span class="text-[10px] text-secondary/50 tabular-nums">${fmtBRL(item.inv.principal)}</span>
           </div>
           <span class="text-xs font-bold ${item.roi >= 0 ? 'text-primary' : 'text-error'} tabular-nums ml-2 whitespace-nowrap">+${NUM.format(item.roi)}%</span>
@@ -4431,7 +4501,7 @@
       <div class="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-0.5" style="background:${color}"></div>
       <div class="flex-1 min-w-0">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold text-on-surface truncate">${inv.name}</span>
+          <span class="text-xs font-semibold text-on-surface truncate">${_escHtml(inv.name)}</span>
           <span class="text-xs font-bold text-primary tabular-nums ml-2 whitespace-nowrap">${fmtBRL(total)}</span>
         </div>
         <div class="flex items-center justify-between mt-0.5">
@@ -4453,8 +4523,11 @@
 
     function renderMilestones() {
       const patrimony = getTotalPatrimony();
-      const m1 = calculateMilestone(1_000_000);
-      const m1b = calculateMilestone(1_000_000_000);
+      const profitByMonth = patrimony > 0
+        ? buildProfitByMonth(MILESTONE_HORIZON, App.reinvestInsights, true)
+        : null;
+      const m1 = calculateMilestone(1_000_000, profitByMonth);
+      const m1b = calculateMilestone(1_000_000_000, profitByMonth);
 
       function fmtMonthsText(months) {
         if (months === null) return 'Inatingível no ritmo atual';
@@ -5183,7 +5256,7 @@ Ativos de valorizacao (${ativos.length}): ${JSON.stringify(ativos)}`;
           categoryId: data.categoryId || null,
           principal: parseFloat(data.principal) || 0,
           profitPercentage: parseFloat(data.profitPercentage) || 0,
-          startDate: data.startDate || new Date().toISOString().split('T')[0],
+          startDate: data.startDate || dateKey(new Date()),
           frequency: data.frequency || 'monthly',
           durationMonths: parseInt(data.durationMonths) || 12,
           showInBDM: !!data.showInBDM,
@@ -5239,15 +5312,17 @@ Ativos de valorizacao (${ativos.length}): ${JSON.stringify(ativos)}`;
           categoryId: data.categoryId !== undefined ? (data.categoryId || null) : (existing?.categoryId || null),
           principal: parseFloat(data.principal) || existing?.principal || 0,
           profitPercentage: parseFloat(data.profitPercentage) || existing?.profitPercentage || 0,
-          startDate: data.startDate || existing?.startDate || new Date().toISOString().split('T')[0],
+          startDate: data.startDate || existing?.startDate || dateKey(new Date()),
           frequency: data.frequency || existing?.frequency || 'monthly',
           durationMonths: parseInt(data.durationMonths) || existing?.durationMonths || 12,
           showInBDM: data.showInBDM !== undefined ? !!data.showInBDM : !!existing?.showInBDM,
           customFrequencyMonths: data.customFrequencyMonths || existing?.customFrequencyMonths || null,
           createdAt: existing?.createdAt || new Date().toISOString(),
         };
-        await deleteInvestmentEvents(data.id);
+        // Investimento primeiro, eventos depois (mesma ordem de saveInvestment):
+        // falha no meio nao perde a edicao nem deixa exclusao sem gravacao.
         await dbPutInvestment(inv);
+        await deleteInvestmentEvents(data.id);
         const evts = generateEvents(inv);
         await dbPutEvents(evts);
         await loadAllData();
@@ -5310,7 +5385,9 @@ Ativos de valorizacao (${ativos.length}): ${JSON.stringify(ativos)}`;
       delete _aiPending[aid];
       document.querySelector(`.ai-action-card[data-aid="${aid}"]`)?.closest('.ai-msg')?.remove();
       try {
-        const cat = { id: uid(), name: data.name || 'Categoria', color: data.color || '#0EA5E9' };
+        // Valida o hex vindo do agente: cor arbitraria seria injetada em atributos style.
+        const safeColor = /^#[0-9a-fA-F]{3,8}$/.test(data.color || '') ? data.color : '#0EA5E9';
+        const cat = { id: uid(), name: data.name || 'Categoria', color: safeColor };
         await dbPutCategory(cat);
         await loadAllData();
         _appendAIMsg('ai', `<div class="ai-msg-bubble"><p class="text-sm">&#10003; Categoria <strong>${_escHtml(cat.name)}</strong> criada com sucesso!</p></div>`);
@@ -5366,7 +5443,7 @@ Ativos de valorizacao (${ativos.length}): ${JSON.stringify(ativos)}`;
           categoryId: data.categoryId || null,
           principal: unitValue * quantity,
           profitPercentage: 0,
-          startDate: new Date().toISOString().slice(0, 10),
+          startDate: dateKey(new Date()),
           frequency: 'at_maturity',
           durationMonths: 0,
           customFrequencyMonths: null,
@@ -5809,6 +5886,9 @@ Ativos de valorizacao (${ativos.length}): ${JSON.stringify(ativos)}`;
       initAIMobileKeyboardFix();
       try {
         const user = await checkSession();
+        // Responder do canal entre abas so entra DEPOIS do checkSession desta aba,
+        // para o ping desta aba nunca ser respondido por ela mesma.
+        _initTabChannel();
         if (user) {
           App.currentUser = user;
           const emailEl = document.getElementById('sidebar-user-email');
@@ -5820,7 +5900,7 @@ Ativos de valorizacao (${ativos.length}): ${JSON.stringify(ativos)}`;
           initPullToRefresh();
           document.querySelectorAll('input[type=range]').forEach(updateSliderTrack);
           updateCalc();
-          document.getElementById('inv-start-date').value = new Date().toISOString().split('T')[0];
+          document.getElementById('inv-start-date').value = dateKey(new Date());
         } else {
           showAuthScreen();
           document.querySelectorAll('input[type=range]').forEach(updateSliderTrack);
