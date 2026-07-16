@@ -66,6 +66,18 @@
       user-select: text;
     }
 
+    /* Valores monetarios copiaveis (dor: user-select none no body impedia copiar).
+       Dentro das grades do calendario NAO: conflitaria com long-press e swipe. */
+    .tabular-nums, .hero-value {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    #month-grid *, #year-grid * {
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
     ::-webkit-scrollbar {
       width: 4px;
       height: 4px
@@ -1975,7 +1987,7 @@
      =================================================================== -->
   <div id="modal-investment" class="fixed inset-0 z-[100] items-end sm:items-center justify-center p-0 sm:p-4"
     style="display:none">
-    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeInvestmentModal()"></div>
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeGuardedModal('modal-investment')"></div>
     <div class="glass-modal rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto relative z-10">
       <div class="p-6 border-b border-white/8 flex items-center justify-between">
         <h2 id="modal-inv-title" class="text-base font-semibold text-on-surface">Novo Investimento</h2>
@@ -2114,7 +2126,7 @@
      =================================================================== -->
   <div id="modal-category" class="fixed inset-0 z-[100] items-end sm:items-center justify-center p-0 sm:p-4"
     style="display:none">
-    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeCategoryModal()"></div>
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeGuardedModal('modal-category')"></div>
     <div class="glass-modal rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md relative z-10">
       <div class="p-6 border-b border-white/8 flex items-center justify-between">
         <h2 class="text-base font-semibold text-on-surface">Gerenciar Categorias</h2>
@@ -3772,12 +3784,38 @@
       el.style.display = 'flex';
       haptic(6);
       if (window.innerWidth < 640) initBottomSheet(el);
+      if (_guardedModals.includes(id)) _formSnapshots[id] = _serializeModalFields(id);
     }
     function hideModal(id) {
       const el = document.getElementById(id);
       el.style.display = 'none';
       const panel = el.querySelector('.glass-modal');
       if (panel) panel.style.transform = '';
+    }
+
+    // Guard de descarte: fechar por gesto/backdrop com formulario alterado pergunta
+    // antes (fechar acidental do bottom-sheet perdia o que foi digitado).
+    // Botao explicito de fechar/cancelar NAO passa pelo guard (intencao clara).
+    const _guardedModals = ['modal-investment', 'modal-category'];
+    const _formSnapshots = {};
+    function _serializeModalFields(modalId) {
+      const panel = document.querySelector('#' + modalId + ' .glass-modal');
+      if (!panel) return null;
+      return Array.from(panel.querySelectorAll('input, select, textarea'))
+        .map(el => (el.type === 'checkbox' || el.type === 'radio') ? (el.checked ? '1' : '0') : (el.value || ''))
+        .join('');
+    }
+    function _isFormDirty(modalId) {
+      const snap = _formSnapshots[modalId];
+      return snap != null && _serializeModalFields(modalId) !== snap;
+    }
+    async function closeGuardedModal(modalId) {
+      if (_isFormDirty(modalId)) {
+        const ok = await confirmDialog('Descartar as alterações do formulário?',
+          { title: 'Descartar alterações', confirmText: 'Descartar', danger: true });
+        if (!ok) return;
+      }
+      hideModal(modalId);
     }
 
     // Confirmacao custom — substitui window.confirm(), que e suprimido em navegadores
@@ -3833,9 +3871,15 @@
         dragging = false;
         panel.classList.remove('sheet-dragging');
         if (dy > 110) {
+          const ov = panel.closest('[id^="modal-"]') || overlay;
+          // Form alterado: nao fecha direto — repoe o painel e pergunta.
+          if (_guardedModals.includes(ov.id) && _isFormDirty(ov.id)) {
+            panel.style.transform = '';
+            closeGuardedModal(ov.id);
+            return;
+          }
           haptic(10);
           panel.style.transform = `translateY(100%)`;
-          const ov = panel.closest('[id^="modal-"]') || overlay;
           setTimeout(() => { ov.style.display = 'none'; panel.style.transform = ''; }, 220);
         } else {
           panel.style.transform = '';
@@ -4085,6 +4129,8 @@
         await loadAllData();
         renderCategoryList();
         document.getElementById('cat-name').value = '';
+        // Ja salvou: novo estado vira a referencia do guard de descarte.
+        _formSnapshots['modal-category'] = _serializeModalFields('modal-category');
         toast('Categoria criada!', 'success');
       } catch (err) {
         toast('Erro ao criar categoria: ' + err.message, 'error');
