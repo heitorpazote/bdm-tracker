@@ -4,6 +4,14 @@
 2026-07-16
 
 ## Recent Changes
+- 2026-07-16 (sessão 2): **6 dores de produto resolvidas (1, 5, 6, 7, 8, 9)** — spec em `docs/superpowers/specs/2026-07-16-dores-produto-design.md`, plano em `docs/superpowers/plans/2026-07-16-dores-produto.md`:
+  1. **Recebido vs Projetado (dor nº 1)**: nova coluna `events.received` (migração em `supabase/migrations/20260716_add_received_to_events.sql` — **RODAR NO SQL EDITOR DO SUPABASE ANTES DE USAR**). Check de conciliação nas 3 views de eventos (agenda `_agendaDayCard`, detail panel, day modal) para eventos com `date <= hoje` (verde = recebido, âmbar = pendente); seção "Pendentes de confirmação" no topo da Agenda com botão "Marcar todos até hoje" (`markAllReceivedUntilToday`); `toggleEventReceived` com rollback local se o upsert falhar; KPI "Total Recebido" no Insights (`getReceivedTotals`: soma `amount` dos received vs projetado até hoje; devolução de capital fora). **Editar investimento preserva confirmações**: `_carryReceived` reaplica `received` por data na regeneração (saveInvestment + confirmAIEdit).
+  2. **Export/Backup (dor 5)**: novo módulo puro `js/exporter.js` (`BDMExporter`: `investmentsToCSV`, `eventsToCSV`, `buildBackup`, `validateBackup`; CSV Excel pt-BR: `;`, vírgula decimal, BOM, CRLF) com 9 testes em `tests/exporter.test.js`. Seção "Dados" em Configurações: 2 CSVs, backup JSON e restauração (valida → confirmDialog danger → delete tudo do usuário → insert categorias→investimentos→eventos com user_id remapeado → loadAllData).
+  3. **Calculadora no modelo do app (dor 6)**: `BDMSchedule.simulateCalculator({principal, ratePct, intervalMonths, totalMonths, monthlyContribution, reinvest, desagio})` (5 testes novos; aporte mensal entra no fim do mês e rende no período seguinte). `updateCalc` delega ao simulador; novos toggles "Reinvestir recebimentos" (default ON) e "Saque em cripto (−10% deságio)"; label "Lucro Bruto"→"Lucro Líquido"; gráfico usa `sim.series` + linha "Total aportado".
+  4. **PWA (dor 7)**: `manifest.webmanifest` + `sw.js` (shell local cache-first c/ refresh em background; CDNs stale-while-revalidate; `*.supabase.co` NUNCA cacheado) + `icons/` (192/512/apple-touch gerados). Registro só em https/localhost — `file://` e APK intactos. Verificado em localhost: SW ativo, reload offline serve o shell.
+  5. **Copiar valores (dor 8)**: `user-select: text` em `.tabular-nums`/`.hero-value`; negado dentro de `#month-grid`/`#year-grid` (long-press/swipe preservados).
+  6. **Guard do bottom-sheet (dor 9)**: `showModal` tira snapshot dos campos de `modal-investment`/`modal-category`; fechar por arrasto ou backdrop com form alterado abre `confirmDialog` "Descartar alterações" (`closeGuardedModal`/`_isFormDirty`); botões explícitos fecham direto; `saveCategory` re-snapshota após salvar.
+  Testes: **32/32 verdes** (schedule 20 + gestures 3 + exporter 9). Verificação runtime headless (Chrome + fixtures, Supabase stubado): agenda/checks/marcar todos/KPI/calculadora/downloads/guard OK, zero page errors — screenshots na sessão. **Pendente do usuário**: rodar a migração SQL, testar fluxo autenticado em device real e publicar em hosting HTTPS p/ instalar o PWA. Nova skill `.claude/skills/verify/SKILL.md` documenta a receita de verificação.
 - 2026-07-16: **Auditoria geral — 14 bugs corrigidos** (análise completa + fixes na mesma sessão):
   1. **Overflow de fim de mês nas datas de eventos (crítico)**: `addMonths` usava `setMonth` puro — investimento mensal iniciado em 31/01 pagava em 03/03 (pulava fevereiro inteiro e perdia 1 evento). Fix: `addMonths` agora clampa o dia ao último dia do mês alvo, e `generateEvents` ancora cada data em `start + k×intervalo` (não encadeia evento a evento), evitando drift pós-clamp. Verificado em Node: 31/01 mensal 6m → fev 28, mar 31 ... jul 31 (último), 6 eventos.
   2. **"Hoje" em UTC**: `new Date().toISOString().split('T')[0]/.slice(0,10)` virava amanhã após ~21h (UTC-3). Trocado por `dateKey(new Date())` em: default do `inv-start-date` (openAddModal, onAuthSuccess, init), `startDate` de ativos (saveInvestment + confirmAICreateAsset) e fallbacks do agente (confirmAICreate/confirmAIEdit).
@@ -53,23 +61,19 @@
 ## Screen Status
 | Tela | Status | Observações |
 |---|---|---|
-| Calendário | stable | Reinvestimento composto por recebimento (linha "Se reinvestir"); swipe de mês, long-press preview, modais bottom-sheet, pull-to-refresh no mobile |
+| Calendário | stable | Conciliação recebido/projetado (checks + "Pendentes de confirmação" + marcar todos na Agenda); reinvestimento composto por recebimento; swipe de mês, long-press preview, modais bottom-sheet c/ guard de descarte, pull-to-refresh |
 | Insights | stable | Cards reorganizados em 2 linhas flex (donut + gráfico largo cada; Composição condicional sem buraco). Projeção Patrimonial com zoom/pan (chartjs-plugin-zoom); Projeção de Lucro Mensal (`renderMonthlyProfitChart`) sem queda no fim do horizonte (`buildProfitByMonth` gera período extra p/ preencher a cauda); projeção/marcos via `compoundedPeriods`; APR linear. Verificação visual/gestos pendente em device real |
-| Configurações | stable | Nova tela; IPCA + reinvestimento unificado (persistido) migrados do Calendário/Insights. Acesso: sidebar + engrenagem mobile. Verificação visual pendente |
-| Calculadora | stable | Sem alterações recentes |
+| Configurações | stable | IPCA + reinvestimento unificado + nova seção Dados (CSVs, backup JSON, restauração) |
+| Calculadora | stable | Alinhada ao modelo do app via `simulateCalculator` (lucro fixo/período, toggles reinvestir + deságio); gráfico com série real do simulador |
 | Agente IA | stable | Números reais injetados (`buildAIInvestmentMetrics`) + prompt R11/sistemática; mic desativado no mobile (APK); teclado mobile só ajusta altura (sem `top`). Verificação de mic/teclado pendente em device real |
 
 ## Open Issues / TODOs
-- (análise 2026-07-16) **Dores de produto identificadas na auditoria** (usuário optou por tratar depois):
-  - Status "recebido vs projetado" por evento (conciliação do que de fato caiu) + KPI "total já recebido" — dor nº 1.
+- **RODAR MIGRAÇÃO** (bloqueio da conciliação): `supabase/migrations/20260716_add_received_to_events.sql` no SQL Editor do dashboard — sem a coluna `received`, salvar eventos falha.
+- **Publicar em HTTPS** (GitHub Pages/Netlify/Vercel) para o PWA ser instalável; manifest/sw já prontos.
+- (análise 2026-07-16) **Dores de produto restantes** (as dores 1, 5, 6, 7, 8 e 9 foram resolvidas em 2026-07-16 sessão 2):
   - Fluxo "Esqueci minha senha" (`sb.auth.resetPasswordForEmail`) — sem ele, usuário fica trancado fora.
   - Preço atual dos ativos de valorização (P&L) — hoje o valor fica congelado no cadastro.
   - Aportes/retiradas em investimento existente sem regenerar o passado.
-  - Exportação CSV/backup dos dados.
-  - Calculadora usa juros compostos genéricos — não bate com o modelo do app (lucro fixo + deságio via `BDMSchedule`).
-  - PWA (manifest + service worker) para instalar na home screen e abrir offline.
-  - `user-select:none` no body impede copiar valores; liberar seleção nos números ou "toque para copiar".
-  - Bottom-sheet drag-to-close pode descartar formulário preenchido; considerar guard.
   - KPI Rentabilidade dilui o APR incluindo ativos de valorização no denominador (`getTotalPatrimony`) — decidir se é intencional.
 - (análise 2026-06-11) **Mover `buildProfitByMonth` para `js/schedule.js` com testes** — é a base das duas projeções (patrimonial + lucro mensal) e hoje mora no `index.html` sem cobertura; foi onde estava o bug da "queda no final". Migrar fecharia a lacuna de teste do cálculo crítico.
 - (análise 2026-06-11) **Persistir reinvestimento no Supabase** — hoje só em `localStorage['bdm_reinvest']`, divergindo de IPCA/bdm_rate (que persistem na tabela `settings`); num dispositivo novo o reinvest não sincroniza com o resto.
