@@ -517,6 +517,21 @@
       transition: background .15s
     }
 
+    /* Botao de conciliacao (recebido vs projetado) */
+    .recv-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 9999px;
+      flex-shrink: 0;
+      transition: background .15s, color .15s, transform .1s;
+    }
+    .recv-btn.recv-on { color: #4ade80; background: rgba(74, 222, 128, .12); }
+    .recv-btn.recv-off { color: #F59E0B; background: rgba(245, 158, 11, .10); }
+    .recv-btn:active { transform: scale(.9); }
+
     .txn-row:hover {
       background: rgba(255, 255, 255, .04)
     }
@@ -1289,7 +1304,7 @@
         </div>
 
         <!-- KPI Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div class="premium-card rounded-xl p-5 relative group">
             <div
               class="absolute -right-8 -top-8 w-32 h-32 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors duration-500">
@@ -1330,6 +1345,19 @@
                 <span>Ganho real (descontado IPCA)</span>
                 <span id="kpi-real-gain" class="font-semibold">0,00%</span>
               </div>
+            </div>
+          </div>
+          <div class="premium-card rounded-xl p-5">
+            <div class="flex justify-between items-start mb-3">
+              <span class="text-[10px] font-semibold tracking-wider uppercase text-secondary/70 flex items-center gap-1">Total Recebido<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Soma dos lucros que você confirmou como recebidos (check nos eventos do Calendário), comparada ao total projetado até hoje. Devolução de capital não entra na conta.</span></span></span>
+              <span class="material-symbols-outlined text-secondary/60 text-[20px]"
+                style="font-variation-settings:'wght' 300">task_alt</span>
+            </div>
+            <div id="kpi-received" class="text-2xl font-bold text-on-surface tabular-nums">R$ 0,00</div>
+            <div id="kpi-received-sub" class="text-xs text-secondary/60 mt-1 tabular-nums">de R$ 0,00 projetado até hoje</div>
+            <div class="w-full bg-surface-container-highest rounded-full h-1.5 mt-2">
+              <div id="kpi-received-bar" class="h-1.5 rounded-full transition-all duration-700"
+                style="width:0%;background:#4ade80"></div>
             </div>
           </div>
         </div>
@@ -3193,12 +3221,83 @@
       grid.innerHTML = html;
     }
 
+    // ---- Conciliacao recebido vs projetado ----
+    async function toggleEventReceived(id) {
+      const ev = App.events.find(e => e.id === id);
+      if (!ev) return;
+      const prev = ev.received;
+      ev.received = !prev;
+      try {
+        await dbPutEvent(ev);
+        haptic(8);
+      } catch (err) {
+        ev.received = prev; // rollback: mantem UI fiel ao servidor
+        toast('Erro ao salvar: ' + err.message, 'error');
+      }
+      rerenderEventViews();
+    }
+
+    async function markAllReceivedUntilToday() {
+      const todayK = dateKey(new Date());
+      const pend = App.events.filter(e => e.date <= todayK && !e.received);
+      if (!pend.length) return;
+      if (!await confirmDialog(`Confirmar ${pend.length} recebimento(s) até hoje?`, { title: 'Marcar todos', confirmText: 'Confirmar' })) return;
+      pend.forEach(e => e.received = true);
+      try {
+        await dbPutEvents(pend);
+        haptic(12);
+        toast(`${pend.length} recebimento(s) confirmado(s).`);
+      } catch (err) {
+        pend.forEach(e => e.received = false);
+        toast('Erro ao salvar: ' + err.message, 'error');
+      }
+      rerenderEventViews();
+    }
+
+    function rerenderEventViews() {
+      if (App.currentScreen === 'calendar') renderCalendar();
+      if (App.currentScreen === 'insights') renderInsights();
+      // Views de detalhe abertas tambem refletem o toggle:
+      if (App.selectedDate) renderDetailPanel(App.selectedDate);
+      const dayModal = document.getElementById('modal-day');
+      if (dayModal && dayModal.style.display === 'flex' && App.selectedDate) {
+        const evts = App.events.filter(e => e.date === App.selectedDate);
+        if (evts.length) openDayModal(App.selectedDate, evts);
+      }
+    }
+
+    // Botao de check: so para eventos ja vencidos (date <= hoje). stopPropagation
+    // porque as linhas de transacao expandem no clique.
+    function _receivedBtnHtml(e) {
+      if (e.date > dateKey(new Date())) return '';
+      const on = !!e.received;
+      return `<button type="button" onclick="event.stopPropagation();toggleEventReceived('${_escHtml(e.id)}')"
+        class="recv-btn ${on ? 'recv-on' : 'recv-off'}" title="${on ? 'Recebido — toque para desfazer' : 'Marcar como recebido'}"
+        aria-label="${on ? 'Recebido' : 'Marcar como recebido'}">
+        <span class="material-symbols-outlined text-[16px]" ${on ? `style="font-variation-settings:'FILL' 1"` : ''}>${on ? 'check_circle' : 'radio_button_unchecked'}</span>
+      </button>`;
+    }
+
+    function getReceivedTotals() {
+      const todayK = dateKey(new Date());
+      let received = 0, projected = 0;
+      for (const e of App.events) {
+        if (e.date > todayK) continue;
+        projected += e.amount;
+        if (e.received) received += e.amount;
+      }
+      return { received, projected };
+    }
+
     function renderAgenda() {
       const list = document.getElementById('agenda-list');
       const todayStr = dateKey(new Date());
       const future = App.events.filter(e => e.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date));
 
-      if (future.length === 0) {
+      // Passados nao confirmados: aparecem numa secao propria para conciliacao.
+      const pendingPast = App.events.filter(e => e.date < todayStr && !e.received).sort((a, b) => b.date.localeCompare(a.date));
+
+      if (future.length === 0 && pendingPast.length === 0) {
         list.innerHTML = `<div class="text-center py-16 text-secondary/40">
       <span class="material-symbols-outlined text-[48px] block mb-3" style="font-variation-settings:'wght' 200">event_available</span>
       <p class="text-sm">Nenhum pagamento futuro registrado.</p>
@@ -3215,9 +3314,36 @@
       }
 
       let html = '';
+
+      const hasUnconfirmed = App.events.some(e => e.date <= todayStr && !e.received);
+      if (pendingPast.length > 0) {
+        const pendGrouped = {};
+        for (const e of pendingPast) {
+          if (!pendGrouped[e.date]) pendGrouped[e.date] = [];
+          pendGrouped[e.date].push(e);
+        }
+        html += `<div class="flex items-center justify-between gap-2 mb-1">
+      <div class="flex items-center gap-1.5 text-[10px] font-semibold tracking-wider uppercase text-[#F59E0B]">
+        <span class="material-symbols-outlined text-[14px]">pending_actions</span>
+        Pendentes de confirmação (${pendingPast.length})
+      </div>
+      ${hasUnconfirmed ? `<button type="button" onclick="markAllReceivedUntilToday()"
+        class="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 rounded-md px-2.5 py-1 hover:bg-primary/20 transition-colors">Marcar todos até hoje</button>` : ''}
+    </div>`;
+        for (const dk of Object.keys(pendGrouped).slice(0, 30)) {
+          html += _agendaDayCard(dk, pendGrouped[dk], todayStr);
+        }
+        html += `<div class="text-[10px] font-semibold tracking-wider uppercase text-secondary/50 mt-3 mb-1">Próximos recebimentos</div>`;
+      }
+
       const keys = Object.keys(grouped).slice(0, 60); // show up to 60 days
       for (const dk of keys) {
-        const evts = grouped[dk];
+        html += _agendaDayCard(dk, grouped[dk], todayStr);
+      }
+      list.innerHTML = html;
+    }
+
+    function _agendaDayCard(dk, evts, todayStr) {
         const d = new Date(dk + 'T12:00:00');
         const total = evts.reduce((s, e) => s + e.amount + (e.principalReturn || 0), 0);
         const netTotal = evts.reduce((s, e) => s + eventTotalBRL(e), 0);
@@ -3225,9 +3351,9 @@
         const hasBDMAg = bdmEvtsAg.length > 0;
         const bdmTotalAg = bdmEvtsAg.reduce((s, e) => s + e.amount + (e.principalReturn || 0), 0);
         const bdmV = App.bdmRate > 0 && bdmEvtsAg.length > 0 ? toBDM(bdmTotalAg) : null;
-        const today = dateKey(new Date()) === dk;
+        const today = todayStr === dk;
 
-        html += `<div class="premium-card rounded-xl p-4 ${today ? 'border-primary/30 bg-primary/5' : ''}">
+        return `<div class="premium-card rounded-xl p-4 ${today ? 'border-primary/30 bg-primary/5' : ''}">
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
           ${today ? '<span class="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase tracking-wider">Hoje</span>' : ''}
@@ -3260,16 +3386,17 @@
               ${showReinvAg ? `<div class="text-[10px] text-primary font-semibold mt-0.5">Se reinvestir: ${fmtBRL(rpAg.netProfit)}${inv.showInBDM ? ' (−10%)' : ''}</div>` : ''}
             </div>
           </div>
-          <div class="text-right flex-shrink-0">
-            <span class="text-xs font-bold text-primary">${fmtBRL(grossEvtAg)}</span>
-            ${isBDMEvtAg ? `<div class="text-[10px] text-secondary/55 tabular-nums">líq. ${fmtBRL(netEvtAg)}</div>` : ''}
-            ${bdmE !== null ? `<div class="text-[10px] text-secondary/60">${fmtBDM(bdmE)}</div>` : ''}
+          <div class="flex items-center gap-1.5 flex-shrink-0">
+            <div class="text-right">
+              <span class="text-xs font-bold text-primary">${fmtBRL(grossEvtAg)}</span>
+              ${isBDMEvtAg ? `<div class="text-[10px] text-secondary/55 tabular-nums">líq. ${fmtBRL(netEvtAg)}</div>` : ''}
+              ${bdmE !== null ? `<div class="text-[10px] text-secondary/60">${fmtBDM(bdmE)}</div>` : ''}
+            </div>
+            ${_receivedBtnHtml(e)}
           </div>
         </div>`;
         }).join('')}
     </div>`;
-      }
-      list.innerHTML = html;
     }
 
     function selectDay(dk) {
@@ -3367,6 +3494,7 @@
               ${isBDMEvt ? `<div class="text-[10px] text-secondary/55 tabular-nums">líq. ${fmtBRL(netEvt)}</div>` : ''}
               ${bdmE !== null ? `<div class="text-[10px] text-secondary/60 tabular-nums">${fmtBDM(bdmE)}</div>` : ''}
             </div>
+            ${_receivedBtnHtml(e)}
             <span class="material-symbols-outlined text-[16px] text-secondary/30" id="chev-dp-${e.id}">expand_more</span>
           </div>
         </div>
@@ -3445,6 +3573,7 @@
             ${isBDMEvtM ? `<div class="text-[10px] text-secondary/55 tabular-nums">líq. ${fmtBRL(netEvtM)}</div>` : ''}
             ${bdmE !== null ? `<div class="text-xs text-secondary/60 tabular-nums">${fmtBDM(bdmE)}</div>` : ''}
           </div>
+          ${_receivedBtnHtml(e)}
           <span class="material-symbols-outlined text-[16px] text-secondary/30" id="chev-mob-${e.id}">expand_more</span>
         </div>
       </div>
@@ -4039,6 +4168,13 @@
       } else {
         document.getElementById('kpi-monthly-pct').textContent = `Yield médio: ${NUM.format(avgMonthly)}% a.m.`;
       }
+
+      // Conciliação: total confirmado vs projetado até hoje
+      const recv = getReceivedTotals();
+      document.getElementById('kpi-received').textContent = fmtBRL(recv.received);
+      document.getElementById('kpi-received-sub').textContent = `de ${fmtBRL(recv.projected)} projetado até hoje`;
+      const recvPct = recv.projected > 0 ? Math.min(100, recv.received / recv.projected * 100) : 0;
+      document.getElementById('kpi-received-bar').style.width = recvPct + '%';
 
       document.getElementById('kpi-real-yield').textContent = NUM.format(avgAnnual) + '% a.a.';
       document.getElementById('kpi-real-yield-label').textContent = App.useIPCA ? 'Nominal a.a. (APR)' : 'Nominal a.a. (APR)';
