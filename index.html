@@ -5,6 +5,8 @@
   <meta charset="utf-8" />
   <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" name="viewport" />
   <meta name="theme-color" content="#09090b" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <title>Cripto Tracker — Gestão de Investimentos</title>
   <script src="https://cdn.tailwindcss.com?plugins=container-queries"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -6239,6 +6241,14 @@ Ativos de valorizacao (${ativos.length}): ${JSON.stringify(ativos)}`;
     }
 
     document.addEventListener('DOMContentLoaded', init);
+
+    // PWA: service worker so em contexto seguro (https/localhost).
+    // file:// e o APK (WebView com assets locais) seguem funcionando sem SW.
+    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW não registrado:', err));
+      });
+    }
 
     // Mobile nav active state init
     document.querySelectorAll('.mobile-nav').forEach(b => {
