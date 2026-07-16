@@ -1562,8 +1562,8 @@
         <div class="mb-8">
           <h1 class="text-2xl md:text-[2.75rem] font-bold text-on-surface tracking-tight leading-tight">Projeção de
             Investimentos</h1>
-          <p class="text-sm md:text-base text-on-surface-variant mt-2 max-w-xl">Simule o crescimento do seu capital.
-            Ajuste os parâmetros e veja o resultado em tempo real.</p>
+          <p class="text-sm md:text-base text-on-surface-variant mt-2 max-w-xl">Simule o crescimento do seu capital com
+            o mesmo modelo do app: lucro fixo por período, reinvestimento opcional e deságio de saque.</p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -1662,6 +1662,30 @@
                   placeholder="Aporte mensal (R$)" oninput="syncCalcInput('calc-monthly-input','calc-monthly')"
                   onblur="clampCalcInput('calc-monthly-input','calc-monthly',0)" />
               </div>
+
+              <!-- Modelo do app: reinvestimento + deságio -->
+              <div class="border-t border-white/8 pt-4 flex flex-col gap-3.5">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="text-xs font-medium text-on-surface flex items-center gap-1">Reinvestir recebimentos<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Cada lucro recebido é reaplicado no capital assim que cai (juros sobre juros) — igual à opção de reinvestimento do app.</span></span></div>
+                  </div>
+                  <label class="tog flex-shrink-0">
+                    <input type="checkbox" id="calc-reinvest" checked onchange="updateCalc()" />
+                    <div class="tog-track"></div>
+                    <div class="tog-thumb"></div>
+                  </label>
+                </div>
+                <div class="flex items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="text-xs font-medium text-on-surface flex items-center gap-1">Saque em cripto (−10% deságio)<span class="has-tip ml-1 flex-shrink-0 inline-flex"><span class="material-symbols-outlined tip-icon" style="font-variation-settings:'wght' 300">help_outline</span><span class="tip-box">Aplica o deságio de 10% sobre cada lucro, como no saque de ativos em cripto (BDM).</span></span></div>
+                  </div>
+                  <label class="tog flex-shrink-0">
+                    <input type="checkbox" id="calc-desagio" onchange="updateCalc()" />
+                    <div class="tog-track"></div>
+                    <div class="tog-thumb"></div>
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1682,7 +1706,7 @@
                 <div class="grid grid-cols-2 gap-6 border-t border-white/8 pt-6 mb-6">
                   <div>
                     <p class="text-[10px] font-semibold tracking-wider uppercase text-on-surface-variant mb-1">Lucro
-                      Bruto</p>
+                      Líquido</p>
                     <p id="calc-profit" class="text-xl font-bold text-secondary tabular-nums">+ R$ 0,00</p>
                   </div>
                   <div>
@@ -4998,23 +5022,24 @@
       document.getElementById('calc-monthly-display').textContent = fmtBRL(monthly);
 
 
-      // Monthly rate derived from profit-per-period + frequency
-      const monthlyRate = freqMonths > 0 ? Math.pow(1 + profitPct / 100, 1 / freqMonths) - 1 : 0;
+      // Simulacao no MESMO modelo do app (lucro fixo por periodo + reinvest + desagio),
+      // via BDMSchedule.simulateCalculator — nada de juros compostos genericos.
+      const sim = BDMSchedule.simulateCalculator({
+        principal: amount,
+        ratePct: profitPct,
+        intervalMonths: freqMonths,
+        totalMonths: months,
+        monthlyContribution: monthly,
+        reinvest: document.getElementById('calc-reinvest').checked,
+        desagio: document.getElementById('calc-desagio').checked,
+      });
+
+      const fv = sim.finalValue;
+      const totalInvested = sim.totalInvested;
+      const multiplier = totalInvested > 0 ? fv / totalInvested : 1;
+
+      // Ganho real: deflaciona o total aportado pelo IPCA (mesma referencia de antes)
       const inflationMonthly = Math.pow(1 + App.ipcaRate / 100, 1 / 12) - 1;
-
-      // Future value: principal compounds, monthly contributions compound
-      let fv = amount * Math.pow(1 + monthlyRate, months);
-      if (monthly > 0 && monthlyRate > 0) {
-        fv += monthly * (Math.pow(1 + monthlyRate, months) - 1) / monthlyRate;
-      } else if (monthly > 0) {
-        fv += monthly * months;
-      }
-
-      const totalInvested = amount + monthly * months;
-      const profit = fv - totalInvested;
-      const multiplier = totalInvested > 0 ? fv / amount : 1;
-
-      // Real gain deflated by global IPCA
       let fvInflated = amount * Math.pow(1 + inflationMonthly, months);
       if (monthly > 0 && inflationMonthly > 0) {
         fvInflated += monthly * (Math.pow(1 + inflationMonthly, months) - 1) / inflationMonthly;
@@ -5024,7 +5049,7 @@
       const realProfit = fv - fvInflated;
 
       document.getElementById('calc-result').textContent = fmtBRL(fv);
-      document.getElementById('calc-profit').textContent = '+ ' + fmtBRL(profit);
+      document.getElementById('calc-profit').textContent = '+ ' + fmtBRL(sim.netProfit);
       document.getElementById('calc-multiplier').textContent = multiplier.toFixed(2) + 'x';
       document.getElementById('calc-real-profit').textContent = (realProfit >= 0 ? '+ ' : '- ') + fmtBRL(Math.abs(realProfit));
       document.getElementById('calc-total-invested').textContent = fmtBRL(totalInvested);
@@ -5035,22 +5060,17 @@
       document.getElementById('calc-result-bdm').textContent = bdmFV !== null ? fmtBDM(bdmFV) : '— Cripto';
 
       // Mini chart
-      renderCalcChart(amount, monthly, monthlyRate, months);
+      renderCalcChart(sim, amount, monthly, months);
     }
 
-    function renderCalcChart(amount, monthly, monthlyRate, months) {
+    function renderCalcChart(sim, amount, monthly, months) {
       const step = Math.max(1, Math.floor(months / 24));
       const labels = [], data = [], dataNoComp = [];
 
       for (let i = 0; i <= months; i += step) {
         const d = new Date(); d.setMonth(d.getMonth() + i);
         labels.push(d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }));
-
-        let fv = amount * Math.pow(1 + monthlyRate, i);
-        if (monthly > 0 && monthlyRate > 0) fv += monthly * (Math.pow(1 + monthlyRate, i) - 1) / monthlyRate;
-        else if (monthly > 0) fv += monthly * i;
-        data.push(Math.round(fv));
-
+        data.push(Math.round(sim.series[i].value));
         dataNoComp.push(amount + monthly * i);
       }
 
@@ -5066,8 +5086,8 @@
         data: {
           labels,
           datasets: [
-            { data, borderColor: '#0EA5E9', backgroundColor: g, fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0, label: 'Com juros compostos' },
-            { data: dataNoComp, borderColor: 'rgba(199,198,196,.3)', fill: false, tension: 0, borderWidth: 1, pointRadius: 0, borderDash: [4, 4], label: 'Sem juros' },
+            { data, borderColor: '#0EA5E9', backgroundColor: g, fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0, label: 'Projeção (modelo do app)' },
+            { data: dataNoComp, borderColor: 'rgba(199,198,196,.3)', fill: false, tension: 0, borderWidth: 1, pointRadius: 0, borderDash: [4, 4], label: 'Total aportado' },
           ]
         },
         options: {
