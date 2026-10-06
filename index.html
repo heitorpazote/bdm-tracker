@@ -597,6 +597,7 @@
         radial-gradient(ellipse at 20% 80%, rgba(56, 189, 248, .05) 0%, transparent 50%),
         #09090b;
       padding: 1rem;
+      overflow-y: auto;
     }
 
     #screen-auth.hidden {
@@ -604,6 +605,7 @@
     }
 
     .auth-card {
+      margin: auto;
       width: 100%;
       max-width: 420px;
       background: rgba(18, 18, 20, .92);
@@ -944,26 +946,31 @@
       </div>
 
       <!-- Tabs -->
-      <div class="flex gap-1 p-1 rounded-xl bg-surface-container/60 mb-6">
+      <div id="auth-tabs" class="flex gap-1 p-1 rounded-xl bg-surface-container/60 mb-6">
         <button id="auth-tab-login" class="auth-tab active" onclick="switchAuthTab('login')">Entrar</button>
         <button id="auth-tab-signup" class="auth-tab" onclick="switchAuthTab('signup')">Criar Conta</button>
+      </div>
+
+      <div id="auth-flow-heading" class="hidden mb-5">
+        <h1 id="auth-flow-title" class="text-lg font-semibold text-on-surface"></h1>
+        <p id="auth-flow-description" class="text-xs text-secondary/70 mt-2 leading-relaxed"></p>
       </div>
 
       <!-- Form -->
       <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="flex flex-col gap-4">
         <div>
           <label
-            class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">E-mail</label>
+            for="auth-email" class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">E-mail</label>
           <input type="email" id="auth-email" class="fi" placeholder="seu@email.com" required autocomplete="email"
             spellcheck="false" autocorrect="off" autocapitalize="off" />
         </div>
 
-        <div>
-          <label class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Senha</label>
+        <div id="auth-password-group">
+          <label id="auth-password-label" for="auth-password" class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Senha</label>
           <div class="relative">
             <input type="password" id="auth-password" class="fi pr-10" placeholder="Mínimo 8 caracteres" required
               autocomplete="current-password" minlength="8" />
-            <button type="button" onclick="toggleAuthPasswordVisibility()"
+            <button type="button" onclick="toggleAuthPasswordVisibility()" aria-label="Mostrar ou ocultar senha"
               class="absolute right-3 top-1/2 -translate-y-1/2 text-secondary/40 hover:text-secondary transition-colors">
               <span id="auth-pw-icon" class="material-symbols-outlined text-[18px]"
                 style="font-variation-settings:'wght' 300">visibility</span>
@@ -973,8 +980,20 @@
             caracteres.</p>
         </div>
 
+        <div id="auth-code-group" class="hidden">
+          <label for="auth-code" class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Código do email</label>
+          <input id="auth-code" class="fi text-center tracking-[.25em] tabular-nums" type="text" inputmode="numeric"
+            autocomplete="one-time-code" pattern="[0-9]{6,10}" minlength="6" maxlength="10" placeholder="Código recebido" disabled />
+        </div>
+
+        <div id="auth-confirm-group" class="hidden">
+          <label for="auth-password-confirm" class="text-[11px] font-semibold tracking-wider uppercase text-secondary/70 block mb-1.5">Confirmar nova senha</label>
+          <input type="password" id="auth-password-confirm" class="fi" autocomplete="new-password" minlength="8"
+            placeholder="Repita a nova senha" disabled />
+        </div>
+
         <!-- Remember me -->
-        <div class="flex items-center gap-3">
+        <div id="auth-remember-group" class="flex items-center gap-3">
           <label class="tog">
             <input type="checkbox" id="auth-remember" />
             <div class="tog-track"></div>
@@ -984,11 +1003,19 @@
         </div>
 
         <!-- Error -->
-        <div id="auth-error" class="auth-error"></div>
+        <div id="auth-error" class="auth-error" role="status" aria-live="polite"></div>
 
         <button type="submit" id="auth-submit-btn" class="auth-submit-btn mt-1">
           <span id="auth-submit-label">Entrar</span>
         </button>
+        <button id="auth-forgot" type="button" onclick="switchAuthTab('recover')"
+          class="text-xs text-primary hover:text-on-surface transition-colors py-2">Esqueci minha senha</button>
+        <button id="auth-resend" type="button" onclick="resendConfirmationEmail()"
+          class="hidden text-xs text-primary hover:text-on-surface transition-colors py-2 disabled:opacity-50">Reenviar email de confirmação</button>
+        <button id="auth-recovery-resend" type="button" onclick="resendRecoveryEmail()"
+          class="hidden text-xs text-primary hover:text-on-surface transition-colors py-2 disabled:opacity-50">Reenviar código</button>
+        <button id="auth-back" type="button" onclick="cancelPasswordRecovery()"
+          class="hidden text-xs text-secondary/70 hover:text-on-surface transition-colors py-2">Voltar para entrar</button>
       </form>
 
       <p class="text-center text-[11px] text-secondary/30 mt-5">
@@ -1133,6 +1160,10 @@
       <button onclick="navigate('settings')" class="nav-btn" id="nav-settings">
         <span class="material-symbols-outlined icon" style="font-variation-settings:'wght' 300">settings</span>
         <span>Configurações</span>
+      </button>
+      <button type="button" onclick="openDonateModal()" class="nav-btn" id="nav-donate">
+        <span class="material-symbols-outlined icon text-primary" style="font-variation-settings:'wght' 300">volunteer_activism</span>
+        <span>Donate</span>
       </button>
     </nav>
 
@@ -1932,6 +1963,20 @@
           <p id="ipca-status-label" class="text-[10px] text-secondary/50 mt-2">Considerando inflação na projeção patrimonial</p>
         </div>
 
+        <div class="premium-card rounded-xl p-5 mb-4">
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-start gap-3 flex-1 min-w-[180px]">
+              <span class="material-symbols-outlined text-primary text-[24px] mt-0.5" aria-hidden="true">volunteer_activism</span>
+              <div>
+                <h3 class="text-sm font-semibold text-on-surface">Apoie o projeto</h3>
+                <p class="text-xs text-secondary/60 mt-1 leading-relaxed">Contribua com o desenvolvimento do Cripto Tracker via PIX ou BDM.</p>
+              </div>
+            </div>
+            <button id="settings-donate" type="button" onclick="openDonateModal()"
+              class="flex-shrink-0 text-xs font-semibold text-primary bg-primary/10 border border-primary/20 rounded-lg px-4 min-h-[44px] hover:bg-primary/20 transition-colors">Donate</button>
+          </div>
+        </div>
+
         <!-- Dados: exportação e backup -->
         <div class="premium-card rounded-xl p-5 mb-4">
           <h3 class="text-sm font-semibold text-on-surface mb-1">Dados</h3>
@@ -1977,6 +2022,48 @@
     </div>
 
   </main><!-- end main -->
+
+  <!-- Donate: mesma linguagem visual dos demais modais -->
+  <div id="modal-donate" class="fixed inset-0 z-[100] items-end sm:items-center justify-center p-0 sm:p-4" style="display:none">
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeDonateModal()"></div>
+    <div role="dialog" aria-modal="true" aria-labelledby="donate-title" aria-describedby="donate-description"
+      class="glass-modal rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[92vh] overflow-y-auto relative z-10">
+      <div class="p-6 border-b border-white/8 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-primary text-[24px]" aria-hidden="true">volunteer_activism</span>
+          <h2 id="donate-title" class="text-base font-semibold text-on-surface">Apoie o Cripto Tracker</h2>
+        </div>
+        <button id="donate-close" type="button" onclick="closeDonateModal()" aria-label="Fechar doação"
+          class="w-10 h-10 rounded-lg flex items-center justify-center text-secondary hover:text-on-surface hover:bg-white/5 transition-colors">
+          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
+        </button>
+      </div>
+      <div class="p-6 flex flex-col gap-4">
+        <p id="donate-description" class="text-sm text-secondary/80 leading-relaxed">Se a plataforma te ajuda, você pode apoiar o trabalho de Heitor Pazote com uma doação. Qualquer valor é bem-vindo.</p>
+        <div class="rounded-xl border border-primary/20 bg-primary/5 p-4">
+          <div class="flex items-center justify-between gap-3 mb-3">
+            <span class="text-sm font-semibold text-on-surface">PIX</span>
+            <span class="text-[10px] text-secondary/60">Chave de email</span>
+          </div>
+          <p class="text-sm text-on-surface break-all select-text mb-3">heitorpazote@gmail.com</p>
+          <button type="button" onclick="copyDonationKey('PIX')" class="w-full flex items-center justify-center gap-2 min-h-[44px] rounded-lg bg-primary/10 border border-primary/20 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors">
+            <span class="material-symbols-outlined text-[16px]" aria-hidden="true">content_copy</span>Copiar chave PIX
+          </button>
+        </div>
+        <div class="rounded-xl border border-white/10 bg-white/[.02] p-4">
+          <div class="flex items-center justify-between gap-3 mb-3">
+            <span class="text-sm font-semibold text-on-surface">Carteira BDM</span>
+            <span class="text-[10px] text-secondary/60">Identificador da carteira</span>
+          </div>
+          <p class="text-sm text-on-surface break-all select-text mb-3">heitorpazote@gmail.com</p>
+          <button type="button" onclick="copyDonationKey('BDM')" class="w-full flex items-center justify-center gap-2 min-h-[44px] rounded-lg bg-primary/10 border border-primary/20 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors">
+            <span class="material-symbols-outlined text-[16px]" aria-hidden="true">content_copy</span>Copiar carteira BDM
+          </button>
+        </div>
+        <p class="text-[11px] text-secondary/60 leading-relaxed">A doação é opcional. Faça a transferência pelo seu banco ou carteira e confira o destinatário antes de confirmar.</p>
+      </div>
+    </div>
+  </div>
 
   <div id="ptr" class="glass-modal rounded-full p-2"><div class="ptr-spin"></div></div>
 
@@ -2250,8 +2337,30 @@
     // =========================================================
     const SUPABASE_URL = 'https://rzsciusbrlqvgazizsuq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6c2NpdXNicmxxdmdheml6c3VxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NjUxNjAsImV4cCI6MjA5NTE0MTE2MH0._iatS3QCpL1LJtXN7ajlH2ejRZnKuLjdHE-iX_YxPgM';
+    // Capturar antes de o SDK consumir/remover o fragmento do link de email.
+    const _authCallbackType = new URLSearchParams(location.hash.slice(1)).get('type');
+    const _hasAuthCallback = new URLSearchParams(location.hash.slice(1)).has('access_token');
+    const _authCallbackError = new URLSearchParams(location.hash.slice(1)).get('error_description');
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: true, storageKey: 'bdm_session' }
+      auth: { persistSession: true, storageKey: 'bdm_session', detectSessionInUrl: _authCallbackType !== 'recovery' }
+    });
+    // Recuperação nunca compartilha a sessão normal nem o storage entre abas.
+    // sessionStorage preserva o formulário ao recarregar esta aba.
+    // O SDK também usa storageKey como nome do BroadcastChannel: o canal
+    // deve ser único por cliente, inclusive em abas duplicadas pelo navegador.
+    const _recoveryChannelKey = 'bdm_recovery_' + Array.from(crypto.getRandomValues(new Uint32Array(4)), value => value.toString(16)).join('_');
+    const _recoveryStorageName = key => key.replace(_recoveryChannelKey, 'bdm_recovery_session');
+    const recoverySb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        storageKey: _recoveryChannelKey,
+        storage: {
+          getItem: key => sessionStorage.getItem(_recoveryStorageName(key)),
+          setItem: (key, value) => sessionStorage.setItem(_recoveryStorageName(key), value),
+          removeItem: key => sessionStorage.removeItem(_recoveryStorageName(key)),
+        },
+        detectSessionInUrl: _authCallbackType === 'recovery',
+      }
     });
 
     // =========================================================
@@ -2293,15 +2402,65 @@
     // AUTH UI HELPERS
     // =========================================================
     let _authMode = 'login';
+    let _authBusy = false;
+    let _recoveryEmail = '';
+    let _recoveryActive = _authCallbackType === 'recovery'
+      || sessionStorage.getItem('bdm_recovery_session') !== null
+      || sessionStorage.getItem('bdm_recovery_updated') !== null;
+    let _recoveryVerifiedUserId = null;
+    let _recoveryPasswordUpdated = false;
+    let _emailSendAfter = 0;
+    const _authLabels = { login: 'Entrar', signup: 'Criar Conta', recover: 'Enviar código', verify: 'Verificar código', reset: 'Salvar nova senha' };
 
     function switchAuthTab(mode) {
+      if (!_authLabels[mode]) return;
       _authMode = mode;
+      const recovery = ['recover', 'verify', 'reset'].includes(mode);
+      document.getElementById('auth-tabs').classList.toggle('hidden', recovery);
       document.getElementById('auth-tab-login').classList.toggle('active', mode === 'login');
       document.getElementById('auth-tab-signup').classList.toggle('active', mode === 'signup');
-      document.getElementById('auth-submit-label').textContent = mode === 'login' ? 'Entrar' : 'Criar Conta';
-      document.getElementById('auth-password').autocomplete = mode === 'login' ? 'current-password' : 'new-password';
-      document.getElementById('auth-pw-hint').classList.toggle('hidden', mode === 'login');
+      document.getElementById('auth-submit-label').textContent = authSubmitLabel();
+      const password = document.getElementById('auth-password');
+      password.value = '';
+      password.type = 'password';
+      password.autocomplete = mode === 'login' ? 'current-password' : 'new-password';
+      password.disabled = mode === 'recover' || mode === 'verify' || (mode === 'reset' && _recoveryPasswordUpdated);
+      password.required = !password.disabled;
+      document.getElementById('auth-pw-icon').textContent = 'visibility';
+      document.getElementById('auth-password-group').classList.toggle('hidden', password.disabled);
+      document.getElementById('auth-password-label').textContent = mode === 'reset' ? 'Nova senha' : 'Senha';
+      document.getElementById('auth-pw-hint').classList.toggle('hidden', mode !== 'signup' && mode !== 'reset');
+      const code = document.getElementById('auth-code');
+      code.value = '';
+      code.disabled = mode !== 'verify';
+      code.required = mode === 'verify';
+      document.getElementById('auth-code-group').classList.toggle('hidden', mode !== 'verify');
+      const confirmation = document.getElementById('auth-password-confirm');
+      confirmation.value = '';
+      confirmation.disabled = mode !== 'reset' || _recoveryPasswordUpdated;
+      confirmation.required = !confirmation.disabled;
+      document.getElementById('auth-confirm-group').classList.toggle('hidden', confirmation.disabled);
+      document.getElementById('auth-email').readOnly = mode === 'verify' || mode === 'reset';
+      document.getElementById('auth-remember-group').classList.toggle('hidden', recovery);
+      document.getElementById('auth-forgot').classList.toggle('hidden', mode !== 'login');
+      document.getElementById('auth-resend').classList.add('hidden');
+      document.getElementById('auth-recovery-resend').classList.toggle('hidden', mode !== 'verify');
+      document.getElementById('auth-back').classList.toggle('hidden', !recovery);
+      document.getElementById('auth-flow-heading').classList.toggle('hidden', !recovery);
+      const headings = {
+        recover: ['Recuperar senha', 'Informe o email da sua conta para receber as instruções de recuperação.'],
+        verify: ['Confira seu email', 'Digite o código recebido. Se o email trouxer um link de recuperação, você também pode usá-lo. Confira a pasta de spam.'],
+        reset: _recoveryPasswordUpdated
+          ? ['Senha atualizada', 'Conclua o encerramento das sessões para entrar novamente.']
+          : ['Crie uma nova senha', 'Seu acesso foi verificado. Escolha uma senha com pelo menos 8 caracteres.'],
+      };
+      document.getElementById('auth-flow-title').textContent = headings[mode]?.[0] || '';
+      document.getElementById('auth-flow-description').textContent = headings[mode]?.[1] || '';
       clearAuthError();
+    }
+
+    function authSubmitLabel() {
+      return _authMode === 'reset' && _recoveryPasswordUpdated ? 'Concluir recuperação' : _authLabels[_authMode];
     }
 
     function showAuthScreen() {
@@ -2330,11 +2489,15 @@
     }
 
     function setAuthLoading(loading) {
+      _authBusy = loading;
       const btn = document.getElementById('auth-submit-btn');
       btn.disabled = loading;
+      ['auth-tab-login', 'auth-tab-signup', 'auth-forgot', 'auth-back', 'auth-resend', 'auth-recovery-resend'].forEach(id => {
+        document.getElementById(id).disabled = loading || ((id === 'auth-resend' || id === 'auth-recovery-resend') && Date.now() < _emailSendAfter);
+      });
       document.getElementById('auth-submit-label').textContent = loading
         ? 'Aguarde...'
-        : (_authMode === 'login' ? 'Entrar' : 'Criar Conta');
+        : authSubmitLabel();
     }
 
     function toggleAuthPasswordVisibility() {
@@ -2347,12 +2510,13 @@
 
     async function handleAuthSubmit(e) {
       e.preventDefault();
+      if (_authBusy) return;
       clearAuthError();
       const email = document.getElementById('auth-email').value.trim();
       const password = document.getElementById('auth-password').value;
       const remember = document.getElementById('auth-remember').checked;
 
-      if (password.length < 8) {
+      if (['login', 'signup', 'reset'].includes(_authMode) && !(_authMode === 'reset' && _recoveryPasswordUpdated) && password.length < 8) {
         showAuthError('A senha deve ter no minimo 8 caracteres.');
         return;
       }
@@ -2361,8 +2525,14 @@
       try {
         if (_authMode === 'login') {
           await signIn(email, password, remember);
-        } else {
+        } else if (_authMode === 'signup') {
           await signUp(email, password, remember);
+        } else if (_authMode === 'recover') {
+          await requestPasswordRecovery(email);
+        } else if (_authMode === 'verify') {
+          await verifyRecoveryCode(email, document.getElementById('auth-code').value.trim());
+        } else if (_authMode === 'reset') {
+          await saveRecoveredPassword(password, document.getElementById('auth-password-confirm').value);
         }
       } catch (err) {
         showAuthError(err.message || 'Erro desconhecido. Tente novamente.');
@@ -2375,22 +2545,205 @@
     // AUTH FUNCTIONS
     // =========================================================
     async function signUp(email, password, remember) {
-      const { data, error } = await sb.auth.signUp({ email, password });
-      if (error) throw new Error(translateAuthError(error.message));
-      // data.session is present when email confirmation is disabled
-      if (data.session && data.user) {
-        await onAuthSuccess(data.user, remember);
-      } else if (data.user && !data.session) {
-        // Email confirmation pending — show as success, not error
-        showAuthSuccess('Cadastro realizado! Verifique seu e-mail para confirmar o acesso.');
+      // Fail closed: jamais criar contas auto-confirmadas enquanto a configuração
+      // de Auth no servidor ainda permitir entrar sem verificar o email.
+      const settingsResponse = await fetch(`${SUPABASE_URL}/auth/v1/settings`, {
+        headers: { apikey: SUPABASE_ANON_KEY }, cache: 'no-store',
+      });
+      if (!settingsResponse.ok) throw new Error('Não foi possível verificar o cadastro. Tente novamente.');
+      const settings = await settingsResponse.json();
+      if (settings.mailer_autoconfirm !== false) {
+        throw new Error('O cadastro está temporariamente indisponível enquanto a confirmação de email é ativada. Tente novamente mais tarde.');
       }
+      const { data, error } = await sb.auth.signUp({ email, password, options: authEmailOptions() });
+      if (error) throw new Error(translateAuthError(error.message));
+      if (data.session) {
+        await sb.auth.signOut({ scope: 'local' });
+        throw new Error('A confirmação de email precisa ser ativada para concluir o cadastro.');
+      }
+      localStorage.setItem('bdm_remember', remember ? '1' : '0');
+      showPendingConfirmation(email);
+      startEmailCooldown();
     }
 
     async function signIn(email, password, remember) {
       const { data, error } = await sb.auth.signInWithPassword({ email, password });
-      if (error) throw new Error(translateAuthError(error.message));
+      if (error) {
+        if (error.code === 'email_not_confirmed' || error.message.includes('Email not confirmed')) showPendingConfirmation(email);
+        throw new Error(translateAuthError(error.message));
+      }
+      if (!data.user?.email_confirmed_at) {
+        await sb.auth.signOut({ scope: 'local' });
+        showPendingConfirmation(email);
+        throw new Error('Confirme seu email antes de entrar.');
+      }
       await onAuthSuccess(data.user, remember);
     }
+
+    function authEmailOptions() {
+      // No APK/file:// usar o Site URL configurado no Supabase, nunca assets locais.
+      if (!['https:', 'http:'].includes(location.protocol)) return {};
+      const redirect = new URL(location.href);
+      redirect.hash = '';
+      redirect.search = '';
+      return { emailRedirectTo: redirect.href };
+    }
+
+    function showPendingConfirmation(email) {
+      switchAuthTab('login');
+      document.getElementById('auth-email').value = email;
+      document.getElementById('auth-resend').classList.remove('hidden');
+      showAuthSuccess('Confira seu email e confirme o cadastro antes de entrar. Verifique também a pasta de spam.');
+    }
+
+    function startEmailCooldown() {
+      _emailSendAfter = Date.now() + 60000;
+      ['auth-resend', 'auth-recovery-resend'].forEach(id => { document.getElementById(id).disabled = true; });
+      setTimeout(() => {
+        if (!_authBusy) ['auth-resend', 'auth-recovery-resend'].forEach(id => { document.getElementById(id).disabled = false; });
+      }, 60000);
+    }
+
+    async function resendConfirmationEmail() {
+      if (_authBusy || Date.now() < _emailSendAfter) return;
+      const input = document.getElementById('auth-email');
+      if (!input.reportValidity()) return;
+      const email = input.value.trim();
+      setAuthLoading(true);
+      try {
+        const { error } = await sb.auth.resend({ type: 'signup', email, options: authEmailOptions() });
+        if (error) throw new Error(translateAuthError(error.message));
+        startEmailCooldown();
+        showAuthSuccess('Se houver um cadastro pendente para este email, você receberá uma nova confirmação.');
+      } catch (err) { showAuthError(err.message || 'Não foi possível reenviar o email. Tente novamente.'); }
+      finally { setAuthLoading(false); }
+    }
+
+    async function requestPasswordRecovery(email) {
+      if (Date.now() < _emailSendAfter) throw new Error('Aguarde um minuto antes de solicitar outro email.');
+      const { emailRedirectTo } = authEmailOptions();
+      const { error } = await sb.auth.resetPasswordForEmail(email, emailRedirectTo ? { redirectTo: emailRedirectTo } : {});
+      if (error) throw new Error(translateAuthError(error.message));
+      _recoveryEmail = email;
+      _recoveryActive = true;
+      _recoveryVerifiedUserId = null;
+      switchAuthTab('verify');
+      document.getElementById('auth-email').value = email;
+      startEmailCooldown();
+      showAuthSuccess('Se houver uma conta com este email, você receberá as instruções para recuperar a senha.');
+      document.getElementById('auth-code').focus();
+    }
+
+    async function resendRecoveryEmail() {
+      if (_authBusy || Date.now() < _emailSendAfter) return;
+      setAuthLoading(true);
+      try { await requestPasswordRecovery(_recoveryEmail); }
+      catch (err) { showAuthError(err.message || 'Não foi possível enviar o email. Tente novamente.'); }
+      finally { setAuthLoading(false); }
+    }
+
+    async function verifyRecoveryCode(email, token) {
+      if (!_recoveryActive || email !== _recoveryEmail || !/^\d{6,10}$/.test(token)) {
+        throw new Error('Informe o código recebido no email de recuperação.');
+      }
+      const { data, error } = await recoverySb.auth.verifyOtp({ email, token, type: 'recovery' });
+      if (error) throw new Error(translateAuthError(error.message));
+      if (!data?.session?.user || data.session.user.email?.toLowerCase() !== email.toLowerCase()) {
+        throw new Error('Não foi possível verificar o código de recuperação.');
+      }
+      beginPasswordReset(data.session.user);
+    }
+
+    function beginPasswordReset(user) {
+      if (_recoveryVerifiedUserId === user.id && _authMode === 'reset') return;
+      _recoveryActive = true;
+      _recoveryVerifiedUserId = user.id;
+      _recoveryEmail = user.email;
+      _recoveryPasswordUpdated = pendingRecoveryCleanup()?.id === user.id;
+      clearPrivateUserData();
+      showAuthScreen();
+      switchAuthTab('reset');
+      document.getElementById('auth-email').value = user.email;
+      document.getElementById('auth-password').focus();
+    }
+
+    async function saveRecoveredPassword(password, confirmation) {
+      if (!_recoveryVerifiedUserId) throw new Error('Verifique o código ou o link de recuperação antes de alterar a senha.');
+      if (!_recoveryPasswordUpdated) {
+        if (password.length < 8) throw new Error('A senha deve ter no mínimo 8 caracteres.');
+        if (password !== confirmation) throw new Error('As senhas devem ser iguais.');
+        const { data: sessionData, error: sessionError } = await recoverySb.auth.getSession();
+        if (sessionError || sessionData?.session?.user?.id !== _recoveryVerifiedUserId) {
+          throw new Error('A sessão de recuperação expirou. Solicite um novo código.');
+        }
+        const { error } = await recoverySb.auth.updateUser({ password });
+        if (error) throw new Error(translateAuthError(error.message));
+        _recoveryPasswordUpdated = true;
+        sessionStorage.setItem('bdm_recovery_updated', JSON.stringify({ id: _recoveryVerifiedUserId, email: _recoveryEmail }));
+        switchAuthTab('reset');
+      }
+      await finishPasswordRecovery();
+    }
+
+    function pendingRecoveryCleanup() {
+      try {
+        const value = JSON.parse(sessionStorage.getItem('bdm_recovery_updated') || 'null');
+        return typeof value?.id === 'string' && typeof value?.email === 'string' ? value : null;
+      } catch { return null; }
+    }
+
+    async function finishPasswordRecovery() {
+      const { error: signOutError } = await recoverySb.auth.signOut({ scope: 'global' });
+      if (signOutError) throw new Error('A senha foi atualizada, mas não foi possível encerrar a sessão. Tente novamente.');
+      const { error: normalSignOutError } = await sb.auth.signOut({ scope: 'local' });
+      if (normalSignOutError) throw new Error('A senha foi atualizada. Tente novamente para concluir o encerramento da sessão.');
+      sessionStorage.removeItem('bdm_recovery_updated');
+      _recoveryActive = false;
+      _recoveryVerifiedUserId = null;
+      _recoveryPasswordUpdated = false;
+      _recoveryEmail = '';
+      clearPrivateUserData();
+      sessionStorage.removeItem('bdm_tab_active');
+      switchAuthTab('login');
+      showAuthSuccess('Senha atualizada! Entre com sua nova senha.');
+    }
+
+    async function cancelPasswordRecovery() {
+      if (_authBusy) return;
+      setAuthLoading(true);
+      try {
+        if (_recoveryPasswordUpdated) { await finishPasswordRecovery(); return; }
+        if (_recoveryVerifiedUserId) {
+          const { error } = await recoverySb.auth.signOut({ scope: 'local' });
+          if (error) throw error;
+          const { error: normalError } = await sb.auth.signOut({ scope: 'local' });
+          if (normalError) throw normalError;
+        }
+        _recoveryActive = false;
+        _recoveryVerifiedUserId = null;
+        _recoveryEmail = '';
+        switchAuthTab('login');
+      } catch { showAuthError('Não foi possível encerrar a recuperação. Tente novamente.'); }
+      finally { setAuthLoading(false); }
+    }
+
+    function handleAuthStateChange(event, session) {
+      // O callback do SDK deve ser síncrono; operações de Auth assíncronas
+      // aqui podem bloquear o lock interno do Supabase.
+      if (event === 'TOKEN_REFRESHED' && session?.user?.email_confirmed_at && !App.currentUser && !_recoveryActive) {
+        setTimeout(() => {
+          onAuthSuccess(session.user, localStorage.getItem('bdm_remember') === '1')
+            .catch(() => showAuthError('Não foi possível restaurar a sessão. Entre novamente.'));
+        }, 0);
+      }
+    }
+
+    // Ouvir no mesmo script que cria o cliente, antes da inicialização
+    // assíncrona do SDK e do DOMContentLoaded.
+    sb.auth.onAuthStateChange(handleAuthStateChange);
+    recoverySb.auth.onAuthStateChange((event, session) => {
+      if (['PASSWORD_RECOVERY', 'SIGNED_IN', 'INITIAL_SESSION'].includes(event) && session?.user) beginPasswordReset(session.user);
+    });
 
     async function confirmSignOut() {
       if (!await confirmDialog('Deseja sair da sua conta?', { title: 'Sair da conta', confirmText: 'Sair' })) return;
@@ -2398,8 +2751,13 @@
     }
 
     async function signOut() {
-      clearAIChat();
       await sb.auth.signOut();
+      clearPrivateUserData();
+      showAuthScreen();
+    }
+
+    function clearPrivateUserData() {
+      clearAIChat();
       App.currentUser = null;
       App.investments = [];
       App.categories = [];
@@ -2408,10 +2766,13 @@
       const emailEl = document.getElementById('sidebar-user-email');
       if (emailEl) emailEl.textContent = '\u2014';
       updateBDMDisplays();
-      showAuthScreen();
     }
 
     async function onAuthSuccess(user, remember) {
+      if (_recoveryActive || !user?.email_confirmed_at) {
+        showAuthScreen();
+        return;
+      }
       // Persist preference in localStorage; mark tab as active in sessionStorage
       localStorage.setItem('bdm_remember', remember ? '1' : '0');
       if (!remember) {
@@ -2438,6 +2799,9 @@
     }
 
     function translateAuthError(msg) {
+      if (msg.includes('Token has expired') || msg.includes('otp_expired')) return 'Código ou link inválido ou expirado. Solicite um novo email.';
+      if (msg.includes('New password should be different')) return 'Escolha uma senha diferente da senha atual.';
+      if (msg.includes('email rate limit exceeded') || msg.includes('For security purposes')) return 'Aguarde um minuto antes de solicitar outro email.';
       if (msg.includes('Invalid login credentials')) return 'E-mail ou senha incorretos.';
       if (msg.includes('Email not confirmed')) return 'Confirme seu e-mail antes de entrar.';
       if (msg.includes('User already registered')) return 'Este e-mail ja possui uma conta. Faca login.';
@@ -2474,9 +2838,29 @@
     }
 
     async function checkSession() {
-      const { data } = await sb.auth.getSession();
+      const { data: recoveryData, error: recoveryError } = await recoverySb.auth.getSession();
+      if (recoveryError) throw recoveryError;
+      const recoveryUser = recoveryData?.session?.user || pendingRecoveryCleanup();
+      if (recoveryUser) {
+        beginPasswordReset(recoveryUser);
+        return null;
+      }
+      const { data, error } = await sb.auth.getSession();
+      if (error) throw error;
+      if (_recoveryActive) return null;
       const user = data?.session?.user;
       if (!user) return null;
+      if (!user.email_confirmed_at) {
+        await sb.auth.signOut({ scope: 'local' });
+        return null;
+      }
+
+      // Link de confirmação aberto em uma aba nova deve funcionar mesmo sem
+      // "lembrar". A preferência continua limitada à duração desta aba.
+      if (_hasAuthCallback && _authCallbackType !== 'recovery') {
+        sessionStorage.setItem('bdm_tab_active', '1');
+        return user;
+      }
 
       const remember = localStorage.getItem('bdm_remember');
 
@@ -3791,6 +4175,45 @@
       el.style.display = 'none';
       const panel = el.querySelector('.glass-modal');
       if (panel) panel.style.transform = '';
+    }
+
+    let _donateReturnFocus = null;
+    function openDonateModal() {
+      _donateReturnFocus = document.activeElement;
+      showModal('modal-donate');
+      document.getElementById('donate-close').focus();
+    }
+    function closeDonateModal() {
+      hideModal('modal-donate');
+      _donateReturnFocus?.focus();
+    }
+    document.getElementById('modal-donate').addEventListener('keydown', event => {
+      if (event.key === 'Escape') { event.preventDefault(); closeDonateModal(); }
+      if (event.key !== 'Tab') return;
+      const buttons = document.querySelectorAll('#modal-donate button');
+      const first = buttons[0], last = buttons[buttons.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    });
+    async function copyDonationKey(method) {
+      const key = 'heitorpazote@gmail.com';
+      try {
+        if (!navigator.clipboard?.writeText) throw new Error('Clipboard indisponível');
+        await navigator.clipboard.writeText(key);
+      } catch {
+        const field = document.createElement('textarea');
+        field.value = key;
+        field.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+        document.body.appendChild(field);
+        field.focus();
+        field.select();
+        let copied = false;
+        try { copied = document.execCommand('copy'); } catch { }
+        field.remove();
+        document.getElementById('donate-close').focus();
+        if (!copied) { toast('Selecione e copie o email exibido no cartão.', 'error'); return; }
+      }
+      toast(method === 'PIX' ? 'Chave PIX copiada!' : 'Carteira BDM copiada!');
     }
 
     // Guard de descarte: fechar por gesto/backdrop com formulario alterado pergunta
@@ -6247,6 +6670,17 @@ Ativos de valorizacao (${ativos.length}): ${JSON.stringify(ativos)}`;
       initAIMobileKeyboardFix();
       try {
         const user = await checkSession();
+        if (_authCallbackError) {
+          _recoveryActive = false;
+          const recoveryLink = _authCallbackType === 'recovery';
+          switchAuthTab(recoveryLink ? 'recover' : 'login');
+          if (!recoveryLink) document.getElementById('auth-resend').classList.remove('hidden');
+          showAuthError('O link de email é inválido ou expirou. Solicite um novo email.');
+        } else if (_recoveryActive && !_recoveryVerifiedUserId) {
+          _recoveryActive = false;
+          switchAuthTab('recover');
+          showAuthError('O link de recuperação é inválido ou expirou. Solicite um novo email.');
+        }
         // Responder do canal entre abas so entra DEPOIS do checkSession desta aba,
         // para o ping desta aba nunca ser respondido por ela mesma.
         _initTabChannel();
@@ -6266,19 +6700,6 @@ Ativos de valorizacao (${ativos.length}): ${JSON.stringify(ativos)}`;
           showAuthScreen();
           document.querySelectorAll('input[type=range]').forEach(updateSliderTrack);
           updateCalc();
-          // Token may be refreshing in background — load app if refresh succeeds
-          const { data: { subscription } } = sb.auth.onAuthStateChange(async (event, session) => {
-            if (event === 'TOKEN_REFRESHED' && session?.user && !App.currentUser) {
-              subscription.unsubscribe();
-              App.currentUser = session.user;
-              const emailEl = document.getElementById('sidebar-user-email');
-              if (emailEl) emailEl.textContent = session.user.email;
-              hideAuthScreen();
-              await loadAllData();
-              navigate('calendar');
-              renderCalendar();
-            }
-          });
         }
       } catch (err) {
         console.error('Init error:', err);

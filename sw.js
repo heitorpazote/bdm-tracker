@@ -1,7 +1,7 @@
 // Service worker do BDM Tracker.
 // Shell local: cache-first com atualizacao em background.
 // CDNs: stale-while-revalidate. Supabase: NUNCA cacheado (dados financeiros).
-const SHELL_CACHE = 'bdm-shell-v1';
+const SHELL_CACHE = 'bdm-shell-v2';
 const CDN_CACHE = 'bdm-cdn-v1';
 
 const SHELL_ASSETS = [

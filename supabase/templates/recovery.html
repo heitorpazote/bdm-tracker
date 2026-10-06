@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<body style="margin:0;padding:32px 16px;background:#09090b;color:#eae1d4;font-family:Arial,sans-serif;">
+  <div style="max-width:440px;margin:auto;padding:32px;background:#18181b;border:1px solid #303036;border-radius:20px;">
+    <p style="color:#38bdf8;font-size:20px;font-weight:bold;margin:0 0 24px;">Cripto Tracker</p>
+    <h1 style="font-size:22px;margin:0 0 16px;">Recuperar sua senha</h1>
+    <p style="color:#c7c6c4;line-height:1.6;">Digite este código na tela de recuperação da plataforma:</p>
+    <p style="background:#09090b;border:1px solid #303036;border-radius:12px;padding:20px;text-align:center;font-size:28px;letter-spacing:6px;color:#38bdf8;font-weight:bold;">{{ .Token }}</p>
+    <p style="color:#c7c6c4;line-height:1.6;">Você também pode abrir o link abaixo para escolher uma nova senha:</p>
+    <p><a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 20px;border-radius:10px;background:#0ea5e9;color:#09090b;text-decoration:none;font-weight:bold;">Criar nova senha</a></p>
+    <p style="color:#c7c6c4;font-size:12px;line-height:1.6;">O código e o link são temporários e só podem ser usados uma vez. Nunca compartilhe este código. Se você não solicitou a recuperação, ignore este email.</p>
+  </div>
+</body>
+</html>
